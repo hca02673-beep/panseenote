@@ -114,6 +114,40 @@
 
   /**
    * @param {IDBDatabase} db
+   * @param {object} doc
+   */
+  function putLicense(db, doc) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction([C.STORES.LICENSE], "readwrite");
+      tx.objectStore(C.STORES.LICENSE).put(doc);
+      tx.oncomplete = function () {
+        resolve(doc);
+      };
+      tx.onerror = function () {
+        reject(tx.error);
+      };
+    });
+  }
+
+  /**
+   * 試用版の itemLimit を config の DEFAULT に揃える（既存DBの旧上限を更新）
+   * @param {IDBDatabase} db
+   */
+  function syncTrialItemLimitWithConfig(db) {
+    return getLicense(db).then(function (lic) {
+      if (!lic || lic.planCode !== C.DEFAULT_PLAN_CODE) {
+        return lic;
+      }
+      if (lic.itemLimit === C.DEFAULT_ITEM_LIMIT) {
+        return lic;
+      }
+      lic.itemLimit = C.DEFAULT_ITEM_LIMIT;
+      return putLicense(db, lic);
+    });
+  }
+
+  /**
+   * @param {IDBDatabase} db
    * @returns {Promise<object>}
    */
   function getSettings(db) {
@@ -291,5 +325,7 @@
     patchEntry: patchEntry,
     defaultLicenseDoc: defaultLicenseDoc,
     defaultSettingsDoc: defaultSettingsDoc,
+    putLicense: putLicense,
+    syncTrialItemLimitWithConfig: syncTrialItemLimitWithConfig,
   };
 })(typeof window !== "undefined" ? window : globalThis);

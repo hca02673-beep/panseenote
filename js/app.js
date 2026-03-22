@@ -486,6 +486,9 @@
         return db.ensureSeedDocs(idb);
       })
       .then(function () {
+        return db.syncTrialItemLimitWithConfig(state.idb);
+      })
+      .then(function () {
         return Promise.all([
           db.getLicense(state.idb),
           db.getSettings(state.idb),

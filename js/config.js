@@ -25,7 +25,8 @@
     /** 試用版（API未接続時） */
     DEFAULT_PLAN_CODE: "trial",
     DEFAULT_PLAN_NAME: "試用版",
-    DEFAULT_ITEM_LIMIT: 30,
+    /** 実機UI検証用に試用版も含め上限を引き上げ（本番ではライセンスで上書き予定） */
+    DEFAULT_ITEM_LIMIT: 30000,
 
     LICENSE_DOC_ID: "current",
     SETTINGS_DOC_ID: "app-settings",
