@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>パンセノート — 紙ノート音声検索アプリ</title>
+    <meta
+      name="description"
+      content="紙ノートに書いた情報の索引を、音声と手入力で登録・検索します。"
+    />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div class="app-wrap">
+      <div class="backup-row">
+        <button type="button" id="btn-export" class="primary">
+          バックアップファイル保存
+        </button>
+        <button type="button" id="btn-import-trigger">
+          バックアップファイル読み出し
+        </button>
+        <input
+          type="file"
+          id="import-file"
+          class="sr-only"
+          accept="application/json,.json"
+          aria-hidden="true"
+        />
+      </div>
+
+      <h1>パンセノート</h1>
+      <p class="subtitle">紙ノート音声検索アプリ</p>
+
+      <div class="plan-bar">
+        <span class="plan-name" id="plan-name-display">試用版</span>
+        <span class="count-line">
+          登録 <strong id="entry-count">0</strong> 件 /
+          上限 <strong id="entry-limit">30</strong> 件
+        </span>
+      </div>
+
+      <div class="voice-row">
+        <button type="button" id="btn-voice-search" class="primary voice-lg">
+          音声検索
+        </button>
+        <button type="button" id="btn-voice-register" class="primary voice-lg">
+          音声登録
+        </button>
+      </div>
+
+      <div class="search-row">
+        <label class="sr-only" for="manual-search">手動検索</label>
+        <input
+          type="search"
+          id="manual-search"
+          placeholder="見出しの一部で検索"
+          autocomplete="off"
+        />
+        <button type="button" id="btn-search" class="primary">検索</button>
+      </div>
+      <div id="search-meta" class="search-meta" aria-live="polite"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">見出し</th>
+              <th scope="col">冊数</th>
+              <th scope="col">ページ</th>
+              <th scope="col">登録日付</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody id="entries-body"></tbody>
+        </table>
+      </div>
+
+      <details class="settings">
+        <summary>設定・ライセンス（次期拡張予定）</summary>
+        <div class="settings-body">
+          <p>
+            初版は管理サーバー未接続のため<strong>試用版（30件まで）</strong>として動作します。ライセンス認証・事故キー確認・PWA
+            は次フェーズで追加予定です。
+          </p>
+          <ul>
+            <li>認証状態: <span id="license-status-label">試用（オフライン相当）</span></li>
+            <li>最終バックアップ日: <span id="last-backup-label">—</span></li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/normalize.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/voice.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
