@@ -17,6 +17,8 @@
     /** @type {null | { id?: string, title: string, book: string, page: string }} */
     draft: null,
     searchQuery: "",
+    voiceRegisterMode: false,
+    voicePreviewEntry: null,
   };
 
   var $ = function (sel) {
@@ -32,6 +34,43 @@
     toast._t = window.setTimeout(function () {
       el.classList.remove("show");
     }, 3200);
+  }
+
+  function setEntryLimitInlineWarning(msg) {
+    var el = $("#entry-limit-warning-inline");
+    if (!el) return;
+    var text = String(msg || "").trim();
+    el.textContent = text;
+    el.hidden = text === "";
+  }
+
+  function updateEntryLimitInlineWarning(entryCount) {
+    var limit = Number(state.license && state.license.itemLimit);
+    if (!isFinite(limit) || limit <= 0) {
+      setEntryLimitInlineWarning("");
+      return;
+    }
+    if (entryCount >= limit) {
+      setEntryLimitInlineWarning(
+        "登録上限（" + limit + "件）に達しています。新規登録には既存データの削除またはプラン変更が必要です。"
+      );
+      return;
+    }
+    setEntryLimitInlineWarning("");
+  }
+
+  function startVoiceRegisterSingleRowMode() {
+    state.voiceRegisterMode = true;
+    state.voicePreviewEntry = null;
+    state.searchQuery = "";
+    if ($("#manual-search")) {
+      $("#manual-search").value = "";
+    }
+    return saveSearchQueryToSettings("").then(function () {
+      return refreshCount().then(function () {
+        return renderTable();
+      });
+    });
   }
 
   function sortEntries(rows) {
@@ -197,6 +236,7 @@
   function refreshCount() {
     return db.countEntries(state.idb).then(function (n) {
       $("#entry-count").textContent = String(n);
+      updateEntryLimitInlineWarning(n);
       return n;
     });
   }
@@ -295,6 +335,34 @@
       var body = $("#entries-body");
       body.innerHTML = "";
 
+      if (state.voiceRegisterMode) {
+        if (state.draft) {
+          var dv = state.draft;
+          body.insertAdjacentHTML(
+            "afterbegin",
+            rowHtml(
+              {
+                id: dv.id || "",
+                title: dv.title,
+                book: dv.book,
+                page: dv.page,
+                createdAt: "（未保存）",
+              },
+              true
+            )
+          );
+        } else if (state.voicePreviewEntry) {
+          body.insertAdjacentHTML("afterbegin", rowHtml(state.voicePreviewEntry, false));
+        }
+        var metaEl = $("#search-meta");
+        if (metaEl) {
+          metaEl.textContent =
+            "音声登録モードです。表示中の1行を確認して保存・削除できます。";
+        }
+        wireTableHandlers();
+        return refreshCount();
+      }
+
       if (state.draft) {
         var d = state.draft;
         body.insertAdjacentHTML(
@@ -349,11 +417,17 @@
           window.alert(
             "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
           );
+          setEntryLimitInlineWarning(
+            "登録上限（" + state.license.itemLimit + "件）に達しているため保存できません。"
+          );
           return;
         }
         var entry = db.buildNewEntry(vals.title, vals.book, vals.page);
         return db.putEntry(state.idb, entry).then(function () {
           state.draft = null;
+          if (state.voiceRegisterMode) {
+            state.voicePreviewEntry = entry;
+          }
           toast("保存しました。");
           return renderTable();
         });
@@ -396,6 +470,8 @@
   }
 
   function runSearch() {
+    state.voiceRegisterMode = false;
+    state.voicePreviewEntry = null;
     state.searchQuery = $("#manual-search").value || "";
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable();
@@ -408,6 +484,8 @@
       return;
     }
     return voice.recognizeOnce().then(function (text) {
+      state.voiceRegisterMode = false;
+      state.voicePreviewEntry = null;
       $("#manual-search").value = text;
       state.searchQuery = text;
       return saveSearchQueryToSettings(state.searchQuery).then(function () {
@@ -425,15 +503,19 @@
       window.alert("このブラウザでは音声認識を利用できません。手入力で登録してください。");
       return;
     }
-    return voice.recognizeOnce().then(function (text) {
+    return startVoiceRegisterSingleRowMode().then(function () {
+      return voice.recognizeOnce();
+    }).then(function (text) {
       var parsed = voice.parseRegisterTranscript(text);
       state.draft = null;
+      state.voicePreviewEntry = null;
       return refreshCount().then(function (n) {
         var atLimit = n >= Number(state.license.itemLimit);
 
         if (parsed.ok && !atLimit) {
           var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page);
           return db.putEntry(state.idb, entry).then(function () {
+            state.voicePreviewEntry = entry;
             toast("音声から登録しました。");
             return renderTable();
           });
@@ -445,6 +527,9 @@
             book: parsed.book,
             page: parsed.page,
           };
+          setEntryLimitInlineWarning(
+            "登録上限（" + state.license.itemLimit + "件）のため自動登録できません。表示中の1行を編集し、空きを作ってから保存してください。"
+          );
           toast(
             "登録上限に達しているため自動登録できません。データを整理するか、行を編集のうえ空きを作ってください。"
           );
@@ -455,6 +540,10 @@
         toast("音声から冊数・ページ・見出しを取り出せませんでした。手入力で保存できます。");
         return renderTable();
       });
+    }).catch(function () {
+      state.draft = { title: "", book: "", page: "" };
+      state.voicePreviewEntry = null;
+      return renderTable();
     });
   }
 
