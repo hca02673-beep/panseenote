@@ -10,6 +10,12 @@
   --accent-hover: #1d4ed8;
   --danger: #b91c1c;
   --muted: #5c6370;
+  --voice-pastel-search-bg: #cfe8ff;
+  --voice-pastel-search-border: #9ec5f0;
+  --voice-pastel-search-fg: #1e3a5f;
+  --voice-pastel-register-bg: #fff3bf;
+  --voice-pastel-register-border: #e8d48b;
+  --voice-pastel-register-fg: #5c4a1a;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans",
     "Noto Sans JP", sans-serif;
   line-height: 1.5;
@@ -25,6 +31,12 @@
     --accent-hover: #93c5fd;
     --danger: #f87171;
     --muted: #a8b0c0;
+    --voice-pastel-search-bg: #1a3a52;
+    --voice-pastel-search-border: #3d6a8a;
+    --voice-pastel-search-fg: #dbeafe;
+    --voice-pastel-register-bg: #4a4420;
+    --voice-pastel-register-border: #8a7a40;
+    --voice-pastel-register-fg: #fef3c7;
   }
 }
 
@@ -44,46 +56,76 @@ body {
   padding: 1rem 1rem 3rem;
 }
 
-.backup-row {
+.app-header {
+  margin-bottom: 0.75rem;
+}
+
+.app-header-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.app-title {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.header-data-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
-h1 {
-  font-size: 1.5rem;
-  margin: 0 0 0.25rem;
+.app-header-sub-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 0.35rem;
 }
 
 .subtitle {
-  margin: 0 0 1rem;
+  margin: 0;
   color: var(--muted);
   font-size: 0.95rem;
 }
 
-.plan-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.25rem;
-  align-items: baseline;
-  margin-bottom: 0.75rem;
-  font-size: 0.95rem;
-}
-
-.plan-name {
+.plan-summary {
+  margin: 0 0 0 auto;
+  text-align: right;
+  font-size: 0.92rem;
   font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
 }
 
-.count-line {
-  color: var(--muted);
+@media (max-width: 520px) {
+  .plan-summary {
+    white-space: normal;
+    text-align: left;
+    margin: 0;
+    width: 100%;
+  }
+}
+
+button.sm-header {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
 }
 
 .voice-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 1.5rem;
   margin: 1rem 0;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .inline-warning {
@@ -120,10 +162,38 @@ button.primary:hover {
 }
 
 button.voice-lg {
-  flex: 1 1 200px;
-  min-height: 3rem;
+  min-height: 3.5rem;
+  min-width: 8.5rem;
+  max-width: 12rem;
+  flex: 0 1 auto;
+  width: clamp(8.5rem, 28vw, 12rem);
   font-size: 1.05rem;
   font-weight: 600;
+}
+
+button.voice-btn {
+  border-radius: 12px;
+  border-width: 2px;
+}
+
+button.voice-btn-search {
+  background: var(--voice-pastel-search-bg);
+  border-color: var(--voice-pastel-search-border);
+  color: var(--voice-pastel-search-fg);
+}
+
+button.voice-btn-search:hover {
+  filter: brightness(0.97);
+}
+
+button.voice-btn-register {
+  background: var(--voice-pastel-register-bg);
+  border-color: var(--voice-pastel-register-border);
+  color: var(--voice-pastel-register-fg);
+}
+
+button.voice-btn-register:hover {
+  filter: brightness(0.97);
 }
 
 button.danger {
@@ -163,10 +233,31 @@ button.danger {
   background: var(--card);
 }
 
-table {
+table.entries-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  table-layout: fixed;
+}
+
+.entries-table col.col-title {
+  width: auto;
+}
+
+.entries-table col.col-book {
+  width: 3.75rem;
+}
+
+.entries-table col.col-page {
+  width: 3.75rem;
+}
+
+.entries-table col.col-date {
+  width: 6.75rem;
+}
+
+.entries-table col.col-actions {
+  width: 8.5rem;
 }
 
 th,
@@ -194,13 +285,26 @@ tr:last-child td {
 
 td input.inline {
   width: 100%;
-  min-width: 5rem;
+  min-width: 0;
   font: inherit;
   padding: 0.25rem 0.35rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
   color: inherit;
+}
+
+td.col-book input.inline-num,
+td.col-page input.inline-num {
+  width: 100%;
+  max-width: 3.75rem;
+  min-width: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.col-title {
+  width: auto;
 }
 
 td.readonly {
@@ -211,7 +315,9 @@ td.readonly {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 button.sm {

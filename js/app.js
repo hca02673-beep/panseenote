@@ -220,14 +220,44 @@
     if (nx) nx.textContent = formatIsoDisplay(licDoc.nextCheckAfter);
   }
 
+  /**
+   * プラン名を「○○プラン」表記に揃える（例: ベーシック → ベーシックプラン、試用版はそのまま）
+   */
+  function formatPlanLabelForSummary(lic) {
+    var name = lic && lic.planName ? String(lic.planName).trim() : "試用版";
+    if (name.indexOf("プラン") >= 0 || name.indexOf("版") >= 0) {
+      return name;
+    }
+    return name + "プラン";
+  }
+
+  /**
+   * @param {number|undefined} entryCount 省略時は既存表示の件数を維持（上限・プラン名のみ更新）
+   */
+  function updatePlanSummaryLine(entryCount) {
+    var el = $("#plan-summary-line");
+    if (!el) return;
+    var lic = state.license || {};
+    var limit = Number(lic.itemLimit);
+    if (!isFinite(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
+    var n;
+    if (entryCount != null && !isNaN(Number(entryCount))) {
+      n = Number(entryCount);
+    } else {
+      var prev = el.textContent.match(/^(\d+)件登録済/);
+      n = prev ? Number(prev[1]) : 0;
+    }
+    var label = formatPlanLabelForSummary(lic);
+    el.textContent = n + "件登録済／上限" + limit + "件（" + label + "）";
+  }
+
   function updatePlanBar() {
-    $("#plan-name-display").textContent = state.license.planName || "試用版";
-    $("#entry-limit").textContent = String(state.license.itemLimit);
     var lb = state.settings && state.settings.lastBackupAt;
     var lbEl = $("#last-backup-label");
     if (lbEl) lbEl.textContent = lb ? lb : "—";
     var vb = $("#app-version-label");
     if (vb) vb.textContent = String(C.APP_VERSION || "—");
+    updatePlanSummaryLine();
     updateLicenseDetailsPanel();
     updateLicenseWarningBanner();
     updateLicenseApiHint();
@@ -235,7 +265,7 @@
 
   function refreshCount() {
     return db.countEntries(state.idb).then(function (n) {
-      $("#entry-count").textContent = String(n);
+      updatePlanSummaryLine(n);
       updateEntryLimitInlineWarning(n);
       return n;
     });
@@ -281,21 +311,21 @@
       dr +
       (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
       ">" +
-      '<td><input class="inline" type="text" maxlength="' +
+      '<td class="col-title"><input class="inline" type="text" maxlength="' +
       C.MAX_TITLE_LENGTH +
       '" data-field="title" value="' +
       titleEsc +
       '" /></td>' +
-      '<td><input class="inline" type="text" data-field="book" value="' +
+      '<td class="col-book"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
       bookEsc +
       '" /></td>' +
-      '<td><input class="inline" type="text" data-field="page" value="' +
+      '<td class="col-page"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' +
       pageEsc +
       '" /></td>' +
-      '<td class="readonly">' +
+      '<td class="readonly col-date">' +
       escapeHtml(dateLabel) +
       "</td>" +
-      '<td class="actions">' +
+      '<td class="actions col-actions">' +
       '<button type="button" class="sm primary row-save">保存</button>' +
       '<button type="button" class="sm danger row-delete">削除</button>' +
       "</td>" +

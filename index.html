@@ -12,24 +12,31 @@
   </head>
   <body>
     <div class="app-wrap">
-      <div class="backup-row">
-        <button type="button" id="btn-export" class="primary">
-          バックアップファイル保存
-        </button>
-        <button type="button" id="btn-import-trigger">
-          バックアップファイル読み出し
-        </button>
-        <input
-          type="file"
-          id="import-file"
-          class="sr-only"
-          accept="application/json,.json"
-          aria-hidden="true"
-        />
-      </div>
+      <input
+        type="file"
+        id="import-file"
+        class="sr-only"
+        accept="application/json,.json"
+        aria-hidden="true"
+      />
 
-      <h1>パンセノート</h1>
-      <p class="subtitle">紙ノート音声検索アプリ</p>
+      <header class="app-header">
+        <div class="app-header-title-row">
+          <h1 class="app-title">パンセノート</h1>
+          <div class="header-data-actions">
+            <button type="button" id="btn-export" class="primary sm-header">
+              データファイル保存
+            </button>
+            <button type="button" id="btn-import-trigger" class="sm-header">
+              データファイル読み出し
+            </button>
+          </div>
+        </div>
+        <div class="app-header-sub-row">
+          <p class="subtitle">紙ノート音声検索アプリ</p>
+          <p class="plan-summary" id="plan-summary-line" aria-live="polite"></p>
+        </div>
+      </header>
 
       <div
         id="license-warning-banner"
@@ -38,19 +45,19 @@
         hidden
       ></div>
 
-      <div class="plan-bar">
-        <span class="plan-name" id="plan-name-display">試用版</span>
-        <span class="count-line">
-          登録 <strong id="entry-count">0</strong> 件 /
-          上限 <strong id="entry-limit">30</strong> 件
-        </span>
-      </div>
-
       <div class="voice-row">
-        <button type="button" id="btn-voice-search" class="primary voice-lg">
+        <button
+          type="button"
+          id="btn-voice-search"
+          class="voice-lg voice-btn voice-btn-search"
+        >
           音声検索
         </button>
-        <button type="button" id="btn-voice-register" class="primary voice-lg">
+        <button
+          type="button"
+          id="btn-voice-register"
+          class="voice-lg voice-btn voice-btn-register"
+        >
           音声登録
         </button>
       </div>
@@ -69,7 +76,14 @@
       <div id="search-meta" class="search-meta" aria-live="polite"></div>
 
       <div class="table-wrap">
-        <table>
+        <table class="entries-table">
+          <colgroup>
+            <col class="col-title" />
+            <col class="col-book" />
+            <col class="col-page" />
+            <col class="col-date" />
+            <col class="col-actions" />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">見出し</th>
