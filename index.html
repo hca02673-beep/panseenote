@@ -31,11 +31,18 @@
       <h1>パンセノート</h1>
       <p class="subtitle">紙ノート音声検索アプリ</p>
 
+      <div
+        id="license-warning-banner"
+        class="license-warning-banner"
+        role="status"
+        hidden
+      ></div>
+
       <div class="plan-bar">
         <span class="plan-name" id="plan-name-display">試用版</span>
         <span class="count-line">
           登録 <strong id="entry-count">0</strong> 件 /
-          上限 <strong id="entry-limit">30000</strong> 件
+          上限 <strong id="entry-limit">30</strong> 件
         </span>
       </div>
 
@@ -76,14 +83,36 @@
       </div>
 
       <details class="settings">
-        <summary>設定・ライセンス（次期拡張予定）</summary>
+        <summary>設定・ライセンス</summary>
         <div class="settings-body">
-          <p>
-            初版は管理サーバー未接続のため<strong>試用版（登録上限3万件・実機検証用）</strong>として動作します。ライセンス認証・事故キー確認・PWA
-            は次フェーズで追加予定です。
+          <p class="settings-lead">
+            プラン・登録上限は<strong>サーバー返却値</strong>を保存します。キー形式はクライアントで検査するのみで、有効性はサーバー照合です。
           </p>
-          <ul>
-            <li>認証状態: <span id="license-status-label">試用（オフライン相当）</span></li>
+          <div class="license-form">
+            <label for="license-key-input">ライセンスキー</label>
+            <div class="license-form-row">
+              <input
+                type="text"
+                id="license-key-input"
+                class="license-key-input"
+                placeholder="PN1-XXXX-XXXX-XXXX"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button type="button" id="btn-license-activate" class="primary">
+                認証する
+              </button>
+            </div>
+          </div>
+          <p id="license-api-url-hint" class="settings-hint"></p>
+          <ul class="license-meta">
+            <li>
+              プラン: <span id="license-plan-detail">—</span>
+            </li>
+            <li>認証状態: <span id="license-status-label">—</span></li>
+            <li>初回認証日時: <span id="license-activated-at">—</span></li>
+            <li>最終サーバー確認: <span id="license-last-checked">—</span></li>
+            <li>次回確認予定: <span id="license-next-check">—</span></li>
             <li>最終バックアップ日: <span id="last-backup-label">—</span></li>
           </ul>
         </div>
@@ -93,6 +122,7 @@
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script src="js/config.js"></script>
+    <script src="js/license.js"></script>
     <script src="js/normalize.js"></script>
     <script src="js/db.js"></script>
     <script src="js/voice.js"></script>

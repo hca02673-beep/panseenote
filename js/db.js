@@ -42,8 +42,22 @@
       licenseStatus: "trial_offline",
       activatedAt: "",
       lastCheckedAt: "",
+      nextCheckAfter: "",
       warningMessage: "",
     };
+  }
+
+  /**
+   * 旧データ互換・欠損フィールド補完
+   * @param {object|null|undefined} lic
+   */
+  function normalizeLicenseDoc(lic) {
+    var d = lic ? Object.assign({}, lic) : defaultLicenseDoc();
+    if (d.nextCheckAfter === undefined || d.nextCheckAfter === null) {
+      d.nextCheckAfter = "";
+    }
+    if (d.warningMessage === undefined) d.warningMessage = "";
+    return d;
   }
 
   function defaultSettingsDoc() {
@@ -104,7 +118,7 @@
       var tx = db.transaction([C.STORES.LICENSE], "readonly");
       var req = tx.objectStore(C.STORES.LICENSE).get(C.LICENSE_DOC_ID);
       req.onsuccess = function () {
-        resolve(req.result || defaultLicenseDoc());
+        resolve(normalizeLicenseDoc(req.result || defaultLicenseDoc()));
       };
       req.onerror = function () {
         reject(req.error);
@@ -130,17 +144,18 @@
   }
 
   /**
-   * 試用版の itemLimit を config の DEFAULT に揃える（既存DBの旧上限を更新）
+   * ライセンスキー未保存の試用のみ itemLimit を DEFAULT に補正（旧検証用の大きな上限など）
+   * キー保存済みはサーバー返却値を維持
    * @param {IDBDatabase} db
    */
   function syncTrialItemLimitWithConfig(db) {
     return getLicense(db).then(function (lic) {
-      if (!lic || lic.planCode !== C.DEFAULT_PLAN_CODE) {
+      if (!lic) return lic;
+      if (lic.licenseKey && String(lic.licenseKey).trim() !== "") {
         return lic;
       }
-      if (lic.itemLimit === C.DEFAULT_ITEM_LIMIT) {
-        return lic;
-      }
+      if (lic.planCode !== C.DEFAULT_PLAN_CODE) return lic;
+      if (lic.itemLimit === C.DEFAULT_ITEM_LIMIT) return lic;
       lic.itemLimit = C.DEFAULT_ITEM_LIMIT;
       return putLicense(db, lic);
     });
@@ -327,5 +342,6 @@
     defaultSettingsDoc: defaultSettingsDoc,
     putLicense: putLicense,
     syncTrialItemLimitWithConfig: syncTrialItemLimitWithConfig,
+    normalizeLicenseDoc: normalizeLicenseDoc,
   };
 })(typeof window !== "undefined" ? window : globalThis);

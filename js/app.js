@@ -8,6 +8,7 @@
   var db = window.PANSEE_db;
   var norm = window.PANSEE_normalizeForSearch;
   var voice = window.PANSEE_voice;
+  var lic = window.PANSEE_license;
 
   var state = {
     idb: null,
@@ -59,15 +60,88 @@
     return { matches: matches, total: total, capped: capped };
   }
 
+  function formatIsoDisplay(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+  }
+
+  function isUnauthenticatedTrial() {
+    var licDoc = state.license;
+    if (!licDoc) return true;
+    return !licDoc.licenseKey || String(licDoc.licenseKey).trim() === "";
+  }
+
+  function getLicenseApiUrl() {
+    return C.getLicenseApiUrl();
+  }
+
+  function updateLicenseApiHint() {
+    var el = $("#license-api-url-hint");
+    if (!el) return;
+    if (getLicenseApiUrl()) {
+      el.textContent = "";
+      return;
+    }
+    el.textContent =
+      "管理サーバーURLが未設定です。js/config.js の LICENSE_API_URL に GAS Web アプリの URL を設定するか、ページ読み込み前に window.__PANSEE_LICENSE_API_URL__ を設定してください。";
+  }
+
+  function updateLicenseWarningBanner() {
+    var ban = $("#license-warning-banner");
+    if (!ban) return;
+    var msg = (state.license && state.license.warningMessage) || "";
+    msg = String(msg).trim();
+    if (!msg) {
+      ban.hidden = true;
+      ban.textContent = "";
+      return;
+    }
+    ban.hidden = false;
+    ban.textContent = msg;
+  }
+
+  function updateLicenseDetailsPanel() {
+    var licDoc = state.license;
+    if (!licDoc) return;
+    var inp = $("#license-key-input");
+    if (inp) {
+      inp.value = licDoc.licenseKey ? String(licDoc.licenseKey) : "";
+    }
+    var pd = $("#license-plan-detail");
+    if (pd) {
+      pd.textContent =
+        (licDoc.planName || "—") +
+        " (" +
+        (licDoc.planCode || "—") +
+        ") / 上限 " +
+        String(licDoc.itemLimit != null ? licDoc.itemLimit : "—") +
+        " 件";
+    }
+    var st = $("#license-status-label");
+    if (st) {
+      st.textContent = licDoc.licenseStatus
+        ? String(licDoc.licenseStatus)
+        : "—";
+    }
+    var ac = $("#license-activated-at");
+    if (ac) ac.textContent = formatIsoDisplay(licDoc.activatedAt);
+    var lc = $("#license-last-checked");
+    if (lc) lc.textContent = formatIsoDisplay(licDoc.lastCheckedAt);
+    var nx = $("#license-next-check");
+    if (nx) nx.textContent = formatIsoDisplay(licDoc.nextCheckAfter);
+  }
+
   function updatePlanBar() {
     $("#plan-name-display").textContent = state.license.planName || "試用版";
     $("#entry-limit").textContent = String(state.license.itemLimit);
-    $("#license-status-label").textContent =
-      state.license.licenseStatus === "trial_offline"
-        ? "試用（管理サーバー未接続）"
-        : String(state.license.licenseStatus || "—");
     var lb = state.settings && state.settings.lastBackupAt;
-    $("#last-backup-label").textContent = lb ? lb : "—";
+    var lbEl = $("#last-backup-label");
+    if (lbEl) lbEl.textContent = lb ? lb : "—";
+    updateLicenseDetailsPanel();
+    updateLicenseWarningBanner();
+    updateLicenseApiHint();
   }
 
   function refreshCount() {
@@ -226,7 +300,7 @@
 
     if (draft) {
       return refreshCount().then(function (n) {
-        if (n >= state.license.itemLimit) {
+        if (n >= Number(state.license.itemLimit)) {
           window.alert(
             "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
           );
@@ -306,7 +380,7 @@
       var parsed = voice.parseRegisterTranscript(text);
       state.draft = null;
       return refreshCount().then(function (n) {
-        var atLimit = n >= state.license.itemLimit;
+        var atLimit = n >= Number(state.license.itemLimit);
 
         if (parsed.ok && !atLimit) {
           var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page);
@@ -333,6 +407,131 @@
         return renderTable();
       });
     });
+  }
+
+  function shouldRunPeriodicCheck(licDoc) {
+    if (!licDoc || !licDoc.nextCheckAfter) return true;
+    var t = new Date(licDoc.nextCheckAfter).getTime();
+    if (isNaN(t)) return true;
+    return Date.now() >= t;
+  }
+
+  function maybeCheckLicenseOnline() {
+    var url = getLicenseApiUrl();
+    if (!url) return Promise.resolve();
+    if (!navigator.onLine) return Promise.resolve();
+    return db.getLicense(state.idb).then(function (licDoc) {
+      if (!licDoc.licenseKey || String(licDoc.licenseKey).trim() === "") {
+        return Promise.resolve();
+      }
+      if (!shouldRunPeriodicCheck(licDoc)) return Promise.resolve();
+      var key = String(licDoc.licenseKey).trim();
+      return lic
+        .postLicenseAction(url, {
+          action: "check",
+          licenseKey: key,
+          clientVersion: C.APP_VERSION,
+          deviceHint: navigator.userAgent || "",
+        })
+        .then(function (result) {
+          if (!result || !result.ok) {
+            return;
+          }
+          licDoc.lastCheckedAt = result.checkedAt || licDoc.lastCheckedAt;
+          if (result.nextCheckAfter != null) {
+            licDoc.nextCheckAfter = result.nextCheckAfter;
+          }
+          if (result.licenseStatus != null) {
+            licDoc.licenseStatus = result.licenseStatus;
+          }
+          licDoc.warningMessage =
+            result.warningMessage != null ? result.warningMessage : "";
+          state.license = licDoc;
+          return db.putLicense(state.idb, licDoc).then(function () {
+            updatePlanBar();
+          });
+        })
+        .catch(function () {
+          /* 通信失敗時はローカル継続 */
+        });
+    });
+  }
+
+  function onActivateLicense() {
+    var raw = ($("#license-key-input") && $("#license-key-input").value) || "";
+    var key = lic.normalizeLicenseKeyInput(raw);
+    if (!key) {
+      window.alert("ライセンスキーを入力してください。");
+      return Promise.resolve();
+    }
+    if (!lic.isValidLicenseKeyFormat(key)) {
+      window.alert(
+        "ライセンスキー形式が不正です（PN1-XXXX-XXXX-XXXX・英数字大文字）。"
+      );
+      return Promise.resolve();
+    }
+    if (!navigator.onLine) {
+      window.alert("初回認証はオンライン環境で行ってください。");
+      return Promise.resolve();
+    }
+    var url = getLicenseApiUrl();
+    if (!url) {
+      window.alert(
+        "管理サーバーURLが未設定です。js/config.js の LICENSE_API_URL を設定してください。"
+      );
+      return Promise.resolve();
+    }
+    var btn = $("#btn-license-activate");
+    if (btn) btn.disabled = true;
+    return lic
+      .postLicenseAction(url, {
+        action: "activate",
+        licenseKey: key,
+        clientVersion: C.APP_VERSION,
+        deviceHint: navigator.userAgent || "",
+      })
+      .then(function (result) {
+        if (!result || !result.ok) {
+          var msg = lic.messageForErrorCode(
+            result && result.errorCode,
+            result && result.message
+          );
+          window.alert(msg);
+          return;
+        }
+        var checkedAt = result.checkedAt || new Date().toISOString();
+        var doc = {
+          id: C.LICENSE_DOC_ID,
+          licenseKey: key,
+          planCode: result.planCode,
+          planName: result.planName,
+          itemLimit:
+            result.itemLimit != null
+              ? Number(result.itemLimit)
+              : C.DEFAULT_ITEM_LIMIT,
+          licenseStatus: result.licenseStatus,
+          warningMessage:
+            result.warningMessage != null ? result.warningMessage : "",
+          activatedAt: checkedAt,
+          lastCheckedAt: checkedAt,
+          nextCheckAfter:
+            result.nextCheckAfter != null ? result.nextCheckAfter : "",
+        };
+        state.license = doc;
+        return db.putLicense(state.idb, doc).then(function () {
+          if ($("#license-key-input")) $("#license-key-input").value = key;
+          updatePlanBar();
+          toast("ライセンス認証に成功しました。");
+        });
+      })
+      .catch(function () {
+        window.alert(
+          "サーバーに接続できませんでした。ネットワークとURLを確認し、再度お試しください。"
+        );
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
   }
 
   function onExport() {
@@ -409,8 +608,18 @@
           return;
         }
         return db.getLicense(state.idb).then(function (lic) {
-          var limit = lic.itemLimit;
           var items = data.items;
+          if (
+            isUnauthenticatedTrial() &&
+            items.length > C.DEFAULT_ITEM_LIMIT
+          ) {
+            window.alert(
+              "このブラウザではライセンス認証が完了していません。このデータを取り込むにはオンライン認証が必要です。"
+            );
+            return;
+          }
+          var limit = Number(lic.itemLimit);
+          if (isNaN(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
           var truncated = items.length > limit;
           var slice = items.slice(0, limit);
 
@@ -478,6 +687,12 @@
     $("#btn-voice-register").addEventListener("click", function () {
       onVoiceRegister();
     });
+    $("#btn-license-activate").addEventListener("click", function () {
+      onActivateLicense();
+    });
+    window.addEventListener("online", function () {
+      maybeCheckLicenseOnline();
+    });
 
     return db
       .openDb()
@@ -500,6 +715,9 @@
         updatePlanBar();
         state.searchQuery = "";
         return renderTable();
+      })
+      .then(function () {
+        return maybeCheckLicenseOnline().catch(function () {});
       })
       .catch(function (e) {
         console.error(e);

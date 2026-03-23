@@ -236,6 +236,75 @@ details.settings summary {
   padding-left: 1.2rem;
 }
 
+.settings-lead {
+  color: var(--fg);
+  margin: 0 0 0.75rem;
+}
+
+.settings-hint {
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+  color: var(--danger);
+}
+
+.license-form {
+  margin: 0.75rem 0;
+}
+
+.license-form label {
+  display: block;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.license-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.license-key-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  font: inherit;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.02em;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+}
+
+.license-meta {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.75rem 0 0;
+}
+
+.license-meta li {
+  margin: 0.25rem 0;
+}
+
+.license-warning-banner {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--fg);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .license-warning-banner {
+    background: rgba(245, 158, 11, 0.15);
+  }
+}
+
 #toast {
   position: fixed;
   left: 50%;

@@ -1,11 +1,11 @@
 /**
- * パンセノート — 設定定数（将来: ライセンスAPI・PWA と連携しやすいよう集約）
- * 初版: 管理サーバー未接続のため試用版固定（API無応答と同等）
+ * パンセノート — 設定定数
+ * ライセンスAPI: GAS Web アプリ 1 URL に POST（activate / check）
  */
 (function (global) {
   "use strict";
 
-  /** GitHub Pages 等のサブパス配信用（Step 7 で manifest / SW と揃える想定） */
+  /** GitHub Pages 等のサブパス配信用（PWA 実装時に manifest と揃える想定） */
   var BASE_PATH = "/panseenote/";
 
   var CONFIG = {
@@ -22,11 +22,10 @@
       SETTINGS: "settings",
     },
 
-    /** 試用版（API未接続時） */
+    /** 未認証・試用（サーバー返却の itemLimit を正とする） */
     DEFAULT_PLAN_CODE: "trial",
     DEFAULT_PLAN_NAME: "試用版",
-    /** 実機UI検証用に試用版も含め上限を引き上げ（本番ではライセンスで上書き予定） */
-    DEFAULT_ITEM_LIMIT: 30000,
+    DEFAULT_ITEM_LIMIT: 30,
 
     LICENSE_DOC_ID: "current",
     SETTINGS_DOC_ID: "app-settings",
@@ -37,13 +36,25 @@
 
     SPEECH_LANG: "ja-JP",
 
-    /** 将来 Step 6: 認証APIベースURLをここまたは環境で差し替え */
-    LICENSE_API_BASE: "",
-    ACCIDENT_KEY_API_BASE: "",
+    /**
+     * GAS デプロイ後の Web アプリ URL（/exec で終わる想定）
+     * 未設定時は window.__PANSEE_LICENSE_API_URL__ で上書き可能
+     */
+    LICENSE_API_URL: "https://script.google.com/macros/s/AKfycbzucnOlaU02IkGBDMOPPRE_osRojsZf9Fgv012ujCtDeCKw39VKRcPykRD_Ao9Heu2K/exec",
   };
 
   CONFIG.getBasePath = function () {
     return BASE_PATH;
+  };
+
+  /**
+   * @returns {string}
+   */
+  CONFIG.getLicenseApiUrl = function () {
+    var w = typeof global !== "undefined" ? global : {};
+    var ovr = w.__PANSEE_LICENSE_API_URL__;
+    var u = ovr != null && String(ovr).trim() !== "" ? String(ovr).trim() : CONFIG.LICENSE_API_URL;
+    return String(u || "").trim();
   };
 
   global.PANSEE_CONFIG = CONFIG;
