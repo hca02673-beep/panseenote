@@ -124,6 +124,13 @@ button.sm-header {
   font-size: 0.85rem;
 }
 
+/* 全画面共通: 読み出しのみ短縮 */
+button.btn-header-import {
+  padding: 0.3rem 0.45rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .voice-row {
   display: flex;
   flex-wrap: wrap;
@@ -329,15 +336,17 @@ button.danger {
 
 table.entries-table {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
   font-size: 0.9rem;
   table-layout: fixed;
   border: 1px solid var(--border);
 }
 
-/* サービス名は残り幅。操作列は固定で保存・削除を必ず横並びに */
+/* サービス名は最小幅を確保（狭い画面では横スクロールで閲覧） */
 .entries-table col.col-title {
   width: auto;
+  min-width: 12rem;
 }
 
 .entries-table col.col-book {
@@ -441,6 +450,7 @@ td.col-page input.inline-num {
 
 td.col-title {
   width: auto;
+  min-width: 12rem;
 }
 
 td.readonly {
@@ -607,4 +617,90 @@ details.settings summary {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* 狭い画面（スマホ縦など） */
+@media (max-width: 640px) {
+  .subtitle {
+    display: none;
+  }
+
+  .entries-table col.col-date,
+  .entries-table thead .th-date,
+  .entries-table tbody td.col-date {
+    display: none;
+  }
+
+  .plan-summary {
+    font-size: 0.82rem;
+    white-space: normal;
+    text-align: right;
+    max-width: 100%;
+  }
+
+  .voice-row {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    justify-content: space-between;
+    align-items: stretch;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0 0.15rem;
+  }
+
+  button.voice-lg {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+    padding: 0.4rem 0.3rem;
+    min-height: 3.35rem;
+  }
+
+  .voice-btn-mic svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .voice-btn-title {
+    font-size: 0.88rem;
+  }
+
+  .voice-btn-sub {
+    font-size: 0.65rem;
+  }
+
+  .voice-btn-layout {
+    gap: 0.35rem;
+  }
+
+  table.entries-table {
+    min-width: 28rem;
+  }
+
+  .entries-table col.col-title,
+  td.col-title {
+    min-width: 11rem;
+  }
+
+  .entries-table col.col-actions {
+    width: 6.25rem;
+    min-width: 6.25rem;
+  }
+
+  .entries-table td.col-actions {
+    width: 6.25rem;
+    min-width: 6.25rem;
+    max-width: 6.25rem;
+  }
+
+  .entries-table td.col-actions button.sm {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.18rem 0.28rem;
+  }
+
+  .actions {
+    gap: 0.28rem;
+  }
 }

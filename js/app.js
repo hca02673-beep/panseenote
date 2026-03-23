@@ -231,6 +231,38 @@
     return name + "プラン";
   }
 
+  /** 狭い画面用: planCode を英字短縮表記に */
+  function formatPlanShortEn(lic) {
+    var code = lic && lic.planCode ? String(lic.planCode).trim().toLowerCase() : "trial";
+    var map = {
+      trial: "Trial",
+      starter: "Starter",
+      basic: "Basic",
+      standard: "Standard",
+      premium: "Premium",
+    };
+    if (map[code]) return map[code];
+    if (!code) return "Trial";
+    return code.charAt(0).toUpperCase() + code.slice(1);
+  }
+
+  function isNarrowLayoutViewport() {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(max-width: 640px)").matches
+    );
+  }
+
+  function parseCountFromSummaryText(text) {
+    var t = String(text || "");
+    var m1 = t.match(/^(\d+)件登録済/);
+    if (m1) return Number(m1[1]);
+    var m2 = t.match(/登録\s+(\d+)/);
+    if (m2) return Number(m2[1]);
+    return 0;
+  }
+
   /**
    * @param {number|undefined} entryCount 省略時は既存表示の件数を維持（上限・プラン名のみ更新）
    */
@@ -244,11 +276,15 @@
     if (entryCount != null && !isNaN(Number(entryCount))) {
       n = Number(entryCount);
     } else {
-      var prev = el.textContent.match(/^(\d+)件登録済/);
-      n = prev ? Number(prev[1]) : 0;
+      n = parseCountFromSummaryText(el.textContent);
     }
-    var label = formatPlanLabelForSummary(lic);
-    el.textContent = n + "件登録済／上限" + limit + "件（" + label + "）";
+    if (isNarrowLayoutViewport()) {
+      el.textContent =
+        "登録 " + n + "／上限" + limit + "件（" + formatPlanShortEn(lic) + "）";
+    } else {
+      var label = formatPlanLabelForSummary(lic);
+      el.textContent = n + "件登録済／上限" + limit + "件（" + label + "）";
+    }
   }
 
   function updatePlanBar() {
@@ -878,6 +914,23 @@
     window.addEventListener("online", function () {
       maybeCheckLicenseOnline();
     });
+
+    var layoutResizeTimer = null;
+    function onViewportLayoutChange() {
+      updatePlanSummaryLine();
+    }
+    window.addEventListener("resize", function () {
+      window.clearTimeout(layoutResizeTimer);
+      layoutResizeTimer = window.setTimeout(onViewportLayoutChange, 120);
+    });
+    if (typeof window !== "undefined" && window.matchMedia) {
+      var narrowMq = window.matchMedia("(max-width: 640px)");
+      if (narrowMq.addEventListener) {
+        narrowMq.addEventListener("change", onViewportLayoutChange);
+      } else if (narrowMq.addListener) {
+        narrowMq.addListener(onViewportLayoutChange);
+      }
+    }
 
     return db
       .openDb()
