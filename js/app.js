@@ -326,8 +326,8 @@
       escapeHtml(dateLabel) +
       "</td>" +
       '<td class="actions col-actions">' +
-      '<button type="button" class="sm primary row-save">保存</button>' +
-      '<button type="button" class="sm danger row-delete">削除</button>' +
+      '<button type="button" class="sm row-save btn-action-green">保存</button>' +
+      '<button type="button" class="sm row-delete btn-action-delete">削除</button>' +
       "</td>" +
       "</tr>"
     );
@@ -358,8 +358,16 @@
     return o;
   }
 
+  function closeSettingsIfOpen() {
+    var det = document.querySelector("details.settings");
+    if (det && det.open) {
+      det.removeAttribute("open");
+    }
+  }
+
   function renderTable() {
     return db.getAllEntries(state.idb).then(function (rows) {
+      closeSettingsIfOpen();
       rows = sortEntries(rows);
       var res = applySearch(rows, state.searchQuery);
       var body = $("#entries-body");
@@ -691,6 +699,7 @@
           if ($("#license-key-input")) $("#license-key-input").value = key;
           updatePlanBar();
           setLicenseDiagnostics("");
+          closeSettingsIfOpen();
           toast("ライセンス認証に成功しました。");
         });
       })
@@ -751,6 +760,7 @@
       return db.updateSettings(state.idb, { lastBackupAt: iso }).then(function (s) {
         state.settings = s;
         updatePlanBar();
+        closeSettingsIfOpen();
         toast("バックアップファイルを保存しました。");
       });
     });

@@ -24,7 +24,7 @@
         <div class="app-header-title-row">
           <h1 class="app-title">パンセノート</h1>
           <div class="header-data-actions">
-            <button type="button" id="btn-export" class="primary sm-header">
+            <button type="button" id="btn-export" class="sm-header btn-action-green">
               データファイル保存
             </button>
             <button type="button" id="btn-import-trigger" class="sm-header">
@@ -71,7 +71,9 @@
           placeholder="見出しの一部で検索"
           autocomplete="off"
         />
-        <button type="button" id="btn-search" class="primary">検索</button>
+        <button type="button" id="btn-search" class="btn-action-green">
+          手動検索
+        </button>
       </div>
       <div id="search-meta" class="search-meta" aria-live="polite"></div>
 
@@ -86,11 +88,11 @@
           </colgroup>
           <thead>
             <tr>
-              <th scope="col">見出し</th>
-              <th scope="col">冊数</th>
-              <th scope="col">ページ</th>
-              <th scope="col">登録日付</th>
-              <th scope="col">操作</th>
+              <th scope="col" class="th-title">見出し</th>
+              <th scope="col" class="th-num">冊数</th>
+              <th scope="col" class="th-num">ページ</th>
+              <th scope="col" class="th-date">登録日付</th>
+              <th scope="col" class="th-actions">操作</th>
             </tr>
           </thead>
           <tbody id="entries-body"></tbody>
