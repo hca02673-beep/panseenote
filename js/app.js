@@ -170,6 +170,8 @@
     var lb = state.settings && state.settings.lastBackupAt;
     var lbEl = $("#last-backup-label");
     if (lbEl) lbEl.textContent = lb ? lb : "—";
+    var vb = $("#app-version-label");
+    if (vb) vb.textContent = String(C.APP_VERSION || "—");
     updateLicenseDetailsPanel();
     updateLicenseWarningBanner();
     updateLicenseApiHint();
