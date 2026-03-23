@@ -46,7 +46,7 @@
   function applySearch(rows, q) {
     var qq = norm(q);
     if (!qq) {
-      return { matches: rows, total: rows.length, capped: false };
+      return { matches: [], total: rows.length, capped: false, emptyQuery: true };
     }
     var all = [];
     for (var i = 0; i < rows.length; i++) {
@@ -57,7 +57,17 @@
     var total = all.length;
     var capped = total > C.MAX_SEARCH_DISPLAY;
     var matches = capped ? all.slice(0, C.MAX_SEARCH_DISPLAY) : all;
-    return { matches: matches, total: total, capped: capped };
+    return { matches: matches, total: total, capped: capped, emptyQuery: false };
+  }
+
+  function saveSearchQueryToSettings(q) {
+    var nextQ = String(q || "");
+    if (!state.idb) return Promise.resolve();
+    if (!state.settings) return Promise.resolve();
+    if (String(state.settings.lastSearchQuery || "") === nextQ) return Promise.resolve();
+    return db.updateSettings(state.idb, { lastSearchQuery: nextQ }).then(function (s) {
+      state.settings = s;
+    });
   }
 
   function formatIsoDisplay(iso) {
@@ -189,18 +199,13 @@
     if (!el) return;
     var q = state.searchQuery.trim();
     if (!q) {
-      if (result.total > C.MAX_SEARCH_DISPLAY) {
+      if (result.total === 0 && state.draft) {
+        el.textContent = "未保存の行があります。内容を確認して保存してください。";
+      } else if (result.total > 0) {
         el.textContent =
-          "検索結果が多いため先頭50件のみ表示しています。検索語を入力して絞り込んでください。";
+          "検索語を入力して検索してください。前回検索語は保存され、次回起動時に復元されます。";
       } else {
-        if (result.total === 0 && state.draft) {
-          el.textContent = "未保存の行があります。内容を確認して保存してください。";
-        } else {
-          el.textContent =
-            result.total > 0
-              ? "全 " + result.total + " 件を表示しています。"
-              : "登録はまだありません。";
-        }
+        el.textContent = "登録はまだありません。";
       }
       return;
     }
@@ -385,7 +390,9 @@
 
   function runSearch() {
     state.searchQuery = $("#manual-search").value || "";
-    return renderTable();
+    return saveSearchQueryToSettings(state.searchQuery).then(function () {
+      return renderTable();
+    });
   }
 
   function onVoiceSearch() {
@@ -396,10 +403,12 @@
     return voice.recognizeOnce().then(function (text) {
       $("#manual-search").value = text;
       state.searchQuery = text;
-      return renderTable().then(function () {
-        if (!text.trim()) {
-          toast("音声を認識できませんでした。");
-        }
+      return saveSearchQueryToSettings(state.searchQuery).then(function () {
+        return renderTable().then(function () {
+          if (!text.trim()) {
+            toast("音声を認識できませんでした。");
+          }
+        });
       });
     });
   }
@@ -677,16 +686,18 @@
             return chain.then(function () {
               state.draft = null;
               state.searchQuery = $("#manual-search").value || "";
-              return renderTable().then(function () {
-                if (truncated) {
-                  window.alert(
-                    "このプランの登録上限を超えるため、先頭から取り込める分のみ登録しました。超過分は登録されていません。"
-                  );
-                } else {
-                  window.alert(
-                    "バックアップファイルを読み込みました。既存データは置き換えられました。"
-                  );
-                }
+              return saveSearchQueryToSettings(state.searchQuery).then(function () {
+                return renderTable().then(function () {
+                  if (truncated) {
+                    window.alert(
+                      "このプランの登録上限を超えるため、先頭から取り込める分のみ登録しました。超過分は登録されていません。"
+                    );
+                  } else {
+                    window.alert(
+                      "バックアップファイルを読み込みました。既存データは置き換えられました。"
+                    );
+                  }
+                });
               });
             });
           });
@@ -750,8 +761,11 @@
       .then(function (pair) {
         state.license = pair[0];
         state.settings = pair[1];
+        state.searchQuery = String((state.settings && state.settings.lastSearchQuery) || "");
+        if ($("#manual-search")) {
+          $("#manual-search").value = state.searchQuery;
+        }
         updatePlanBar();
-        state.searchQuery = "";
         return renderTable();
       })
       .then(function () {

@@ -64,8 +64,21 @@
     return {
       id: C.SETTINGS_DOC_ID,
       lastBackupAt: "",
+      lastSearchQuery: "",
       appVersion: C.APP_VERSION,
     };
+  }
+
+  /**
+   * 旧データ互換・欠損フィールド補完
+   * @param {object|null|undefined} s
+   */
+  function normalizeSettingsDoc(s) {
+    var d = s ? Object.assign({}, s) : defaultSettingsDoc();
+    if (d.lastBackupAt === undefined || d.lastBackupAt === null) d.lastBackupAt = "";
+    if (d.lastSearchQuery === undefined || d.lastSearchQuery === null) d.lastSearchQuery = "";
+    if (d.appVersion === undefined || d.appVersion === null) d.appVersion = C.APP_VERSION;
+    return d;
   }
 
   /**
@@ -170,7 +183,7 @@
       var tx = db.transaction([C.STORES.SETTINGS], "readonly");
       var req = tx.objectStore(C.STORES.SETTINGS).get(C.SETTINGS_DOC_ID);
       req.onsuccess = function () {
-        resolve(req.result || defaultSettingsDoc());
+        resolve(normalizeSettingsDoc(req.result || defaultSettingsDoc()));
       };
       req.onerror = function () {
         reject(req.error);
