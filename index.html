@@ -51,14 +51,34 @@
           id="btn-voice-search"
           class="voice-lg voice-btn voice-btn-search"
         >
-          音声検索
+          <span class="voice-btn-layout">
+            <span class="voice-btn-mic" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </span>
+            <span class="voice-btn-labels">
+              <span class="voice-btn-title">音声検索</span>
+              <span class="voice-btn-sub">（サービス名）</span>
+            </span>
+          </span>
         </button>
         <button
           type="button"
           id="btn-voice-register"
           class="voice-lg voice-btn voice-btn-register"
         >
-          音声登録
+          <span class="voice-btn-layout">
+            <span class="voice-btn-mic" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </span>
+            <span class="voice-btn-labels">
+              <span class="voice-btn-title">音声登録</span>
+              <span class="voice-btn-sub">（冊・頁・名前）</span>
+            </span>
+          </span>
         </button>
       </div>
       <div id="entry-limit-warning-inline" class="inline-warning" role="status" hidden></div>
@@ -68,7 +88,7 @@
         <input
           type="search"
           id="manual-search"
-          placeholder="見出しの一部で検索"
+          placeholder="サービス名の一部で検索"
           autocomplete="off"
         />
         <button type="button" id="btn-search" class="btn-action-green">
@@ -88,7 +108,7 @@
           </colgroup>
           <thead>
             <tr>
-              <th scope="col" class="th-title">見出し</th>
+              <th scope="col" class="th-title">サービス名</th>
               <th scope="col" class="th-num">冊数</th>
               <th scope="col" class="th-num">ページ</th>
               <th scope="col" class="th-date">登録日付</th>

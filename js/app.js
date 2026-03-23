@@ -575,7 +575,7 @@
         }
 
         state.draft = { title: "", book: "", page: "" };
-        toast("音声から冊数・ページ・見出しを取り出せませんでした。手入力で保存できます。");
+        toast("音声から冊数・ページ・サービス名を取り出せませんでした。手入力で保存できます。");
         return renderTable();
       });
     }).catch(function () {
