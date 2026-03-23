@@ -213,11 +213,13 @@ button.voice-lg {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  white-space: normal;
 }
 
 button.voice-btn {
   border-radius: 12px;
   border-width: 2px;
+  white-space: normal;
 }
 
 .voice-btn-layout {
@@ -241,22 +243,23 @@ button.voice-btn {
 }
 
 .voice-btn-labels {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
-  line-height: 1.25;
+  display: block;
+  line-height: 1.35;
+  text-align: left;
+  min-width: 0;
 }
 
 .voice-btn-title {
   font-size: 1.05rem;
   font-weight: 700;
+  display: inline;
 }
 
 .voice-btn-sub {
   font-size: 0.8rem;
   font-weight: 600;
   opacity: 0.9;
+  display: inline;
 }
 
 button.voice-btn-search {
@@ -332,25 +335,26 @@ table.entries-table {
   border: 1px solid var(--border);
 }
 
+/* サービス名は残り幅。操作列は固定で保存・削除を必ず横並びに */
 .entries-table col.col-title {
   width: auto;
 }
 
 .entries-table col.col-book {
-  width: 3.75rem;
+  width: 3.5rem;
 }
 
 .entries-table col.col-page {
-  width: 3.75rem;
+  width: 3.5rem;
 }
 
 .entries-table col.col-date {
-  width: 6.75rem;
+  width: 6.25rem;
 }
 
 .entries-table col.col-actions {
-  width: 12rem;
-  min-width: 8.5rem;
+  width: 11rem;
+  min-width: 11rem;
 }
 
 th,
@@ -445,15 +449,24 @@ td.readonly {
 }
 
 .actions {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.45rem;
   align-items: center;
   justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .entries-table td.col-actions {
   white-space: nowrap;
+  width: 11rem;
+  min-width: 11rem;
+  max-width: 11rem;
+  box-sizing: border-box;
+  vertical-align: middle;
 }
 
 button.sm {
