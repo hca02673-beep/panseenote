@@ -100,7 +100,14 @@
       return "API接続タイムアウト（" + String(err.timeoutMs || 15000) + "ms）";
     }
     if (k === "network") {
-      return "ネットワークエラー: " + String(err.message || "");
+      var m = String(err.message || "");
+      if (m.toLowerCase().indexOf("failed to fetch") >= 0) {
+        return (
+          "ネットワークエラー: Failed to fetch（GAS公開設定/CORSの可能性）。" +
+          " Webアプリのアクセス権を「全員」にし、最新デプロイURLを使用してください。"
+        );
+      }
+      return "ネットワークエラー: " + m;
     }
     if (k === "http") {
       var body = err.responseText ? " / 応答: " + String(err.responseText) : "";
