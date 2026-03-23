@@ -77,6 +77,37 @@
     return C.getLicenseApiUrl();
   }
 
+  function setLicenseDiagnostics(msg) {
+    var el = $("#license-api-diagnostics");
+    if (!el) return;
+    el.textContent = String(msg || "");
+  }
+
+  function formatLicenseApiError(err) {
+    if (!err) return "不明なエラー";
+    var k = String(err.kind || "");
+    if (k === "timeout") {
+      return "API接続タイムアウト（" + String(err.timeoutMs || 15000) + "ms）";
+    }
+    if (k === "network") {
+      return "ネットワークエラー: " + String(err.message || "");
+    }
+    if (k === "http") {
+      var body = err.responseText ? " / 応答: " + String(err.responseText) : "";
+      return (
+        "HTTPエラー: " +
+        String(err.status || "") +
+        " " +
+        String(err.statusText || "") +
+        body
+      );
+    }
+    if (k === "invalid_json") {
+      return "API応答JSON不正: " + String(err.responseText || "");
+    }
+    return "APIエラー: " + String(err.message || "");
+  }
+
   function updateLicenseApiHint() {
     var el = $("#license-api-url-hint");
     if (!el) return;
@@ -464,6 +495,7 @@
       window.alert("ライセンスキーを入力してください。");
       return Promise.resolve();
     }
+    setLicenseDiagnostics("");
     if (!lic.isValidLicenseKeyFormat(key)) {
       window.alert(
         "ライセンスキー形式が不正です（PN1-XXXX-XXXX-XXXX・英数字大文字）。"
@@ -521,12 +553,16 @@
         return db.putLicense(state.idb, doc).then(function () {
           if ($("#license-key-input")) $("#license-key-input").value = key;
           updatePlanBar();
+          setLicenseDiagnostics("");
           toast("ライセンス認証に成功しました。");
         });
       })
-      .catch(function () {
+      .catch(function (err) {
+        var detail = formatLicenseApiError(err);
+        setLicenseDiagnostics(detail);
+        console.error("License activate failed:", err);
         window.alert(
-          "サーバーに接続できませんでした。ネットワークとURLを確認し、再度お試しください。"
+          "サーバー接続に失敗しました。設定・ライセンス欄の診断メッセージを確認してください。"
         );
       })
       .finally(function () {

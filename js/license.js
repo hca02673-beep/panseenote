@@ -39,17 +39,77 @@
    * @param {object} payload
    * @returns {Promise<object>}
    */
+  function clipText(text, max) {
+    var s = String(text == null ? "" : text);
+    if (s.length <= max) return s;
+    return s.slice(0, max) + "...";
+  }
+
+  function buildApiError(kind, message, extra) {
+    var err = new Error(message || "API request failed");
+    err.name = "LicenseApiError";
+    err.kind = kind || "unknown";
+    if (extra && typeof extra === "object") {
+      for (var k in extra) {
+        if (Object.prototype.hasOwnProperty.call(extra, k)) {
+          err[k] = extra[k];
+        }
+      }
+    }
+    return err;
+  }
+
   function postLicenseAction(url, payload) {
+    var timeoutMs = 15000;
+    var ctrl =
+      typeof AbortController !== "undefined" ? new AbortController() : null;
+    var tid = null;
+    if (ctrl) {
+      tid = global.setTimeout(function () {
+        ctrl.abort();
+      }, timeoutMs);
+    }
+
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }).then(function (res) {
-      if (!res.ok) {
-        throw new Error("HTTP " + res.status);
-      }
-      return res.json();
-    });
+      signal: ctrl ? ctrl.signal : undefined,
+    })
+      .then(function (res) {
+        return res.text().then(function (raw) {
+          if (!res.ok) {
+            throw buildApiError(
+              "http",
+              "HTTP " + res.status + " " + (res.statusText || ""),
+              {
+                status: res.status,
+                statusText: res.statusText || "",
+                responseText: clipText(raw, 400),
+              }
+            );
+          }
+          var data;
+          try {
+            data = raw ? JSON.parse(raw) : {};
+          } catch (e) {
+            throw buildApiError("invalid_json", "JSON parse error", {
+              responseText: clipText(raw, 400),
+            });
+          }
+          return data;
+        });
+      })
+      .catch(function (e) {
+        if (e && e.name === "AbortError") {
+          throw buildApiError("timeout", "Request timeout", { timeoutMs: timeoutMs });
+        }
+        if (e && e.name === "LicenseApiError") throw e;
+        throw buildApiError("network", (e && e.message) || "Network error");
+      })
+      .finally(function () {
+        if (tid) global.clearTimeout(tid);
+      });
   }
 
   global.PANSEE_license = {
