@@ -602,6 +602,11 @@
       if (!prev) return;
       var next = db.patchEntry(prev, vals);
       return db.putEntry(state.idb, next).then(function () {
+        // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
+        // しないと renderTable が古い entry（memo空）で再描画してしまう
+        if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
+          state.voicePreviewEntry = next;
+        }
         toast("保存しました。");
         return renderTable();
       });
@@ -668,6 +673,12 @@
         var atLimit = n >= Number(state.license.itemLimit);
 
         if (parsed.ok && !atLimit) {
+          // 5.1: サービス名が取れない場合は自動登録せず draft で待機
+          if (!parsed.isMemo && !parsed.title.trim()) {
+            state.draft = { title: "", book: parsed.book, page: parsed.page, memo: "" };
+            toast("冊数・ページを認識しました。サービス名を手入力で補完してから保存してください。");
+            return renderTable();
+          }
           var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page, "");
           return db.putEntry(state.idb, entry).then(function () {
             state.voicePreviewEntry = entry;
@@ -696,7 +707,7 @@
         }
 
         state.draft = { title: "", book: "", page: "", memo: "" };
-        toast("音声からサービス名を取り出せませんでした（「○冊目○ページ名前」または「メモ 名前」と発話）。手入力で保存できます。");
+        toast("音声からサービス名を取り出せませんでした（「○冊目○ページ 名前」または「メモ サービス名」と発話）。手入力で保存できます。");
         return renderTable();
       });
     }).catch(function () {
