@@ -62,15 +62,16 @@ body {
 }
 
 .app-header {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-/* ヘッダー：ロゴ ／ 音声ボタン ／ データ操作ボタン を1行に */
-.app-header-main-row {
+/* 上段: ロゴ（左）＋ データ操作ボタン・件数（右） */
+.app-header-top-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 0.65rem 1rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .app-logo-block {
@@ -81,7 +82,7 @@ body {
 }
 
 .app-logo {
-  height: 80px;
+  height: 100px;
   width: auto;
   display: block;
 }
@@ -93,21 +94,20 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* 右ブロック: データボタン（上）＋ 件数（下） */
+.header-right-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
 .header-data-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  align-items: center;
-  margin-left: auto;
-}
-
-.app-header-sub-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
   justify-content: flex-end;
-  gap: 0.5rem 1rem;
-  margin-top: 0.25rem;
 }
 
 .plan-summary {
@@ -140,11 +140,12 @@ button.btn-header-import {
   white-space: nowrap;
 }
 
+/* 下段: 音声ボタン */
 .voice-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin: 0;
+  margin-top: 0.75rem;
   justify-content: flex-start;
   align-items: stretch;
 }
@@ -217,12 +218,12 @@ button.btn-action-delete:focus-visible {
 }
 
 button.voice-lg {
-  min-height: 4.25rem;
-  min-width: 10rem;
-  max-width: 15rem;
+  min-height: 4rem;
+  min-width: 8rem;
+  max-width: 12rem;
   flex: 0 1 auto;
-  width: clamp(10rem, 32vw, 14rem);
-  padding: 0.65rem 0.9rem;
+  width: clamp(8rem, 22vw, 12rem);
+  padding: 0.55rem 0.75rem;
   font-size: 1rem;
   font-weight: 600;
   display: flex;
@@ -539,28 +540,21 @@ button.btn-memo.memo-active {
 /* メモ展開行 */
 tr.memo-row td.memo-cell {
   padding: 0.3rem 0.5rem 0.5rem 0.5rem;
-  background: #f0f7ff;
+  background: var(--card);
   border-top: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  tr.memo-row td.memo-cell {
-    background: #111d2a;
-  }
 }
 
 .memo-textarea {
   width: 100%;
   min-width: 0;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--form-input-large);
   padding: 0.35rem 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--fg);
   resize: vertical;
-  rows: 2;
   display: block;
   box-sizing: border-box;
 }
@@ -577,17 +571,20 @@ button.sm {
   flex-shrink: 0;
 }
 
-details.settings {
-  margin-top: 1.5rem;
+/* 設定パネル（details要素の代替、JS制御で排他表示） */
+.settings-panel {
+  margin-top: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.75rem 1rem;
   background: var(--card);
 }
 
-details.settings summary {
-  cursor: pointer;
+.settings-panel-title {
   font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--fg);
 }
 
 .settings-body {
@@ -708,11 +705,15 @@ details.settings summary {
 /* 狭い画面（スマホ縦など） */
 @media (max-width: 640px) {
   .app-logo {
-    height: 58px;
+    height: 72px;
   }
 
   .subtitle {
     font-size: 0.78rem;
+  }
+
+  .header-right-block {
+    align-items: flex-end;
   }
 
   /* データ操作ボタン群を2行にする */

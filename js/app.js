@@ -19,6 +19,8 @@
     searchQuery: "",
     voiceRegisterMode: false,
     voicePreviewEntry: null,
+    /** @type {Set<string>} 展開中のメモ行のエントリID */
+    openMemoIds: new Set(),
   };
 
   var $ = function (sel) {
@@ -413,9 +415,13 @@
   }
 
   function closeSettingsIfOpen() {
-    var det = document.querySelector("details.settings");
-    if (det && det.open) {
-      det.removeAttribute("open");
+    var panel = $("#settings-panel");
+    var mainSection = $("#main-section");
+    if (panel && !panel.hasAttribute("hidden")) {
+      panel.setAttribute("hidden", "");
+      if (mainSection) mainSection.removeAttribute("hidden");
+      var toggle = $("#btn-settings-toggle");
+      if (toggle) toggle.textContent = "▶ 設定・ライセンス";
     }
   }
 
@@ -453,6 +459,7 @@
             "音声登録モードです。表示中の1行を確認して保存・削除できます。";
         }
         wireTableHandlers();
+        restoreOpenMemoRows();
         return refreshCount();
       }
 
@@ -480,28 +487,32 @@
 
       renderSearchMeta(res);
       wireTableHandlers();
+      restoreOpenMemoRows();
       return refreshCount();
     });
+  }
+
+  function bindMemoTextarea(ta, hiddenMemoInput) {
+    if (!ta || !hiddenMemoInput) return;
+    ta.value = hiddenMemoInput.value;
+    ta.oninput = function () {
+      hiddenMemoInput.value = ta.value;
+      ta.title = ta.value;
+    };
   }
 
   function onToggleMemo(tr, btn) {
     var memoTr = tr.nextElementSibling;
     if (!memoTr || !memoTr.classList.contains("memo-row")) return;
     var hiddenMemoInput = tr.querySelector("input[data-field='memo']");
+    var entryId = tr.getAttribute("data-id") || "";
     var isHidden = memoTr.hasAttribute("hidden");
 
     if (isHidden) {
       memoTr.removeAttribute("hidden");
-      var ta = memoTr.querySelector("textarea.memo-textarea");
-      if (ta && hiddenMemoInput) {
-        ta.value = hiddenMemoInput.value;
-        ta.oninput = function () {
-          hiddenMemoInput.value = ta.value;
-          /* title属性でホバー時にメモ内容も表示 */
-          ta.title = ta.value;
-        };
-      }
+      bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
       if (btn) btn.classList.add("memo-active");
+      if (entryId) state.openMemoIds.add(entryId);
     } else {
       var ta2 = memoTr.querySelector("textarea.memo-textarea");
       if (ta2 && hiddenMemoInput) {
@@ -509,7 +520,26 @@
       }
       memoTr.setAttribute("hidden", "");
       if (btn) btn.classList.remove("memo-active");
+      if (entryId) state.openMemoIds.delete(entryId);
     }
+  }
+
+  /** 再描画後に openMemoIds に対応するメモ行を展開し直す */
+  function restoreOpenMemoRows() {
+    if (!state.openMemoIds || state.openMemoIds.size === 0) return;
+    var body = $("#entries-body");
+    if (!body) return;
+    state.openMemoIds.forEach(function (id) {
+      var tr = body.querySelector('tr[data-id="' + id.replace(/"/g, '\\"') + '"]');
+      if (!tr) return;
+      var memoTr = tr.nextElementSibling;
+      if (!memoTr || !memoTr.classList.contains("memo-row")) return;
+      var hiddenMemoInput = tr.querySelector("input[data-field='memo']");
+      var btn = tr.querySelector("button.row-memo");
+      memoTr.removeAttribute("hidden");
+      bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
+      if (btn) btn.classList.add("memo-active");
+    });
   }
 
   function wireTableHandlers() {
@@ -970,11 +1000,19 @@
     var settingsToggle = $("#btn-settings-toggle");
     if (settingsToggle) {
       settingsToggle.addEventListener("click", function () {
-        var det = document.querySelector("details.settings");
-        if (!det) return;
-        det.open = !det.open;
-        if (det.open) {
-          det.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        var panel = $("#settings-panel");
+        var mainSection = $("#main-section");
+        if (!panel) return;
+        var isOpen = !panel.hasAttribute("hidden");
+        if (isOpen) {
+          panel.setAttribute("hidden", "");
+          if (mainSection) mainSection.removeAttribute("hidden");
+          settingsToggle.textContent = "▶ 設定・ライセンス";
+        } else {
+          panel.removeAttribute("hidden");
+          if (mainSection) mainSection.setAttribute("hidden", "");
+          settingsToggle.textContent = "▼ 設定・ライセンス";
+          panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       });
     }
