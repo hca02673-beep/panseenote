@@ -21,11 +21,49 @@
       />
 
       <header class="app-header">
-        <!-- 上段: ロゴ（左）＋ データ操作ボタン＋件数（右） -->
-        <div class="app-header-top-row">
+        <!-- ロゴ（左）・音声ボタン（中）・データ操作ボタン＋件数（右）を1行に -->
+        <div class="app-header-row">
           <div class="app-logo-block">
             <img src="img/logo.svg" alt="パンセノート" class="app-logo" />
             <p class="subtitle">（音声検索アプリ）</p>
+          </div>
+
+          <div class="voice-row">
+            <button
+              type="button"
+              id="btn-voice-search"
+              class="voice-lg voice-btn voice-btn-search"
+            >
+              <span class="voice-btn-inner">
+                <span class="voice-btn-title-row">
+                  <span class="voice-btn-mic" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                  </span>
+                  <span class="voice-btn-title">音声検索</span>
+                </span>
+                <span class="voice-btn-sub">（サービス名の一部）</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              id="btn-voice-register"
+              class="voice-lg voice-btn voice-btn-register"
+            >
+              <span class="voice-btn-inner">
+                <span class="voice-btn-title-row">
+                  <span class="voice-btn-mic" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                  </span>
+                  <span class="voice-btn-title">音声登録</span>
+                </span>
+                <span class="voice-btn-sub">（●"冊目"●"頁"名前）</span>
+                <span class="voice-btn-sub">または（"メモ"名前）</span>
+              </span>
+            </button>
           </div>
 
           <div class="header-right-block">
@@ -42,45 +80,6 @@
             </div>
             <p class="plan-summary" id="plan-summary-line" aria-live="polite"></p>
           </div>
-        </div>
-
-        <!-- 下段: 音声ボタン -->
-        <div class="voice-row">
-          <button
-            type="button"
-            id="btn-voice-search"
-            class="voice-lg voice-btn voice-btn-search"
-          >
-            <span class="voice-btn-layout">
-              <span class="voice-btn-mic" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" focusable="false">
-                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
-              </span>
-              <span class="voice-btn-labels">
-                <span class="voice-btn-title">音声検索</span>
-                <span class="voice-btn-sub">（サービス名の一部）</span>
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            id="btn-voice-register"
-            class="voice-lg voice-btn voice-btn-register"
-          >
-            <span class="voice-btn-layout">
-              <span class="voice-btn-mic" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" focusable="false">
-                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
-              </span>
-              <span class="voice-btn-labels">
-                <span class="voice-btn-title">音声登録</span>
-                <span class="voice-btn-sub">（●"冊目"●"頁"名前）</span>
-                <span class="voice-btn-sub">または（"メモ"名前）</span>
-              </span>
-            </span>
-          </button>
         </div>
       </header>
 

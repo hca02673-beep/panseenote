@@ -65,12 +65,11 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* 上段: ロゴ（左）＋ データ操作ボタン・件数（右） */
-.app-header-top-row {
+/* ロゴ・音声ボタン・データボタンを1行に横並び */
+.app-header-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.75rem 1rem;
   flex-wrap: wrap;
 }
 
@@ -140,12 +139,11 @@ button.btn-header-import {
   white-space: nowrap;
 }
 
-/* 下段: 音声ボタン */
 .voice-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  margin-top: 0;
   justify-content: flex-start;
   align-items: stretch;
 }
@@ -219,16 +217,16 @@ button.btn-action-delete:focus-visible {
 
 button.voice-lg {
   min-height: 4rem;
-  min-width: 8rem;
-  max-width: 12rem;
-  flex: 0 1 auto;
-  width: clamp(8rem, 22vw, 12rem);
-  padding: 0.55rem 0.75rem;
+  min-width: 0;
+  max-width: 16rem;
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0.55rem 0.85rem;
   font-size: 1rem;
   font-weight: 600;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   white-space: normal;
 }
@@ -239,13 +237,19 @@ button.voice-btn {
   white-space: normal;
 }
 
-.voice-btn-layout {
+/* 案A: マイクをタイトル行に統合、サブテキストはボタン全幅 */
+.voice-btn-inner {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-start;
   text-align: left;
+  gap: 0.15rem;
+}
+
+.voice-btn-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .voice-btn-mic {
@@ -259,17 +263,10 @@ button.voice-btn {
   display: block;
 }
 
-.voice-btn-labels {
-  display: block;
-  line-height: 1.35;
-  text-align: left;
-  min-width: 0;
-}
-
 .voice-btn-title {
   font-size: 1.05rem;
   font-weight: 700;
-  display: block;
+  white-space: nowrap;
 }
 
 /* 音声検索ボタンのタイトルはやや大きく */
@@ -278,11 +275,12 @@ button.voice-btn-search .voice-btn-title {
 }
 
 .voice-btn-sub {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   opacity: 0.9;
   display: block;
   line-height: 1.3;
+  white-space: nowrap;
 }
 
 button.voice-btn-search {
@@ -738,17 +736,17 @@ button.sm {
   .voice-row {
     flex-wrap: nowrap;
     gap: 0.35rem;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: stretch;
-    padding: 0 0.15rem;
+    padding: 0;
   }
 
   button.voice-lg {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-width: 0;
     max-width: none;
     width: auto;
-    padding: 0.4rem 0.3rem;
+    padding: 0.4rem 0.5rem;
     min-height: 3.35rem;
   }
 
@@ -766,11 +764,11 @@ button.sm {
   }
 
   .voice-btn-sub {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
   }
 
-  .voice-btn-layout {
-    gap: 0.35rem;
+  .voice-btn-title-row {
+    gap: 0.25rem;
   }
 
   table.entries-table {
