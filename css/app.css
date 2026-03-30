@@ -65,24 +65,39 @@ body {
   margin-bottom: 0.75rem;
 }
 
-.app-header-title-row {
+/* ヘッダー：ロゴ ／ 音声ボタン ／ データ操作ボタン を1行に */
+.app-header-main-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
+  align-items: flex-start;
+  gap: 0.65rem 1rem;
 }
 
-.app-title {
-  font-size: 1.5rem;
-  margin: 0;
+.app-logo-block {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.app-logo {
+  height: 80px;
+  width: auto;
+  display: block;
+}
+
+.subtitle {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
 }
 
 .header-data-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  justify-content: flex-end;
+  align-items: center;
   margin-left: auto;
 }
 
@@ -90,15 +105,9 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.5rem 1rem;
-  margin-top: 0.35rem;
-}
-
-.subtitle {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
+  margin-top: 0.25rem;
 }
 
 .plan-summary {
@@ -134,9 +143,9 @@ button.btn-header-import {
 .voice-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
-  margin: 1rem 0;
-  justify-content: center;
+  gap: 0.75rem;
+  margin: 0;
+  justify-content: flex-start;
   align-items: stretch;
 }
 
@@ -224,7 +233,7 @@ button.voice-lg {
 }
 
 button.voice-btn {
-  border-radius: 12px;
+  border-radius: 6px;
   border-width: 2px;
   white-space: normal;
 }
@@ -259,14 +268,20 @@ button.voice-btn {
 .voice-btn-title {
   font-size: 1.05rem;
   font-weight: 700;
-  display: inline;
+  display: block;
+}
+
+/* 音声検索ボタンのタイトルはやや大きく */
+button.voice-btn-search .voice-btn-title {
+  font-size: 1.15rem;
 }
 
 .voice-btn-sub {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   opacity: 0.9;
-  display: inline;
+  display: block;
+  line-height: 1.3;
 }
 
 button.voice-btn-search {
@@ -317,6 +332,13 @@ button.danger {
   font-size: var(--form-input-large);
   font-weight: 600;
   padding: 0.5rem 0.85rem;
+  background: var(--voice-pastel-search-bg);
+  border-color: var(--voice-pastel-search-border);
+  color: var(--voice-pastel-search-fg);
+}
+
+#btn-search:hover {
+  filter: brightness(0.97);
 }
 
 .search-meta {
@@ -324,6 +346,18 @@ button.danger {
   font-size: 0.9rem;
   color: var(--muted);
   margin-bottom: 0.75rem;
+}
+
+.search-meta.has-result {
+  color: #c0392b;
+  font-weight: 700;
+  font-size: 0.97rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-meta.has-result {
+    color: #f87171;
+  }
 }
 
 .table-wrap {
@@ -362,8 +396,8 @@ table.entries-table {
 }
 
 .entries-table col.col-actions {
-  width: 11rem;
-  min-width: 11rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
 }
 
 th,
@@ -459,24 +493,76 @@ td.readonly {
 }
 
 .actions {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   align-items: center;
   justify-content: center;
-  width: max-content;
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .entries-table td.col-actions {
   white-space: nowrap;
-  width: 11rem;
-  min-width: 11rem;
-  max-width: 11rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
+  max-width: 13.5rem;
   box-sizing: border-box;
   vertical-align: middle;
+}
+
+/* メモボタン */
+button.btn-memo {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+button.btn-memo:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button.btn-memo.memo-active {
+  background: #e8f4fd;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  button.btn-memo.memo-active {
+    background: #1a3a52;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+/* メモ展開行 */
+tr.memo-row td.memo-cell {
+  padding: 0.3rem 0.5rem 0.5rem 0.5rem;
+  background: #f0f7ff;
+  border-top: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  tr.memo-row td.memo-cell {
+    background: #111d2a;
+  }
+}
+
+.memo-textarea {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+  resize: vertical;
+  rows: 2;
+  display: block;
+  box-sizing: border-box;
 }
 
 button.sm {
@@ -621,8 +707,18 @@ details.settings summary {
 
 /* 狭い画面（スマホ縦など） */
 @media (max-width: 640px) {
+  .app-logo {
+    height: 58px;
+  }
+
   .subtitle {
-    display: none;
+    font-size: 0.78rem;
+  }
+
+  /* データ操作ボタン群を2行にする */
+  .header-data-actions {
+    flex-wrap: wrap;
+    gap: 0.3rem;
   }
 
   .entries-table col.col-date,
@@ -643,8 +739,6 @@ details.settings summary {
     gap: 0.35rem;
     justify-content: space-between;
     align-items: stretch;
-    margin-left: 0;
-    margin-right: 0;
     padding: 0 0.15rem;
   }
 
@@ -666,8 +760,12 @@ details.settings summary {
     font-size: 0.88rem;
   }
 
+  button.voice-btn-search .voice-btn-title {
+    font-size: 0.95rem;
+  }
+
   .voice-btn-sub {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
   }
 
   .voice-btn-layout {
@@ -684,23 +782,23 @@ details.settings summary {
   }
 
   .entries-table col.col-actions {
-    width: 6.25rem;
-    min-width: 6.25rem;
+    width: 8.5rem;
+    min-width: 8.5rem;
   }
 
   .entries-table td.col-actions {
-    width: 6.25rem;
-    min-width: 6.25rem;
-    max-width: 6.25rem;
+    width: 8.5rem;
+    min-width: 8.5rem;
+    max-width: 8.5rem;
   }
 
   .entries-table td.col-actions button.sm {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    padding: 0.18rem 0.28rem;
+    padding: 0.2rem 0.3rem;
   }
 
   .actions {
-    gap: 0.28rem;
+    gap: 0.25rem;
   }
 }

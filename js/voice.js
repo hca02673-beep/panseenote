@@ -103,24 +103,35 @@
   }
 
   /**
-   * 仕様形式: （数字）冊目（数字）ページ（見出し）
+   * 仕様形式A: （数字）冊目（数字）ページ（見出し）
+   * 仕様形式B: メモ（見出し）→ book/page は空欄
    * @param {string} transcript
-   * @returns {{ ok: boolean, book: string, page: string, title: string }}
+   * @returns {{ ok: boolean, book: string, page: string, title: string, isMemo: boolean }}
    */
   function parseRegisterTranscript(transcript) {
     var raw = transcript == null ? "" : String(transcript).trim();
     if (!raw) {
-      return { ok: false, book: "", page: "", title: "" };
+      return { ok: false, book: "", page: "", title: "", isMemo: false };
     }
+    // 形式B: 「メモ＋名前」
+    var memoRe = /^メモ\s+(.+)$/;
+    var memoM = raw.match(memoRe);
+    if (memoM) {
+      var memoTitle = (memoM[1] || "").trim();
+      if (memoTitle) {
+        return { ok: true, book: "", page: "", title: memoTitle, isMemo: true };
+      }
+    }
+    // 形式A: 「○冊目○ページ名前」
     var re = /^(\d+)\s*冊目\s*(\d+)\s*ページ\s*(.*)$/;
     var m = raw.match(re);
     if (!m) {
-      return { ok: false, book: "", page: "", title: "" };
+      return { ok: false, book: "", page: "", title: "", isMemo: false };
     }
     var book = m[1];
     var page = m[2];
     var title = (m[3] || "").trim();
-    return { ok: true, book: book, page: page, title: title };
+    return { ok: true, book: book, page: page, title: title, isMemo: false };
   }
 
   global.PANSEE_voice = {

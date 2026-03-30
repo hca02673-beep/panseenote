@@ -292,8 +292,9 @@
    * @param {string} title
    * @param {string} book
    * @param {string} page
+   * @param {string} [memo]
    */
-  function buildNewEntry(title, book, page) {
+  function buildNewEntry(title, book, page, memo) {
     var t = title == null ? "" : String(title);
     if (t.length > C.MAX_TITLE_LENGTH) {
       t = t.slice(0, C.MAX_TITLE_LENGTH);
@@ -309,6 +310,7 @@
       titleNormalized: norm(t),
       book: book == null ? "" : String(book),
       page: page == null ? "" : String(page),
+      memo: memo == null ? "" : String(memo),
       createdAt: today,
       updatedAt: today,
     };
@@ -316,7 +318,7 @@
 
   /**
    * @param {object} prev
-   * @param {object} patch { title?, book?, page? }
+   * @param {object} patch { title?, book?, page?, memo? }
    */
   function patchEntry(prev, patch) {
     var title =
@@ -326,6 +328,7 @@
     }
     var book = patch.book !== undefined ? String(patch.book) : prev.book;
     var page = patch.page !== undefined ? String(patch.page) : prev.page;
+    var memo = patch.memo !== undefined ? String(patch.memo) : (prev.memo || "");
     var today = new Date().toISOString().slice(0, 10);
     return {
       id: prev.id,
@@ -333,6 +336,7 @@
       titleNormalized: norm(title),
       book: book,
       page: page,
+      memo: memo,
       createdAt: prev.createdAt,
       updatedAt: today,
     };

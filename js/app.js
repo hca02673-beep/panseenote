@@ -14,7 +14,7 @@
     idb: null,
     license: null,
     settings: null,
-    /** @type {null | { id?: string, title: string, book: string, page: string }} */
+    /** @type {null | { id?: string, title: string, book: string, page: string, memo: string }} */
     draft: null,
     searchQuery: "",
     voiceRegisterMode: false,
@@ -312,6 +312,7 @@
     if (!el) return;
     var q = state.searchQuery.trim();
     if (!q) {
+      el.classList.remove("has-result");
       if (result.total === 0 && state.draft) {
         el.textContent = "未保存の行があります。内容を確認して保存してください。";
       } else if (result.total > 0) {
@@ -324,15 +325,16 @@
     }
     var parts = [];
     parts.push("「" + q + "」で検索");
-    parts.push("該当 " + result.total + " 件");
+    parts.push("— 該当 " + result.total + " 件");
     if (result.capped) {
       parts.push(
-        "検索結果が多いため先頭50件のみ表示しています。検索語を追加して絞り込んでください。"
+        "（検索結果が多いため先頭50件のみ表示。検索語を追加して絞り込んでください）"
       );
     } else if (result.total === 0) {
       parts.push("（ヒットなし）");
     }
-    el.textContent = parts.join(" — ");
+    el.textContent = parts.join(" ");
+    el.classList.toggle("has-result", result.total > 0);
   }
 
   function rowHtml(entry, isDraft) {
@@ -341,8 +343,10 @@
     var titleEsc = escapeAttr(entry.title || "");
     var bookEsc = escapeAttr(entry.book || "");
     var pageEsc = escapeAttr(entry.page || "");
+    var memoEsc = escapeAttr(entry.memo || "");
     var dateLabel = entry.createdAt || "—";
-    return (
+
+    var mainTr =
       "<tr" +
       dr +
       (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
@@ -351,7 +355,7 @@
       C.MAX_TITLE_LENGTH +
       '" data-field="title" value="' +
       titleEsc +
-      '" /></td>' +
+      '" title="' + titleEsc + '" /></td>' +
       '<td class="col-book"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
       bookEsc +
       '" /></td>' +
@@ -362,11 +366,25 @@
       escapeHtml(dateLabel) +
       "</td>" +
       '<td class="actions col-actions">' +
+      '<button type="button" class="sm row-memo btn-memo">メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">保存</button>' +
       '<button type="button" class="sm row-delete btn-action-delete">削除</button>' +
+      '<input type="hidden" data-field="memo" value="' + memoEsc + '" />' +
       "</td>" +
-      "</tr>"
-    );
+      "</tr>";
+
+    var memoTr =
+      '<tr class="memo-row"' +
+      (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
+      " hidden>" +
+      '<td colspan="5" class="memo-cell">' +
+      '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
+      escapeHtml(entry.memo || "") +
+      "</textarea>" +
+      "</td>" +
+      "</tr>";
+
+    return mainTr + memoTr;
   }
 
   function escapeHtml(s) {
@@ -383,11 +401,11 @@
 
   function readRowFromTr(tr) {
     var inputs = tr.querySelectorAll("input[data-field]");
-    var o = { title: "", book: "", page: "" };
+    var o = { title: "", book: "", page: "", memo: "" };
     for (var i = 0; i < inputs.length; i++) {
       var inp = inputs[i];
       var f = inp.getAttribute("data-field");
-      if (f === "title" || f === "book" || f === "page") {
+      if (f === "title" || f === "book" || f === "page" || f === "memo") {
         o[f] = inp.value;
       }
     }
@@ -420,6 +438,7 @@
                 title: dv.title,
                 book: dv.book,
                 page: dv.page,
+                memo: dv.memo || "",
                 createdAt: "（未保存）",
               },
               true
@@ -447,6 +466,7 @@
               title: d.title,
               book: d.book,
               page: d.page,
+              memo: d.memo || "",
               createdAt: "（未保存）",
             },
             true
@@ -464,6 +484,34 @@
     });
   }
 
+  function onToggleMemo(tr, btn) {
+    var memoTr = tr.nextElementSibling;
+    if (!memoTr || !memoTr.classList.contains("memo-row")) return;
+    var hiddenMemoInput = tr.querySelector("input[data-field='memo']");
+    var isHidden = memoTr.hasAttribute("hidden");
+
+    if (isHidden) {
+      memoTr.removeAttribute("hidden");
+      var ta = memoTr.querySelector("textarea.memo-textarea");
+      if (ta && hiddenMemoInput) {
+        ta.value = hiddenMemoInput.value;
+        ta.oninput = function () {
+          hiddenMemoInput.value = ta.value;
+          /* title属性でホバー時にメモ内容も表示 */
+          ta.title = ta.value;
+        };
+      }
+      if (btn) btn.classList.add("memo-active");
+    } else {
+      var ta2 = memoTr.querySelector("textarea.memo-textarea");
+      if (ta2 && hiddenMemoInput) {
+        hiddenMemoInput.value = ta2.value;
+      }
+      memoTr.setAttribute("hidden", "");
+      if (btn) btn.classList.remove("memo-active");
+    }
+  }
+
   function wireTableHandlers() {
     var body = $("#entries-body");
     body.onclick = function (ev) {
@@ -471,11 +519,14 @@
       if (!(t instanceof HTMLElement)) return;
       var tr = t.closest("tr");
       if (!tr || !body.contains(tr)) return;
+      if (tr.classList.contains("memo-row")) return;
 
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
       } else if (t.classList.contains("row-delete")) {
         onDeleteRow(tr);
+      } else if (t.classList.contains("row-memo")) {
+        onToggleMemo(tr, t);
       }
     };
   }
@@ -496,7 +547,7 @@
           );
           return;
         }
-        var entry = db.buildNewEntry(vals.title, vals.book, vals.page);
+        var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
         return db.putEntry(state.idb, entry).then(function () {
           state.draft = null;
           if (state.voiceRegisterMode) {
@@ -587,10 +638,13 @@
         var atLimit = n >= Number(state.license.itemLimit);
 
         if (parsed.ok && !atLimit) {
-          var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page);
+          var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page, "");
           return db.putEntry(state.idb, entry).then(function () {
             state.voicePreviewEntry = entry;
-            toast("音声から登録しました。");
+            var msg = parsed.isMemo
+              ? "音声メモとして登録しました（冊数・ページは空欄）。"
+              : "音声から登録しました。";
+            toast(msg);
             return renderTable();
           });
         }
@@ -600,6 +654,7 @@
             title: parsed.title,
             book: parsed.book,
             page: parsed.page,
+            memo: "",
           };
           setEntryLimitInlineWarning(
             "登録上限（" + state.license.itemLimit + "件）のため自動登録できません。表示中の1行を編集し、空きを作ってから保存してください。"
@@ -610,12 +665,12 @@
           return renderTable();
         }
 
-        state.draft = { title: "", book: "", page: "" };
-        toast("音声から冊数・ページ・サービス名を取り出せませんでした。手入力で保存できます。");
+        state.draft = { title: "", book: "", page: "", memo: "" };
+        toast("音声からサービス名を取り出せませんでした（「○冊目○ページ名前」または「メモ 名前」と発話）。手入力で保存できます。");
         return renderTable();
       });
     }).catch(function () {
-      state.draft = { title: "", book: "", page: "" };
+      state.draft = { title: "", book: "", page: "", memo: "" };
       state.voicePreviewEntry = null;
       return renderTable();
     });
@@ -770,6 +825,7 @@
             title: e.title,
             book: e.book,
             page: e.page,
+            memo: e.memo || "",
             createdAt: e.createdAt,
             updatedAt: e.updatedAt,
           };
@@ -847,7 +903,7 @@
             for (var i = 0; i < slice.length; i++) {
               (function (item) {
                 chain = chain.then(function () {
-                  var e = db.buildNewEntry(item.title, item.book, item.page);
+                  var e = db.buildNewEntry(item.title, item.book, item.page, item.memo || "");
                   if (item.createdAt) e.createdAt = String(item.createdAt);
                   if (item.updatedAt) e.updatedAt = String(item.updatedAt);
                   e.titleNormalized = norm(e.title);
@@ -911,6 +967,17 @@
     $("#btn-license-activate").addEventListener("click", function () {
       onActivateLicense();
     });
+    var settingsToggle = $("#btn-settings-toggle");
+    if (settingsToggle) {
+      settingsToggle.addEventListener("click", function () {
+        var det = document.querySelector("details.settings");
+        if (!det) return;
+        det.open = !det.open;
+        if (det.open) {
+          det.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    }
     window.addEventListener("online", function () {
       maybeCheckLicenseOnline();
     });

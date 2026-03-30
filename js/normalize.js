@@ -29,6 +29,10 @@
     // Unicode 正規化で幅などを揃えたうえで、仕様どおり補正
     s = s.normalize("NFKC");
     s = halfKatakanaToFull(s);
+    // ひらがな → カタカナ（U+3041〜U+3096）
+    s = s.replace(/[\u3041-\u3096]/g, function (ch) {
+      return String.fromCharCode(ch.charCodeAt(0) + 0x60);
+    });
     // 英字は大文字・半角相当に（NFKC 後の ASCII）
     s = s.replace(/[a-z]/g, function (ch) {
       return ch.toUpperCase();
