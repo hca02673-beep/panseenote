@@ -70,9 +70,18 @@
       }, timeoutMs);
     }
 
-    return fetch(url, {
-      method: "POST",
-      body: JSON.stringify(payload),
+    var params = [];
+    for (var k in payload) {
+      if (Object.prototype.hasOwnProperty.call(payload, k)) {
+        params.push(
+          encodeURIComponent(k) + "=" + encodeURIComponent(String(payload[k] == null ? "" : payload[k]))
+        );
+      }
+    }
+    var getUrl = url + (url.indexOf("?") >= 0 ? "&" : "?") + params.join("&");
+
+    return fetch(getUrl, {
+      method: "GET",
       signal: ctrl ? ctrl.signal : undefined,
     })
       .then(function (res) {
