@@ -1,0 +1,11 @@
+# 機密情報・個人データ
+IDPW*.json
+*.csv
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+*.swp
