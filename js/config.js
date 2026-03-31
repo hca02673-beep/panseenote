@@ -40,7 +40,7 @@
      * GAS デプロイ後の Web アプリ URL（/exec で終わる想定）
      * 未設定時は window.__PANSEE_LICENSE_API_URL__ で上書き可能
      */
-    LICENSE_API_URL: "https://script.google.com/macros/s/AKfycbzucnOlaU02IkGBDMOPPRE_osRojsZf9Fgv012ujCtDeCKw39VKRcPykRD_Ao9Heu2K/exec",
+    LICENSE_API_URL: "https://script.google.com/macros/s/AKfycbzCoZsd9oE5BG_DH6AtmhWLDTvgSmm_aNPu6Y6fMX5qJfgySs1rffdm_xqB9B9ohKs/exec",
   };
 
   CONFIG.getBasePath = function () {
