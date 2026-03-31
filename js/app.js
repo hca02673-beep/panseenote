@@ -295,6 +295,14 @@
     if (lbEl) lbEl.textContent = lb ? lb : "—";
     var vb = $("#app-version-label");
     if (vb) vb.textContent = String(C.APP_VERSION || "—");
+    var bb = $("#app-build-label");
+    if (bb && C.BUILD_TIMESTAMP) {
+      try {
+        var d = new Date(C.BUILD_TIMESTAMP);
+        var pad = function(n){ return String(n).padStart(2,"0"); };
+        bb.textContent = "(build: " + d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + " UTC)";
+      } catch(_) { bb.textContent = "(" + C.BUILD_TIMESTAMP + ")"; }
+    }
     updatePlanSummaryLine();
     updateLicenseDetailsPanel();
     updateLicenseWarningBanner();
