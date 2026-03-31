@@ -300,7 +300,7 @@
       try {
         var d = new Date(C.BUILD_TIMESTAMP);
         var pad = function(n){ return String(n).padStart(2,"0"); };
-        bb.textContent = "(build: " + d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + " UTC)";
+        bb.textContent = "(build: " + d.getUTCFullYear() + "-" + pad(d.getUTCMonth()+1) + "-" + pad(d.getUTCDate()) + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + " UTC)";
       } catch(_) { bb.textContent = "(" + C.BUILD_TIMESTAMP + ")"; }
     }
     updatePlanSummaryLine();
