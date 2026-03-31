@@ -18,13 +18,13 @@ jobs:
       - name: Inject build timestamp into config.js
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          sed -i "s/BUILD_TIMESTAMP: \"[^\"]*\"/BUILD_TIMESTAMP: \"$TIMESTAMP\"/" panseenote/js/config.js
+          sed -i "s/BUILD_TIMESTAMP: \"[^\"]*\"/BUILD_TIMESTAMP: \"$TIMESTAMP\"/" js/config.js
           echo "Stamped: $TIMESTAMP"
 
       - name: Commit if changed
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add panseenote/js/config.js
+          git add js/config.js
           git diff --cached --quiet && echo "No change" || git commit -m "chore: update build timestamp"
           git push
