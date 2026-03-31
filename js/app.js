@@ -1074,6 +1074,19 @@
       .then(function (pair) {
         state.license = pair[0];
         state.settings = pair[1];
+        // 開発者用: localStorage に pansee_dev_limit が設定されている場合は上限を上書き
+        (function () {
+          try {
+            var devVal = localStorage.getItem("pansee_dev_limit");
+            if (devVal !== null) {
+              var n = Number(devVal);
+              if (isFinite(n) && n > 0) {
+                state.license = Object.assign({}, state.license, { itemLimit: n });
+                console.info("[DEV] itemLimit overridden to", n, "(localStorage: pansee_dev_limit)");
+              }
+            }
+          } catch (_) {}
+        })();
         state.searchQuery = String((state.settings && state.settings.lastSearchQuery) || "");
         if ($("#manual-search")) {
           $("#manual-search").value = state.searchQuery;
