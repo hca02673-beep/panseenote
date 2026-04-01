@@ -264,6 +264,15 @@
     );
   }
 
+  /** スマホ幅（479px 以下）: 件数情報の超コンパクト表示判定 */
+  function isPhoneViewport() {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(max-width: 479px)").matches
+    );
+  }
+
   function parseCountFromSummaryText(text) {
     var t = String(text || "");
     var m1 = t.match(/^(\d+)件登録済/);
@@ -294,6 +303,20 @@
     } else {
       var label = formatPlanLabelForSummary(lic);
       el.textContent = n + "件登録済／上限" + limit + "件（" + label + "）";
+    }
+    // SP/タブレット用件数情報要素を同期
+    var elSp = $("#plan-summary-line-sp");
+    if (elSp) {
+      if (isPhoneViewport()) {
+        // スマホ: 「上限」省略、日本語ラベルを小フォント、プラン名はみ出し許容
+        elSp.innerHTML =
+          '<span class="ps-j">登録</span>' + n +
+          '<span class="ps-j">／</span>' + limit +
+          '<span class="ps-j">件</span>（' + formatPlanShortEn(lic) + '）';
+      } else {
+        // タブレット: 通常テキスト表示
+        elSp.textContent = "登録 " + n + "／上限" + limit + "件（" + formatPlanShortEn(lic) + "）";
+      }
     }
   }
 
@@ -1091,6 +1114,13 @@
         narrowMq.addEventListener("change", onViewportLayoutChange);
       } else if (narrowMq.addListener) {
         narrowMq.addListener(onViewportLayoutChange);
+      }
+      // スマホ幅変化でコンパクト表示切替
+      var phoneMq = window.matchMedia("(max-width: 479px)");
+      if (phoneMq.addEventListener) {
+        phoneMq.addEventListener("change", onViewportLayoutChange);
+      } else if (phoneMq.addListener) {
+        phoneMq.addListener(onViewportLayoutChange);
       }
     }
 

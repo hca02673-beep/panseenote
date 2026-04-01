@@ -61,23 +61,27 @@ body {
   padding: 1rem 1rem 3rem;
 }
 
+/* ======================================================
+   ヘッダー — 基本（PC / 768px 以上）
+   ====================================================== */
+
 .app-header {
   margin-bottom: 0.5rem;
 }
 
-/* ロゴ・音声ボタン・データボタンを1行に横並び */
-.app-header-row {
+/* 上段: ロゴ（左）＋ボタン群（右） */
+.header-top-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem 1rem;
-  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
 }
 
+/* ロゴブロック: 画像と副題（PC用）を縦に並べ、中央揃え */
 .app-logo-block {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .app-logo {
@@ -86,14 +90,21 @@ body {
   display: block;
 }
 
+/* 副題 */
 .subtitle {
   margin: 0.15rem 0 0;
   color: var(--muted);
   font-size: 0.88rem;
   letter-spacing: 0.04em;
+  text-align: center;
 }
 
-/* 右ブロック: データボタン（上）＋ 件数（下） */
+/* PC: ロゴブロック内副題を表示 */
+.subtitle-desktop { display: block; }
+/* SP/タブレット: header-sub-row 内副題（デフォルト非表示） */
+.subtitle-sp      { display: none; }
+
+/* 右ブロック */
 .header-right-block {
   display: flex;
   flex-direction: column;
@@ -102,15 +113,29 @@ body {
   margin-left: auto;
 }
 
+/* データ操作ボタン群 */
 .header-data-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: flex-end;
+  align-items: center;
 }
 
+/* flex break: デフォルト非表示（スマホで設定ボタンを次行に押し出す） */
+.hdr-break {
+  display: none;
+  flex-basis: 100%;
+  height: 0;
+}
+
+/* ボタンラベル切替（PC/タブレット=フル、スマホ=短縮） */
+.lbl-narrow { display: none;   }
+.lbl-wide   { display: inline; }
+
+/* 件数情報 */
 .plan-summary {
-  margin: 0 0 0 auto;
+  margin: 0;
   text-align: right;
   font-size: 0.92rem;
   font-weight: 600;
@@ -118,13 +143,15 @@ body {
   white-space: nowrap;
 }
 
-@media (max-width: 520px) {
-  .plan-summary {
-    white-space: normal;
-    text-align: left;
-    margin: 0;
-    width: 100%;
-  }
+/* PC用: 右ブロック内（デフォルト表示） */
+.plan-summary-pc { display: block; }
+/* SP/タブレット用: header-sub-row 内（デフォルト非表示） */
+.plan-summary-sp { display: none; }
+
+/* スマホ向け小フォント日本語ラベル（ps-j） */
+.ps-j {
+  font-size: 0.72em;
+  font-weight: normal;
 }
 
 button.sm-header {
@@ -132,20 +159,62 @@ button.sm-header {
   font-size: 0.85rem;
 }
 
-/* 全画面共通: 読み出しのみ短縮 */
 button.btn-header-import {
   padding: 0.3rem 0.45rem;
   font-size: 0.78rem;
   white-space: nowrap;
 }
 
+/* 副題＋件数情報行（PC では非表示） */
+.header-sub-row {
+  display: none;
+}
+
+/* 音声ボタン行（常に中央配置、ヘッダー最下部） */
 .voice-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 0;
-  justify-content: flex-start;
+  margin-top: 0.5rem;
+  justify-content: center;
   align-items: stretch;
+}
+
+/* ======================================================
+   タブレット・スマホ（768px 未満）
+   ====================================================== */
+@media (max-width: 767px) {
+  /* 副題を sub-row へ切替 */
+  .subtitle-desktop { display: none; }
+  .subtitle-sp      { display: block; }
+
+  /* 件数情報を sub-row へ切替 */
+  .plan-summary-pc { display: none; }
+  .plan-summary-sp { display: block; }
+
+  /* 副題（左）＋件数情報（右）を1行に */
+  .header-sub-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+  }
+
+  .header-sub-row .subtitle-sp {
+    margin: 0;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .header-sub-row .plan-summary-sp {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: right;
+    font-size: 0.85rem;
+  }
 }
 
 .inline-warning {
@@ -707,45 +776,29 @@ button.sm {
   border: 0;
 }
 
-/* 狭い画面（スマホ縦など） */
-@media (max-width: 640px) {
-  .app-logo {
-    height: 72px;
-  }
+/* ======================================================
+   スマホ（640px 未満）
+   ====================================================== */
+@media (max-width: 639px) {
+  /* ロゴ・副題 */
+  .app-logo { height: 72px; }
+  .subtitle  { font-size: 0.78rem; }
 
-  .subtitle {
-    font-size: 0.78rem;
-  }
+  /* ボタンラベルを短縮表示に切替 */
+  .lbl-wide   { display: none;   }
+  .lbl-narrow { display: inline; }
 
-  .header-right-block {
-    align-items: flex-end;
-  }
+  /* 設定ライセンスボタンを次行へ押し出し（右寄せ） */
+  .hdr-break         { display: block; }
+  #btn-settings-toggle { margin-left: auto; }
 
-  /* データ操作ボタン群を2行にする */
-  .header-data-actions {
-    flex-wrap: wrap;
-    gap: 0.3rem;
-  }
+  /* 件数情報フォントサイズ */
+  .header-sub-row .plan-summary-sp { font-size: 0.78rem; }
 
-  .entries-table col.col-date,
-  .entries-table thead .th-date,
-  .entries-table tbody td.col-date {
-    display: none;
-  }
-
-  .plan-summary {
-    font-size: 0.82rem;
-    white-space: normal;
-    text-align: right;
-    max-width: 100%;
-  }
-
+  /* 音声ボタン */
   .voice-row {
     flex-wrap: nowrap;
     gap: 0.35rem;
-    justify-content: flex-start;
-    align-items: stretch;
-    padding: 0;
   }
 
   button.voice-lg {
@@ -757,40 +810,23 @@ button.sm {
     min-height: 3.35rem;
   }
 
-  .voice-btn-mic svg {
-    width: 18px;
-    height: 18px;
-  }
+  .voice-btn-mic svg              { width: 18px; height: 18px; }
+  .voice-btn-title                { font-size: 0.88rem; }
+  button.voice-btn-search .voice-btn-title { font-size: 0.95rem; }
+  .voice-btn-sub                  { font-size: 0.68rem; }
+  .voice-btn-title-row            { gap: 0.25rem; }
 
-  .voice-btn-title {
-    font-size: 0.88rem;
-  }
+  /* テーブル: 登録日付列を非表示 */
+  .entries-table col.col-date,
+  .entries-table thead .th-date,
+  .entries-table tbody td.col-date { display: none; }
 
-  button.voice-btn-search .voice-btn-title {
-    font-size: 0.95rem;
-  }
-
-  .voice-btn-sub {
-    font-size: 0.68rem;
-  }
-
-  .voice-btn-title-row {
-    gap: 0.25rem;
-  }
-
-  table.entries-table {
-    min-width: 28rem;
-  }
+  table.entries-table              { min-width: 28rem; }
 
   .entries-table col.col-title,
-  td.col-title {
-    min-width: 11rem;
-  }
+  td.col-title                     { min-width: 11rem; }
 
-  .entries-table col.col-actions {
-    width: 8.5rem;
-    min-width: 8.5rem;
-  }
+  .entries-table col.col-actions   { width: 8.5rem; min-width: 8.5rem; }
 
   .entries-table td.col-actions {
     width: 8.5rem;
@@ -804,7 +840,5 @@ button.sm {
     padding: 0.2rem 0.3rem;
   }
 
-  .actions {
-    gap: 0.25rem;
-  }
+  .actions { gap: 0.25rem; }
 }
