@@ -214,6 +214,13 @@ button.btn-action-delete:focus-visible {
   outline: 2px solid var(--btn-delete-red-hover);
   outline-offset: 2px;
 }
+button.btn-action-delete:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 
 button.voice-lg {
   min-height: 4rem;

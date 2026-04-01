@@ -19,6 +19,8 @@
     searchQuery: "",
     voiceRegisterMode: false,
     voicePreviewEntry: null,
+    /** 音声登録モード中に #search-meta へ表示するメッセージ（空なら既定文言） */
+    voiceRegisterMetaMsg: "",
     /** @type {Set<string>} 展開中のメモ行のエントリID */
     openMemoIds: new Set(),
   };
@@ -61,9 +63,15 @@
     setEntryLimitInlineWarning("");
   }
 
+  /** 音声登録モード中の #search-meta メッセージをセット（赤太字） */
+  function setVoiceRegisterMeta(msg) {
+    state.voiceRegisterMetaMsg = msg || "";
+  }
+
   function startVoiceRegisterSingleRowMode() {
     state.voiceRegisterMode = true;
     state.voicePreviewEntry = null;
+    state.voiceRegisterMetaMsg = "";
     state.searchQuery = "";
     if ($("#manual-search")) {
       $("#manual-search").value = "";
@@ -378,7 +386,9 @@
       '<td class="actions col-actions">' +
       '<button type="button" class="sm row-memo btn-memo">メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">保存</button>' +
-      '<button type="button" class="sm row-delete btn-action-delete">削除</button>' +
+      (isDraft
+        ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
+        : '<button type="button" class="sm row-delete btn-action-delete">削除</button>') +
       '<input type="hidden" data-field="memo" value="' + memoEsc + '" />' +
       "</td>" +
       "</tr>";
@@ -463,8 +473,14 @@
         }
         var metaEl = $("#search-meta");
         if (metaEl) {
-          metaEl.textContent =
-            "音声登録モードです。表示中の1行を確認して保存・削除できます。";
+          var vmsg = state.voiceRegisterMetaMsg || "";
+          if (vmsg) {
+            metaEl.textContent = vmsg;
+            metaEl.classList.add("has-result");
+          } else {
+            metaEl.textContent = "音声登録モードです。表示中の1行を確認して保存・削除できます。";
+            metaEl.classList.remove("has-result");
+          }
         }
         wireTableHandlers();
         restoreOpenMemoRows();
@@ -640,6 +656,8 @@
   function runSearch() {
     state.voiceRegisterMode = false;
     state.voicePreviewEntry = null;
+    state.draft = null;
+    state.voiceRegisterMetaMsg = "";
     state.searchQuery = $("#manual-search").value || "";
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable();
@@ -654,6 +672,8 @@
     return voice.recognizeOnce().then(function (text) {
       state.voiceRegisterMode = false;
       state.voicePreviewEntry = null;
+      state.draft = null;
+      state.voiceRegisterMetaMsg = "";
       $("#manual-search").value = text;
       state.searchQuery = text;
       return saveSearchQueryToSettings(state.searchQuery).then(function () {
@@ -671,57 +691,73 @@
       window.alert("このブラウザでは音声認識を利用できません。手入力で登録してください。");
       return;
     }
-    return startVoiceRegisterSingleRowMode().then(function () {
-      return voice.recognizeOnce();
-    }).then(function (text) {
-      var parsed = voice.parseRegisterTranscript(text);
-      state.draft = null;
-      state.voicePreviewEntry = null;
-      return refreshCount().then(function (n) {
-        var atLimit = n >= Number(state.license.itemLimit);
 
-        if (parsed.ok && !atLimit) {
-          // 5.1: サービス名が取れない場合は自動登録せず draft で待機
-          if (!parsed.isMemo && !parsed.title.trim()) {
-            state.draft = { title: "", book: parsed.book, page: parsed.page, memo: "" };
-            toast("冊数・ページを認識しました。サービス名を手入力で補完してから保存してください。");
-            return renderTable();
-          }
-          var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page, "");
-          return db.putEntry(state.idb, entry).then(function () {
-            state.voicePreviewEntry = entry;
-            var msg = parsed.isMemo
-              ? "音声メモとして登録しました（冊数・ページは空欄）。"
-              : "音声から登録しました。";
-            toast(msg);
-            return renderTable();
-          });
-        }
+    var PARSE_FAIL_MSG = "音声認識失敗（「○冊目○ページ 名前」または「\"メモ\" サービス名」と発話）。手動でも登録できます。";
 
-        if (parsed.ok && atLimit) {
-          state.draft = {
-            title: parsed.title,
-            book: parsed.book,
-            page: parsed.page,
-            memo: "",
-          };
-          setEntryLimitInlineWarning(
-            "登録上限（" + state.license.itemLimit + "件）のため自動登録できません。表示中の1行を編集し、空きを作ってから保存してください。"
-          );
-          toast(
-            "登録上限に達しているため自動登録できません。データを整理するか、行を編集のうえ空きを作ってください。"
-          );
+    // 上限チェックを音声認識開始前に行う
+    return refreshCount().then(function (n) {
+      var atLimit = n >= Number(state.license.itemLimit);
+      if (atLimit) {
+        state.voiceRegisterMode = false;
+        state.voicePreviewEntry = null;
+        state.draft = null;
+        state.voiceRegisterMetaMsg = "";
+        state.searchQuery = "";
+        if ($("#manual-search")) $("#manual-search").value = "";
+        setEntryLimitInlineWarning(
+          "登録上限（" + state.license.itemLimit + "件）です。ライセンス取得で件数増加をご検討ください。"
+        );
+        return saveSearchQueryToSettings("").then(function () {
+          return renderTable();
+        });
+      }
+
+      // 上限未達: 音声登録モード開始 → 認識
+      return startVoiceRegisterSingleRowMode().then(function () {
+        return voice.recognizeOnce();
+      }).then(function (text) {
+        state.draft = null;
+        state.voicePreviewEntry = null;
+
+        // タイムアウト／無音
+        if (!text.trim()) {
+          state.draft = { title: "", book: "", page: "", memo: "" };
+          setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。");
           return renderTable();
         }
 
+        var parsed = voice.parseRegisterTranscript(text);
+
+        // パース失敗
+        if (!parsed.ok) {
+          state.draft = { title: "", book: "", page: "", memo: "" };
+          setVoiceRegisterMeta(PARSE_FAIL_MSG);
+          return renderTable();
+        }
+
+        // サービス名なし（形式A・形式B共通）
+        if (!parsed.title.trim()) {
+          state.draft = { title: "", book: parsed.book, page: parsed.page, memo: "" };
+          setVoiceRegisterMeta(PARSE_FAIL_MSG);
+          return renderTable();
+        }
+
+        // 登録成功
+        var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page, "");
+        return db.putEntry(state.idb, entry).then(function () {
+          state.voicePreviewEntry = entry;
+          var msg = parsed.isMemo
+            ? "音声メモ（冊・ページは空欄）を登録しました。手動で修正登録ができます。"
+            : "音声から登録しました。手動で修正登録ができます。";
+          setVoiceRegisterMeta(msg);
+          return renderTable();
+        });
+      }).catch(function () {
         state.draft = { title: "", book: "", page: "", memo: "" };
-        toast("音声からサービス名を取り出せませんでした（「○冊目○ページ 名前」または「メモ サービス名」と発話）。手入力で保存できます。");
+        state.voicePreviewEntry = null;
+        setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。");
         return renderTable();
       });
-    }).catch(function () {
-      state.draft = { title: "", book: "", page: "", memo: "" };
-      state.voicePreviewEntry = null;
-      return renderTable();
     });
   }
 
