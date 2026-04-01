@@ -385,7 +385,7 @@
       "</td>" +
       '<td class="actions col-actions">' +
       '<button type="button" class="sm row-memo btn-memo">メモ</button>' +
-      '<button type="button" class="sm row-save btn-action-green">保存</button>' +
+      '<button type="button" class="sm row-save btn-action-green">登録</button>' +
       (isDraft
         ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
         : '<button type="button" class="sm row-delete btn-action-delete">削除</button>') +
@@ -478,7 +478,7 @@
             metaEl.textContent = vmsg;
             metaEl.classList.add("has-result");
           } else {
-            metaEl.textContent = "音声登録モードです。表示中の1行を確認して保存・削除できます。";
+            metaEl.textContent = "音声登録モードです。表示中の1行を確認して登録・削除できます。";
             metaEl.classList.remove("has-result");
           }
         }
@@ -688,11 +688,13 @@
 
   function onVoiceRegister() {
     if (!voice.isSpeechSupported()) {
-      window.alert("このブラウザでは音声認識を利用できません。手入力で登録してください。");
-      return;
+      state.draft = { title: "", book: "", page: "", memo: "" };
+      return startVoiceRegisterSingleRowMode().then(function () {
+        window.alert("このブラウザでは音声認識を利用できません。手動で登録ができます。");
+      });
     }
 
-    var PARSE_FAIL_MSG = "音声認識失敗（「○冊目○ページ 名前」または「\"メモ\" サービス名」と発話）。手動でも登録できます。";
+    var PARSE_FAIL_MSG = "音声認識失敗（「○\"冊目\"○\"ページ\" サービス名」または「\"メモ\" サービス名」と発話）。手動で登録ができます";
 
     // 上限チェックを音声認識開始前に行う
     return refreshCount().then(function (n) {
@@ -722,7 +724,7 @@
         // タイムアウト／無音
         if (!text.trim()) {
           state.draft = { title: "", book: "", page: "", memo: "" };
-          setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。");
+          setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます");
           return renderTable();
         }
 
@@ -755,7 +757,7 @@
       }).catch(function () {
         state.draft = { title: "", book: "", page: "", memo: "" };
         state.voicePreviewEntry = null;
-        setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。");
+        setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます");
         return renderTable();
       });
     });
