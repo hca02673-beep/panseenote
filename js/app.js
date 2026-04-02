@@ -613,7 +613,7 @@
           if (state.voiceRegisterMode) {
             state.voicePreviewEntry = entry;
           }
-          toast("編集内容を保存しました。");
+          toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
       });
@@ -637,7 +637,7 @@
         if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
           state.voicePreviewEntry = next;
         }
-        toast("編集内容を保存しました。");
+        toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
         return renderTable();
       });
     });
@@ -779,6 +779,7 @@
             ? "音声メモ（冊・ページは空欄）を登録しました。手動で修正登録ができます。"
             : "音声から登録しました。手動で修正登録ができます。";
           setVoiceRegisterMeta(msg);
+          toast("音声登録内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
       }).catch(function () {
