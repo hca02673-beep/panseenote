@@ -21,6 +21,8 @@
     voicePreviewEntry: null,
     /** 音声登録モード中に #search-meta へ表示するメッセージ（空なら既定文言） */
     voiceRegisterMetaMsg: "",
+    /** 音声検索フローで #search-meta へ表示するカスタムメッセージ（空なら通常表示） */
+    voiceSearchMsg: "",
     /** @type {Set<string>} 展開中のメモ行のエントリID */
     openMemoIds: new Set(),
   };
@@ -56,7 +58,7 @@
     }
     if (entryCount >= limit) {
       setEntryLimitInlineWarning(
-        "登録上限（" + limit + "件）に達しています。新規登録には既存データの削除またはプラン変更が必要です。"
+        "登録上限（" + limit + "件）に達しています。プラン変更で件数増加をご検討ください"
       );
       return;
     }
@@ -353,10 +355,11 @@
     if (!el) return;
     var q = state.searchQuery.trim();
     if (!q) {
-      el.classList.remove("has-result");
-      if (result.total > 0) {
-        el.textContent =
-          "検索語を入力して検索してください。前回検索語は保存され、次回起動時に復元されます。";
+      el.classList.add("has-result");
+      if (state.voiceSearchMsg) {
+        el.textContent = state.voiceSearchMsg;
+      } else if (result.total > 0) {
+        el.textContent = "検索語を入力して検索してください。検索語は短くするのがコツです";
       } else {
         el.textContent = "登録はまだありません。";
       }
@@ -373,7 +376,7 @@
       parts.push("（ヒットなし）");
     }
     el.textContent = parts.join(" ");
-    el.classList.toggle("has-result", result.total > 0);
+    el.classList.add("has-result");
   }
 
   function rowHtml(entry, isDraft) {
@@ -610,7 +613,7 @@
           if (state.voiceRegisterMode) {
             state.voicePreviewEntry = entry;
           }
-          toast("保存しました。");
+          toast("編集内容を保存しました。");
           return renderTable();
         });
       });
@@ -634,7 +637,7 @@
         if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
           state.voicePreviewEntry = next;
         }
-        toast("保存しました。");
+        toast("編集内容を保存しました。");
         return renderTable();
       });
     });
@@ -661,6 +664,7 @@
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
+    state.voiceSearchMsg = "";
     state.searchQuery = $("#manual-search").value || "";
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable();
@@ -669,20 +673,32 @@
 
   function onVoiceSearch() {
     if (!voice.isSpeechSupported()) {
-      window.alert("このブラウザでは音声認識を利用できません。手動検索をご利用ください。");
-      return;
+      state.voiceRegisterMode = false;
+      state.voicePreviewEntry = null;
+      state.draft = null;
+      state.voiceRegisterMetaMsg = "";
+      state.voiceSearchMsg = "このブラウザでは音声認識を利用できません。手動検索をご利用ください。";
+      state.searchQuery = "";
+      if ($("#manual-search")) $("#manual-search").value = "";
+      return saveSearchQueryToSettings("").then(function () {
+        return renderTable();
+      });
     }
     return voice.recognizeOnce().then(function (text) {
       state.voiceRegisterMode = false;
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
+      state.voiceSearchMsg = "";
+      if (!text.trim()) {
+        state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索もご利用可能です";
+      }
       $("#manual-search").value = text;
       state.searchQuery = text;
       return saveSearchQueryToSettings(state.searchQuery).then(function () {
         return renderTable().then(function () {
           if (!text.trim()) {
-            toast("音声を認識できませんでした。");
+            toast("音声認識がタイムアウトしました");
           }
         });
       });
@@ -691,9 +707,17 @@
 
   function onVoiceRegister() {
     if (!voice.isSpeechSupported()) {
+      state.voiceRegisterMode = true;
+      state.voicePreviewEntry = null;
+      state.voiceRegisterMetaMsg = "このブラウザでは音声認識を利用できません。手動での登録をご利用ください";
+      state.voiceSearchMsg = "";
+      state.searchQuery = "";
       state.draft = { title: "", book: "", page: "", memo: "" };
-      return startVoiceRegisterSingleRowMode().then(function () {
-        window.alert("このブラウザでは音声認識を利用できません。手動で登録ができます。");
+      if ($("#manual-search")) $("#manual-search").value = "";
+      return saveSearchQueryToSettings("").then(function () {
+        return refreshCount().then(function () {
+          return renderTable();
+        });
       });
     }
 
@@ -710,7 +734,7 @@
         state.searchQuery = "";
         if ($("#manual-search")) $("#manual-search").value = "";
         setEntryLimitInlineWarning(
-          "登録上限（" + state.license.itemLimit + "件）です。ライセンス取得で件数増加をご検討ください。"
+          "登録上限（" + state.license.itemLimit + "件）です。プラン変更で件数増加をご検討ください"
         );
         return saveSearchQueryToSettings("").then(function () {
           return renderTable();
