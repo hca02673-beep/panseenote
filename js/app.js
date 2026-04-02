@@ -502,8 +502,8 @@
             metaEl.textContent = vmsg;
             metaEl.classList.add("has-result");
           } else {
-            metaEl.textContent = "音声登録モードです。表示中の1行を確認して登録・削除できます。";
-            metaEl.classList.remove("has-result");
+            metaEl.textContent = "音声認識しています。";
+            metaEl.classList.add("has-result");
           }
         }
         wireTableHandlers();
@@ -698,7 +698,7 @@
       return saveSearchQueryToSettings(state.searchQuery).then(function () {
         return renderTable().then(function () {
           if (!text.trim()) {
-            toast("音声認識がタイムアウトしました");
+            toast("音声認識がタイムアウトしました。");
           }
         });
       });
@@ -709,7 +709,7 @@
     if (!voice.isSpeechSupported()) {
       state.voiceRegisterMode = true;
       state.voicePreviewEntry = null;
-      state.voiceRegisterMetaMsg = "このブラウザでは音声認識を利用できません。手動での登録をご利用ください";
+      state.voiceRegisterMetaMsg = "このブラウザでは音声認識を利用できません。手動での登録をご利用ください。";
       state.voiceSearchMsg = "";
       state.searchQuery = "";
       state.draft = { title: "", book: "", page: "", memo: "" };
@@ -721,7 +721,7 @@
       });
     }
 
-    var PARSE_FAIL_MSG = "音声認識失敗（「○\"冊目\"○\"ページ\" サービス名」または「\"メモ\" サービス名」と発話）。手動で登録ができます";
+    var PARSE_FAIL_MSG = "音声認識失敗（「○\"冊目\"○\"ページ\" サービス名」または「\"メモ\" サービス名」と発話）。手動で登録ができます。";
 
     // 上限チェックを音声認識開始前に行う
     return refreshCount().then(function (n) {
@@ -751,7 +751,7 @@
         // タイムアウト／無音
         if (!text.trim()) {
           state.draft = { title: "", book: "", page: "", memo: "" };
-          setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます");
+          setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
           return renderTable();
         }
 
@@ -784,7 +784,7 @@
       }).catch(function () {
         state.draft = { title: "", book: "", page: "", memo: "" };
         state.voicePreviewEntry = null;
-        setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます");
+        setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
         return renderTable();
       });
     });
@@ -998,15 +998,6 @@
         }
         return db.getLicense(state.idb).then(function (lic) {
           var items = data.items;
-          if (
-            isUnauthenticatedTrial() &&
-            items.length > C.DEFAULT_ITEM_LIMIT
-          ) {
-            window.alert(
-              "このブラウザではライセンス認証が完了していません。このデータを取り込むにはオンライン認証が必要です。"
-            );
-            return;
-          }
           var limit = Number(lic.itemLimit);
           if (isNaN(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
           var truncated = items.length > limit;
