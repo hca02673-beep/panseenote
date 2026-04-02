@@ -354,9 +354,7 @@
     var q = state.searchQuery.trim();
     if (!q) {
       el.classList.remove("has-result");
-      if (result.total === 0 && state.draft) {
-        el.textContent = "未保存の行があります。内容を確認して保存してください。";
-      } else if (result.total > 0) {
+      if (result.total > 0) {
         el.textContent =
           "検索語を入力して検索してください。前回検索語は保存され、次回起動時に復元されます。";
       } else {
@@ -508,24 +506,6 @@
         wireTableHandlers();
         restoreOpenMemoRows();
         return refreshCount();
-      }
-
-      if (state.draft) {
-        var d = state.draft;
-        body.insertAdjacentHTML(
-          "afterbegin",
-          rowHtml(
-            {
-              id: d.id || "",
-              title: d.title,
-              book: d.book,
-              page: d.page,
-              memo: d.memo || "",
-              createdAt: "（未保存）",
-            },
-            true
-          )
-        );
       }
 
       for (var i = 0; i < res.matches.length; i++) {
