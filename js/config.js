@@ -11,7 +11,7 @@
   var CONFIG = {
     APP_ID: "PenseeNote",
     APP_VERSION: "1.0.8",
-    BUILD_TIMESTAMP: "2026-04-03T02:36:29Z",
+    BUILD_TIMESTAMP: "2026-04-02T22:33:16Z",
     EXPORT_JSON_VERSION: "1.0",
     TERMS_VERSION: "1.0",
 
@@ -27,7 +27,7 @@
     /** 未認証・試用（サーバー返却の itemLimit を正とする） */
     DEFAULT_PLAN_CODE: "trial",
     DEFAULT_PLAN_NAME: "試用版",
-    DEFAULT_ITEM_LIMIT: 30,
+    DEFAULT_ITEM_LIMIT: 100,
 
     LICENSE_DOC_ID: "current",
     SETTINGS_DOC_ID: "app-settings",
