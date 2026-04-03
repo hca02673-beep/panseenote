@@ -66,6 +66,8 @@
       lastBackupAt: "",
       lastSearchQuery: "",
       appVersion: C.APP_VERSION,
+      termsAcceptedAt: "",
+      termsVersion: "",
     };
   }
 
@@ -78,6 +80,8 @@
     if (d.lastBackupAt === undefined || d.lastBackupAt === null) d.lastBackupAt = "";
     if (d.lastSearchQuery === undefined || d.lastSearchQuery === null) d.lastSearchQuery = "";
     if (d.appVersion === undefined || d.appVersion === null) d.appVersion = C.APP_VERSION;
+    if (d.termsAcceptedAt === undefined || d.termsAcceptedAt === null) d.termsAcceptedAt = "";
+    if (d.termsVersion === undefined || d.termsVersion === null) d.termsVersion = "";
     return d;
   }
 

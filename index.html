@@ -180,6 +180,63 @@
       </div>
     </div>
 
+    <!-- 規約承認モーダル（未承認時のみ表示） -->
+    <div id="terms-modal" class="terms-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="terms-title">
+      <div class="terms-box">
+        <h2 id="terms-title" class="terms-title">パンセノート — ご利用前の確認事項</h2>
+        <div class="terms-scroll" tabindex="0">
+
+          <section class="terms-section">
+            <h3>1. 本アプリの目的と性質</h3>
+            <p>本アプリは、ユーザーが現実の紙のノートに記載した情報の<strong>索引機能の提供</strong>を目的としたサービスです。本アプリはメモ・記録情報そのものをサーバー等に保管するサービスではありません。ユーザーはこの点を十分に理解した上でご利用ください。</p>
+          </section>
+
+          <section class="terms-section">
+            <h3>2. データ消失・消滅に関する免責</h3>
+            <p>本アプリのデータはお客様のデバイス上のブラウザストレージ（IndexedDB）に保存されます。ブラウザのキャッシュ・履歴消去、端末の初期化、アプリ・ブラウザのアップデート、その他いかなる原因によってデータが消失・消滅した場合においても、当社は一切の責任を負いません。</p>
+            <p>データの保全が必要な場合は、定期的に「データファイル保存」機能を使用してバックアップを取得してください。</p>
+          </section>
+
+          <section class="terms-section">
+            <h3>3. 個人情報・重要情報の登録禁止</h3>
+            <p>本アプリは、個人情報を含む重要な情報はユーザーが保有する紙のノートに記載されていることを前提としています。本アプリ上には、氏名・住所・電話番号・金融情報・医療情報・その他の個人情報や機密性の高い重要情報を登録してはなりません。</p>
+            <p>ユーザーが上記に反して本アプリ上に個人情報・重要情報を登録し、その情報が第三者に漏洩した場合においても、当社は一切の責任を負いません。</p>
+          </section>
+
+          <section class="terms-section">
+            <h3>4. 外部サービスとの通信</h3>
+            <p>本アプリはライセンス認証のため、インターネット経由でライセンス管理サーバー（Google Apps Script）と通信します。送信される情報はライセンスキーおよびアプリバージョン情報のみです。それ以外のユーザーデータがサーバーに送信されることはありません。</p>
+          </section>
+
+          <section class="terms-section">
+            <h3>5. 動作環境の保証</h3>
+            <p>本アプリはブラウザ上で動作するWebアプリケーションです。ブラウザの種類・バージョン・OS・デバイス環境によっては、一部機能（音声認識等）が正常に動作しない場合があります。当社は特定の環境での動作を保証しません。</p>
+          </section>
+
+          <section class="terms-section">
+            <h3>6. サービスの変更・中断・終了</h3>
+            <p>当社は、ユーザーへの事前通知なく、本アプリの機能の変更・追加・削除、およびサービスの中断・終了を行う場合があります。これにより生じたいかなる損害についても、当社は責任を負いません。</p>
+          </section>
+
+          <section class="terms-section">
+            <h3>7. 本規約の改訂</h3>
+            <p>当社は必要に応じて本規約を改訂することがあります。改訂が行われた場合、次回のアプリ起動時に改めて確認・同意を求めます。改訂後も本アプリを継続してご利用になる場合は、改訂後の規約に同意したものとみなします。</p>
+          </section>
+
+        </div><!-- /.terms-scroll -->
+
+        <div class="terms-agree-row">
+          <label class="terms-agree-label">
+            <input type="checkbox" id="terms-agree-check" />
+            <span>上記すべての内容を確認し、同意します</span>
+          </label>
+        </div>
+        <button type="button" id="btn-terms-agree" class="terms-agree-btn" disabled>
+          同意して使用を開始する
+        </button>
+      </div>
+    </div><!-- /#terms-modal -->
+
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script src="js/config.js"></script>

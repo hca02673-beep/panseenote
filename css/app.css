@@ -741,6 +741,167 @@ button.sm {
   }
 }
 
+/* ======================================================
+   規約承認モーダル
+   ====================================================== */
+
+.terms-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.terms-overlay[hidden] {
+  display: none;
+}
+
+.terms-box {
+  background: var(--card);
+  color: var(--fg);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.75rem 1.75rem 1.5rem;
+  gap: 1rem;
+}
+
+.terms-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.75rem;
+  color: var(--fg);
+}
+
+.terms-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  background: var(--bg);
+  min-height: 200px;
+  max-height: 50vh;
+  outline: none;
+}
+
+.terms-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.terms-section {
+  margin-bottom: 1.1rem;
+}
+
+.terms-section:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section h3 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+}
+
+.terms-section p {
+  font-size: 0.88rem;
+  margin: 0 0 0.5rem;
+  line-height: 1.65;
+  color: var(--fg);
+}
+
+.terms-section p:last-child {
+  margin-bottom: 0;
+}
+
+.terms-agree-row {
+  border-top: 1px solid var(--border);
+  padding-top: 0.85rem;
+}
+
+.terms-agree-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.terms-agree-label input[type="checkbox"] {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.terms-agree-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.terms-agree-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.terms-agree-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+@media (max-width: 639px) {
+  .terms-box {
+    padding: 1.25rem 1rem 1rem;
+    border-radius: 10px;
+    max-height: 95vh;
+  }
+
+  .terms-title {
+    font-size: 0.97rem;
+  }
+
+  .terms-scroll {
+    max-height: 45vh;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .terms-section h3 {
+    font-size: 0.87rem;
+  }
+
+  .terms-section p {
+    font-size: 0.83rem;
+  }
+}
+
+/* ======================================================
+   トースト
+   ====================================================== */
+
 #toast {
   position: fixed;
   left: 50%;

@@ -31,6 +31,51 @@
     return document.querySelector(sel);
   };
 
+  /**
+   * 規約モーダルを表示し、ユーザーが同意したら解決する Promise を返す。
+   * @returns {Promise<void>}
+   */
+  function showTermsModal() {
+    return new Promise(function (resolve) {
+      var overlay = $("#terms-modal");
+      var check = $("#terms-agree-check");
+      var btn = $("#btn-terms-agree");
+      if (!overlay || !check || !btn) {
+        resolve();
+        return;
+      }
+
+      overlay.removeAttribute("hidden");
+
+      check.addEventListener("change", function () {
+        btn.disabled = !check.checked;
+      });
+
+      btn.addEventListener("click", function () {
+        if (!check.checked) return;
+        db.updateSettings(state.idb, {
+          termsAcceptedAt: new Date().toISOString(),
+          termsVersion: C.TERMS_VERSION,
+        }).then(function (updated) {
+          state.settings = updated;
+          overlay.setAttribute("hidden", "");
+          resolve();
+        });
+      });
+    });
+  }
+
+  /** 規約承認が必要なら showTermsModal を呼び出し、不要なら即時解決する。 */
+  function checkTerms() {
+    if (
+      state.settings &&
+      state.settings.termsVersion === C.TERMS_VERSION
+    ) {
+      return Promise.resolve();
+    }
+    return showTermsModal();
+  }
+
   function toast(msg) {
     var el = $("#toast");
     if (!el) return;
@@ -1156,7 +1201,9 @@
           $("#manual-search").value = state.searchQuery;
         }
         updatePlanBar();
-        return renderTable();
+        return checkTerms().then(function () {
+          return renderTable();
+        });
       })
       .then(function () {
         return maybeCheckLicenseOnline().catch(function () {});
