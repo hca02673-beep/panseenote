@@ -432,28 +432,43 @@
     var pageEsc = escapeAttr(entry.page || "");
     var memoEsc = escapeAttr(entry.memo || "");
     var dateLabel = entry.createdAt || "—";
+    var hasMemo = (entry.memo || "").trim() !== "";
+    var memoBtnClass = "row-memo" + (hasMemo ? " has-memo" : "");
 
     var mainTr =
       "<tr" +
       dr +
       (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
       ">" +
-      '<td class="col-title"><input class="inline" type="text" maxlength="' +
+      // サービス名 + メモボタン（フレックスレイアウト）
+      '<td class="col-title">' +
+      '<div class="title-cell-wrap">' +
+      '<input class="inline title-input" type="text" maxlength="' +
       C.MAX_TITLE_LENGTH +
       '" data-field="title" value="' +
       titleEsc +
-      '" title="' + titleEsc + '" /></td>' +
-      '<td class="col-book"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
+      '" title="' + titleEsc + '" />' +
+      '<button type="button" class="' + memoBtnClass + '">メモ<span class="memo-arrow">▼</span></button>' +
+      '</div>' +
+      '</td>' +
+      // SP専用: 冊目・頁 統合欄（PC では visibility:collapse）
+      '<td class="col-bookpage sp-only">' +
+      '<div class="bookpage-wrap">' +
+      '<input class="inline inline-num sp-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' + bookEsc + '" />' +
+      '<input class="inline inline-num sp-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' + pageEsc + '" />' +
+      '</div>' +
+      '</td>' +
+      // PC専用: 冊目・ページ 個別欄（SP では visibility:collapse）
+      '<td class="col-book pc-only"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
       bookEsc +
       '" /></td>' +
-      '<td class="col-page"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' +
+      '<td class="col-page pc-only"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' +
       pageEsc +
       '" /></td>' +
       '<td class="readonly col-date">' +
       escapeHtml(dateLabel) +
       "</td>" +
       '<td class="actions col-actions">' +
-      '<button type="button" class="sm row-memo btn-memo">メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">登録</button>' +
       (isDraft
         ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
@@ -466,7 +481,7 @@
       '<tr class="memo-row"' +
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       " hidden>" +
-      '<td colspan="5" class="memo-cell">' +
+      '<td colspan="6" class="memo-cell">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
@@ -576,6 +591,12 @@
     };
   }
 
+  function setMemoArrow(btn, isOpen) {
+    if (!btn) return;
+    var arrow = btn.querySelector(".memo-arrow");
+    if (arrow) arrow.textContent = isOpen ? "▲" : "▼";
+  }
+
   function onToggleMemo(tr, btn) {
     var memoTr = tr.nextElementSibling;
     if (!memoTr || !memoTr.classList.contains("memo-row")) return;
@@ -586,7 +607,7 @@
     if (isHidden) {
       memoTr.removeAttribute("hidden");
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
-      if (btn) btn.classList.add("memo-active");
+      setMemoArrow(btn, true);
       if (entryId) state.openMemoIds.add(entryId);
     } else {
       var ta2 = memoTr.querySelector("textarea.memo-textarea");
@@ -594,7 +615,7 @@
         hiddenMemoInput.value = ta2.value;
       }
       memoTr.setAttribute("hidden", "");
-      if (btn) btn.classList.remove("memo-active");
+      setMemoArrow(btn, false);
       if (entryId) state.openMemoIds.delete(entryId);
     }
   }
@@ -613,7 +634,7 @@
       var btn = tr.querySelector("button.row-memo");
       memoTr.removeAttribute("hidden");
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
-      if (btn) btn.classList.add("memo-active");
+      setMemoArrow(btn, true);
     });
   }
 
@@ -633,6 +654,22 @@
       } else if (t.classList.contains("row-memo")) {
         onToggleMemo(tr, t);
       }
+    };
+
+    // SP⇔PC の冊目・ページ入力を同期する
+    body.oninput = function (ev) {
+      var t = ev.target;
+      if (!(t instanceof HTMLInputElement)) return;
+      var field = t.getAttribute("data-field");
+      if (field !== "book" && field !== "page") return;
+      var tr = t.closest("tr");
+      if (!tr || !body.contains(tr) || tr.classList.contains("memo-row")) return;
+
+      // SP入力（.sp-num）→ PC入力、または PC入力（.pc-only td内）→ SP入力 を同期
+      var allFieldInputs = tr.querySelectorAll("input[data-field='" + field + "']");
+      allFieldInputs.forEach(function (inp) {
+        if (inp !== t) inp.value = t.value;
+      });
     };
   }
 
@@ -710,6 +747,7 @@
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
     state.voiceSearchMsg = "";
+    state.openMemoIds = new Set();
     state.searchQuery = $("#manual-search").value || "";
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable();
@@ -724,6 +762,7 @@
       state.voiceRegisterMetaMsg = "";
       state.voiceSearchMsg = "このブラウザでは音声認識を利用できません。手動検索をご利用ください。";
       state.searchQuery = "";
+      state.openMemoIds = new Set();
       if ($("#manual-search")) $("#manual-search").value = "";
       return saveSearchQueryToSettings("").then(function () {
         return renderTable();
@@ -735,6 +774,7 @@
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
       state.voiceSearchMsg = "";
+      state.openMemoIds = new Set();
       if (!text.trim()) {
         state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索もご利用可能です";
       }
