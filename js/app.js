@@ -432,6 +432,7 @@
     var pageEsc = escapeAttr(entry.page || "");
     var memoEsc = escapeAttr(entry.memo || "");
     var dateLabel = entry.createdAt || "—";
+    var hasMemo = (entry.memo || "").trim() !== "";
 
     var mainTr =
       "<tr" +
@@ -453,7 +454,7 @@
       escapeHtml(dateLabel) +
       "</td>" +
       '<td class="actions col-actions">' +
-      '<button type="button" class="sm row-memo btn-memo">メモ</button>' +
+      '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">登録</button>' +
       (isDraft
         ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
@@ -567,12 +568,30 @@
     });
   }
 
+  function updateMemoBtnColor(btn, hasContent) {
+    if (!btn) return;
+    if (hasContent) {
+      btn.classList.add("has-memo");
+    } else {
+      btn.classList.remove("has-memo");
+    }
+  }
+
   function bindMemoTextarea(ta, hiddenMemoInput) {
     if (!ta || !hiddenMemoInput) return;
     ta.value = hiddenMemoInput.value;
     ta.oninput = function () {
       hiddenMemoInput.value = ta.value;
       ta.title = ta.value;
+      // メモボタンの背景色をリアルタイムで更新
+      var tr = ta.closest("tr.memo-row");
+      if (tr) {
+        var dataTr = tr.previousElementSibling;
+        if (dataTr) {
+          var btn = dataTr.querySelector("button.row-memo");
+          updateMemoBtnColor(btn, ta.value.trim() !== "");
+        }
+      }
     };
   }
 
@@ -710,6 +729,7 @@
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
     state.voiceSearchMsg = "";
+    state.openMemoIds = new Set();
     state.searchQuery = $("#manual-search").value || "";
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable();
@@ -724,6 +744,7 @@
       state.voiceRegisterMetaMsg = "";
       state.voiceSearchMsg = "このブラウザでは音声認識を利用できません。手動検索をご利用ください。";
       state.searchQuery = "";
+      state.openMemoIds = new Set();
       if ($("#manual-search")) $("#manual-search").value = "";
       return saveSearchQueryToSettings("").then(function () {
         return renderTable();
@@ -735,6 +756,7 @@
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
       state.voiceSearchMsg = "";
+      state.openMemoIds = new Set();
       if (!text.trim()) {
         state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索もご利用可能です";
       }

@@ -588,28 +588,31 @@ td.readonly {
 
 /* メモボタン */
 button.btn-memo {
-  background: var(--card);
+  background: #ffffff;
   border-color: var(--border);
-  color: var(--muted);
+  color: #000000;
+}
+
+button.btn-memo.has-memo {
+  background: #CFE7FF;
 }
 
 button.btn-memo:hover {
   border-color: var(--accent);
-  color: var(--accent);
 }
 
 button.btn-memo.memo-active {
-  background: #e8f4fd;
   border-color: var(--accent);
-  color: var(--accent);
   font-weight: 700;
 }
 
 @media (prefers-color-scheme: dark) {
-  button.btn-memo.memo-active {
-    background: #1a3a52;
-    border-color: var(--accent);
-    color: var(--accent);
+  button.btn-memo {
+    background: #f0f0f0;
+    color: #000000;
+  }
+  button.btn-memo.has-memo {
+    background: #CFE7FF;
   }
 }
 
