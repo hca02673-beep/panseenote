@@ -69,11 +69,10 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* 上段: ロゴ（左）＋音声ボタン（PC時は中間）＋右ブロック */
+/* 上段: ロゴ（左）＋ボタン群（右） */
 .header-top-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem 0.75rem;
 }
 
@@ -83,7 +82,6 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  order: 1;
 }
 
 .app-logo {
@@ -106,14 +104,13 @@ body {
 /* SP/タブレット: header-sub-row 内副題（デフォルト非表示） */
 .subtitle-sp      { display: none; }
 
-/* 右ブロック: margin-left: auto で右端寄せ */
+/* 右ブロック */
 .header-right-block {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.3rem;
   margin-left: auto;
-  order: 3;
 }
 
 /* データ操作ボタン群 */
@@ -173,19 +170,15 @@ button.btn-header-import {
   display: none;
 }
 
-/* 音声ボタン行 */
-/* PC（768px以上）: ロゴ(order:1)と右ブロック(order:3)の間に配置(order:2) */
+/* 音声ボタン行（常に中央配置、ヘッダー最下部） */
 .voice-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 0;
+  margin-top: 0.5rem;
   justify-content: center;
-  align-items: center;
-  flex: 1 1 auto;
-  order: 2;
+  align-items: stretch;
 }
-
 
 /* ======================================================
    タブレット・スマホ（768px 未満）
@@ -221,20 +214,6 @@ button.btn-header-import {
     white-space: nowrap;
     text-align: right;
     font-size: 0.85rem;
-  }
-
-  /* SP/タブレット時: voice-row を wrap後の次行に下げる */
-  .app-logo-block {
-    order: 1;
-  }
-
-  .voice-row {
-    flex: none;
-    width: 100%;
-    order: 10; /* ロゴ・右ブロックの後に */
-    margin-top: 0.35rem;
-    justify-content: center;
-    align-items: stretch;
   }
 }
 
@@ -1014,21 +993,13 @@ button.sm {
     width: 8.5rem;
     min-width: 8.5rem;
     max-width: 8.5rem;
-    vertical-align: middle;
-    padding: 0.3rem 0.25rem;
   }
 
   .entries-table td.col-actions button.sm {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    padding: 0.3rem 0.4rem;
-    border-radius: 6px;
+    padding: 0.2rem 0.3rem;
   }
 
-  .actions {
-    gap: 0.25rem;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
+  .actions { gap: 0.25rem; }
 }
