@@ -471,8 +471,8 @@ table.entries-table {
 }
 
 .entries-table col.col-actions {
-  width: 9.5rem;
-  min-width: 9.5rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
 }
 
 th,
@@ -579,68 +579,39 @@ td.readonly {
 
 .entries-table td.col-actions {
   white-space: nowrap;
-  width: 9.5rem;
-  min-width: 9.5rem;
-  max-width: 9.5rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
+  max-width: 13.5rem;
   box-sizing: border-box;
   vertical-align: middle;
 }
 
-/* サービス名セル内レイアウト */
-.title-cell-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  width: 100%;
+/* メモボタン */
+button.btn-memo {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--muted);
 }
 
-.title-cell-wrap .title-input {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-/* メモボタン（サービス名欄内右端） */
-button.row-memo {
-  flex: 0 0 auto;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  color: #000000;
-  font-size: 0.78rem;
-  font-weight: normal;
-  padding: 0.2rem 0.35rem;
-  border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap;
-  line-height: 1.3;
-}
-
-button.row-memo.has-memo {
-  background: #CFE7FF;
-}
-
-button.row-memo:hover {
+button.btn-memo:hover {
   border-color: var(--accent);
+  color: var(--accent);
 }
 
-.memo-arrow {
-  font-size: 0.6em;
-  vertical-align: middle;
+button.btn-memo.memo-active {
+  background: #e8f4fd;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
 }
 
 @media (prefers-color-scheme: dark) {
-  button.row-memo {
-    background: #2e2e2e;
-    color: #000000;
-  }
-  button.row-memo.has-memo {
+  button.btn-memo.memo-active {
     background: #1a3a52;
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
-
-/* SP専用 / PC専用 列の表示制御（デスクトップ: SP列を非表示） */
-.entries-table col.col-bookpage,
-.entries-table thead .th-bookpage,
-.entries-table tbody td.col-bookpage { display: none; }
 
 /* メモ展開行 */
 tr.memo-row td.memo-cell {
@@ -1013,72 +984,23 @@ button.sm {
   .entries-table thead .th-date,
   .entries-table tbody td.col-date { display: none; }
 
-  /* SP専用列: スマホで表示 */
-  .entries-table col.col-bookpage,
-  .entries-table thead .th-bookpage,
-  .entries-table tbody td.col-bookpage { display: table-cell; }
-
-  /* PC専用列: スマホで非表示 */
-  .entries-table col.col-book.pc-only,
-  .entries-table col.col-page.pc-only,
-  .entries-table thead th.pc-only,
-  .entries-table tbody td.col-book.pc-only,
-  .entries-table tbody td.col-page.pc-only { display: none; }
-
-  table.entries-table              { min-width: 26rem; }
+  table.entries-table              { min-width: 28rem; }
 
   .entries-table col.col-title,
-  td.col-title                     { min-width: 13rem; }
+  td.col-title                     { min-width: 11rem; }
 
-  .entries-table col.col-bookpage  { width: 5.5rem; }
-
-  .entries-table col.col-actions   { width: 6rem; min-width: 6rem; }
+  .entries-table col.col-actions   { width: 8.5rem; min-width: 8.5rem; }
 
   .entries-table td.col-actions {
-    width: 6rem;
-    min-width: 6rem;
-    max-width: 6rem;
+    width: 8.5rem;
+    min-width: 8.5rem;
+    max-width: 8.5rem;
   }
 
   .entries-table td.col-actions button.sm {
     font-size: 0.72rem;
     font-weight: 600;
     padding: 0.2rem 0.3rem;
-  }
-
-  /* 冊目・頁ヘッダー: 小さめフォント */
-  .entries-table th.th-bookpage {
-    font-size: 0.72rem;
-    text-align: center;
-  }
-
-  /* 冊目・頁セル */
-  td.col-bookpage { text-align: center; }
-
-  /* 冊目・頁の2入力を横並び */
-  .bookpage-wrap {
-    display: flex;
-    flex-direction: row;
-    gap: 0.15rem;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .bookpage-wrap .sp-num {
-    width: 2.2rem;
-    max-width: 2.2rem;
-    min-width: 0;
-    font-size: 0.72rem;
-    padding: 0.15rem 0.15rem;
-    text-align: center;
-    display: block;
-    margin: 0;
-  }
-
-  /* スマホでのメモボタン: 少し小さく */
-  button.row-memo {
-    font-size: 0.68rem;
-    padding: 0.15rem 0.25rem;
   }
 
   .actions {
