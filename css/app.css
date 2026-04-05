@@ -458,12 +458,8 @@ table.entries-table {
   min-width: 12rem;
 }
 
-.entries-table col.col-book {
-  width: 3.5rem;
-}
-
-.entries-table col.col-page {
-  width: 3.5rem;
+.entries-table col.col-booknum {
+  width: 8rem;
 }
 
 .entries-table col.col-date {
@@ -492,7 +488,7 @@ th {
   white-space: nowrap;
 }
 
-.entries-table th.th-num {
+.entries-table th.th-booknum {
   text-align: center;
 }
 
@@ -539,22 +535,29 @@ td input.inline {
   font-size: var(--form-input-large);
 }
 
-td.col-book,
-td.col-page {
+/* 冊目・頁 統合セル */
+td.col-booknum {
   text-align: center;
+  padding: 0.2rem 0.3rem;
 }
 
-td.col-book input.inline-num,
-td.col-page input.inline-num {
-  width: 100%;
-  max-width: 3.75rem;
+.booknum-wrap {
+  display: flex;
+  flex-direction: row;
+  gap: 0.3rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.booknum-wrap input.inline-num {
+  width: 3rem;
+  max-width: 3rem;
   min-width: 0;
-  margin-left: auto;
-  margin-right: auto;
-  display: block;
   text-align: center;
   font-size: var(--form-input-large);
   font-variant-numeric: tabular-nums;
+  display: block;
+  margin: 0;
 }
 
 td.col-title {
@@ -585,11 +588,6 @@ td.readonly {
   box-sizing: border-box;
   vertical-align: middle;
 }
-
-/* SP統合列（冊目・頁）: デスクトップでは非表示 */
-.entries-table col.sp-col,
-.entries-table thead th.sp-col,
-.entries-table tbody td.sp-col { display: none; }
 
 /* メモボタン */
 button.btn-memo {
@@ -992,49 +990,25 @@ button.sm {
   .entries-table thead .th-date,
   .entries-table tbody td.col-date { display: none; }
 
-  /* SP統合列（冊目・頁）: スマホで表示 */
-  .entries-table col.sp-col,
-  .entries-table thead th.sp-col,
-  .entries-table tbody td.sp-col { display: table-cell; }
+  /* 冊目・頁列: スマホでは幅を縮小 */
+  .entries-table col.col-booknum   { width: 5.5rem; }
 
-  /* PC個別列（冊目・ページ）: スマホで非表示 */
-  .entries-table col.pc-col,
-  .entries-table thead th.pc-col,
-  .entries-table tbody td.pc-col { display: none; }
+  /* スマホでの冊目・頁入力: 小さく */
+  .booknum-wrap                    { gap: 0.15rem; }
 
-  /* 冊目・頁 ヘッダー */
-  .entries-table th.th-bookpage {
-    font-size: 0.72rem;
-    text-align: center;
-  }
-
-  /* 冊目・頁 統合セル */
-  td.col-bookpage { text-align: center; padding: 0.15rem 0.2rem; }
-
-  /* 冊目・頁の2入力を横並び */
-  .bookpage-wrap {
-    display: flex;
-    flex-direction: row;
-    gap: 0.15rem;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .bookpage-wrap .sp-num {
-    width: 2.4rem;
-    max-width: 2.4rem;
-    min-width: 0;
+  .booknum-wrap input.inline-num {
+    width: 2rem;
+    max-width: 2rem;
     font-size: 0.75rem;
     padding: 0.15rem 0.1rem;
-    text-align: center;
-    display: block;
-    margin: 0;
   }
 
-  /* SP統合列の幅 */
-  .entries-table col.col-bookpage { width: 6rem; }
+  /* 冊目・頁ヘッダー: 小さめ */
+  .entries-table th.th-booknum {
+    font-size: 0.72rem;
+  }
 
-  table.entries-table              { min-width: 28rem; }
+  table.entries-table              { min-width: 26rem; }
 
   .entries-table col.col-title,
   td.col-title                     { min-width: 11rem; }
