@@ -611,18 +611,21 @@
         "background:rgba(255,220,0,0.95)", "color:#000",
         "font-size:11px", "z-index:99999",
         "padding:4px 6px", "margin:0",
-        "max-height:6rem", "overflow-y:auto",
+        "max-height:8rem", "overflow-y:auto",
         "white-space:pre-wrap", "border-top:2px solid red"
       ].join(";");
       document.body.appendChild(el);
     }
-    var tbl = document.querySelector("table.entries-table");
-    var tw  = tbl ? tbl.offsetWidth : "?";
-    var ts  = tbl ? (tbl.style.width || "(css)") : "?";
-    var tw2 = document.querySelector(".table-wrap");
-    var ww  = tw2 ? tw2.offsetWidth : "?";
-    var line = label + " | vw=" + window.innerWidth + " wrap=" + ww + " tbl=" + tw + " style=" + ts;
-    el.textContent = line + "\n" + (el.textContent || "").slice(0, 400);
+    var tbl  = document.querySelector("table.entries-table");
+    var wrap = document.querySelector(".table-wrap");
+    var tdTitle   = tbl ? tbl.querySelector("td.col-title") : null;
+    var tdActions = tbl ? tbl.querySelector("td.col-actions") : null;
+    var line = label
+      + " | tbl=" + (tbl ? tbl.offsetWidth : "?")
+      + " title-td=" + (tdTitle ? tdTitle.offsetWidth : "?")
+      + " act-td=" + (tdActions ? tdActions.offsetWidth : "?")
+      + " scrollL=" + (wrap ? wrap.scrollLeft : "?");
+    el.textContent = line + "\n" + (el.textContent || "").slice(0, 600);
   }
   /* ────────────────────────────────────────────────────── */
 
@@ -662,6 +665,8 @@
       lockTableWidth();
       memoTr.removeAttribute("hidden");
       dbg("OPEN-end");
+      // ブラウザの自動スクロール後の状態も記録
+      requestAnimationFrame(function () { dbg("OPEN-raf"); });
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
       if (btn) btn.classList.add("memo-active");
       if (entryId) state.openMemoIds.add(entryId);
