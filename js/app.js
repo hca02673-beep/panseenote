@@ -378,7 +378,8 @@
       try {
         var d = new Date(C.BUILD_TIMESTAMP);
         var pad = function(n){ return String(n).padStart(2,"0"); };
-        bb.textContent = "(build: " + d.getUTCFullYear() + "-" + pad(d.getUTCMonth()+1) + "-" + pad(d.getUTCDate()) + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + " UTC)";
+        var jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+        bb.textContent = "(build: " + jst.getUTCFullYear() + "-" + pad(jst.getUTCMonth()+1) + "-" + pad(jst.getUTCDate()) + " " + pad(jst.getUTCHours()) + ":" + pad(jst.getUTCMinutes()) + " JST)";
       } catch(_) { bb.textContent = "(" + C.BUILD_TIMESTAMP + ")"; }
     }
     updatePlanSummaryLine();
@@ -599,15 +600,43 @@
    * スマホでメモ行を展開する前にテーブル幅をピクセル固定する。
    * overflow-x:auto 親内で colspan セルが原因となるレイアウト崩れを防ぐ。
    */
+  /* ── デバッグパネル（確認後に削除） ─────────────────── */
+  function dbg(label) {
+    var el = document.getElementById("_dbg_panel");
+    if (!el) {
+      el = document.createElement("pre");
+      el.id = "_dbg_panel";
+      el.style.cssText = [
+        "position:fixed", "bottom:0", "left:0", "right:0",
+        "background:rgba(255,220,0,0.95)", "color:#000",
+        "font-size:11px", "z-index:99999",
+        "padding:4px 6px", "margin:0",
+        "max-height:6rem", "overflow-y:auto",
+        "white-space:pre-wrap", "border-top:2px solid red"
+      ].join(";");
+      document.body.appendChild(el);
+    }
+    var tbl = document.querySelector("table.entries-table");
+    var tw  = tbl ? tbl.offsetWidth : "?";
+    var ts  = tbl ? (tbl.style.width || "(css)") : "?";
+    var tw2 = document.querySelector(".table-wrap");
+    var ww  = tw2 ? tw2.offsetWidth : "?";
+    var line = label + " | vw=" + window.innerWidth + " wrap=" + ww + " tbl=" + tw + " style=" + ts;
+    el.textContent = line + "\n" + (el.textContent || "").slice(0, 400);
+  }
+  /* ────────────────────────────────────────────────────── */
+
   function lockTableWidth() {
     if (window.innerWidth > 639) return;
     var table = document.querySelector("table.entries-table");
+    dbg("lock-before locked=" + (table ? table.dataset.widthLocked : "?"));
     if (!table || table.dataset.widthLocked === "1") return;
     var w = table.offsetWidth;
     if (w > 0) {
       table.style.width = w + "px";
       table.dataset.widthLocked = "1";
     }
+    dbg("lock-after");
   }
 
   /** メモ行がすべて閉じたときにピクセル固定を解除する */
@@ -618,6 +647,7 @@
     if (body && body.querySelector("tr.memo-row:not([hidden])")) return;
     table.style.width = "";
     delete table.dataset.widthLocked;
+    dbg("unlock");
   }
 
   function onToggleMemo(tr, btn) {
@@ -628,8 +658,10 @@
     var isHidden = memoTr.hasAttribute("hidden");
 
     if (isHidden) {
+      dbg("OPEN-start");
       lockTableWidth();
       memoTr.removeAttribute("hidden");
+      dbg("OPEN-end");
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
       if (btn) btn.classList.add("memo-active");
       if (entryId) state.openMemoIds.add(entryId);

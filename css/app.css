@@ -1008,6 +1008,9 @@ button.sm {
     font-size: 0.72rem;
   }
 
+  /* table-wrap を常スクロールコンテキストにして table 幅の再計算を安定させる */
+  .table-wrap                      { overflow-x: scroll; }
+
   /* width: 100% をやめて固定値にすることで、colspan セルとの循環依存を断つ */
   table.entries-table              { width: 26rem; min-width: 26rem; }
 
