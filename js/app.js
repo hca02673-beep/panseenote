@@ -518,7 +518,7 @@
           escapeHtml(dateLabel) +
           "</td>") +
       '<td class="actions col-actions">' +
-      '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">メモ</button>' +
+      '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">▼メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">登録</button>' +
       (isDraft
         ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
@@ -654,6 +654,12 @@
     }
   }
 
+  /** メモ欄展開状態に応じたボタン表記（閉: ▼メモ / 開: ▲メモ） */
+  function setMemoBtnLabel(btn, expanded) {
+    if (!btn) return;
+    btn.textContent = expanded ? "▲メモ" : "▼メモ";
+  }
+
   function bindMemoTextarea(ta, hiddenMemoInput) {
     if (!ta || !hiddenMemoInput) return;
     ta.value = hiddenMemoInput.value;
@@ -682,7 +688,10 @@
     if (isHidden) {
       memoTr.removeAttribute("hidden");
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
-      if (btn) btn.classList.add("memo-active");
+      if (btn) {
+        btn.classList.add("memo-active");
+        setMemoBtnLabel(btn, true);
+      }
       if (entryId) state.openMemoIds.add(entryId);
     } else {
       var ta2 = memoTr.querySelector("textarea.memo-textarea");
@@ -690,7 +699,10 @@
         hiddenMemoInput.value = ta2.value;
       }
       memoTr.setAttribute("hidden", "");
-      if (btn) btn.classList.remove("memo-active");
+      if (btn) {
+        btn.classList.remove("memo-active");
+        setMemoBtnLabel(btn, false);
+      }
       if (entryId) state.openMemoIds.delete(entryId);
     }
   }
@@ -709,7 +721,10 @@
       var btn = tr.querySelector("button.row-memo");
       memoTr.removeAttribute("hidden");
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
-      if (btn) btn.classList.add("memo-active");
+      if (btn) {
+        btn.classList.add("memo-active");
+        setMemoBtnLabel(btn, true);
+      }
     });
   }
 
