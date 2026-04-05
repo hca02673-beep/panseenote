@@ -444,10 +444,18 @@
       '" data-field="title" value="' +
       titleEsc +
       '" title="' + titleEsc + '" /></td>' +
-      '<td class="col-book"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
+      // SP専用: 冊目・頁 統合欄（デスクトップでは非表示）
+      '<td class="col-bookpage sp-col">' +
+      '<div class="bookpage-wrap">' +
+      '<input class="inline inline-num sp-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' + bookEsc + '" />' +
+      '<input class="inline inline-num sp-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' + pageEsc + '" />' +
+      '</div>' +
+      '</td>' +
+      // PC専用: 冊目・ページ 個別欄（スマホでは非表示）
+      '<td class="col-book pc-col"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
       bookEsc +
       '" /></td>' +
-      '<td class="col-page"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' +
+      '<td class="col-page pc-col"><input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' +
       pageEsc +
       '" /></td>' +
       '<td class="readonly col-date">' +
@@ -467,7 +475,7 @@
       '<tr class="memo-row"' +
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       " hidden>" +
-      '<td colspan="5" class="memo-cell">' +
+      '<td colspan="6" class="memo-cell">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
@@ -652,6 +660,20 @@
       } else if (t.classList.contains("row-memo")) {
         onToggleMemo(tr, t);
       }
+    };
+
+    // SP統合欄 ⇔ PC個別欄の book/page 入力を双方向同期
+    body.oninput = function (ev) {
+      var t = ev.target;
+      if (!(t instanceof HTMLInputElement)) return;
+      var field = t.getAttribute("data-field");
+      if (field !== "book" && field !== "page") return;
+      var tr = t.closest("tr");
+      if (!tr || !body.contains(tr) || tr.classList.contains("memo-row")) return;
+      var others = tr.querySelectorAll("input[data-field='" + field + "']");
+      others.forEach(function (inp) {
+        if (inp !== t) inp.value = t.value;
+      });
     };
   }
 
