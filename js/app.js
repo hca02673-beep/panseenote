@@ -501,11 +501,16 @@
       dr +
       (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
       ">" +
-      '<td class="col-title"><input class="inline" type="text" maxlength="' +
+      '<td class="col-title">' +
+      '<div class="title-cell">' +
+      '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">▼メモ</button>' +
+      '<input class="inline" type="text" maxlength="' +
       C.MAX_TITLE_LENGTH +
       '" data-field="title" value="' +
       titleEsc +
-      '" title="' + titleEsc + '" /></td>' +
+      '" title="' + titleEsc + '" />' +
+      '</div>' +
+      '</td>' +
       '<td class="col-booknum">' +
       '<div class="booknum-wrap">' +
       '<input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' + bookEsc + '" />' +
@@ -518,7 +523,6 @@
           escapeHtml(dateLabel) +
           "</td>") +
       '<td class="actions col-actions">' +
-      '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">▼メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">登録</button>' +
       (isDraft
         ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
