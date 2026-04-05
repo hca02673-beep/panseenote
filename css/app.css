@@ -159,6 +159,18 @@ button.sm-header {
   font-size: 0.85rem;
 }
 
+/* 設定パネル表示中: メインへ戻る（薄い青背景・文字は黒） */
+#btn-settings-toggle.btn-settings-home {
+  background: #cfe7ff;
+  border-color: #9ec5f0;
+  color: #000000;
+}
+
+#btn-settings-toggle.btn-settings-home:hover {
+  background: #b8d9f7;
+  border-color: var(--accent);
+}
+
 button.btn-header-import {
   padding: 0.3rem 0.45rem;
   font-size: 0.78rem;

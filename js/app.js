@@ -566,14 +566,26 @@
     return o;
   }
 
+  /** 設定パネル開閉に合わせてヘッダーボタンの文言・スタイルを同期する */
+  function updateSettingsToggleUi(isPanelOpen) {
+    var toggle = $("#btn-settings-toggle");
+    if (!toggle) return;
+    if (isPanelOpen) {
+      toggle.textContent = "▲ホームへ戻る";
+      toggle.classList.add("btn-settings-home");
+    } else {
+      toggle.textContent = "▶ 設定・ライセンス";
+      toggle.classList.remove("btn-settings-home");
+    }
+  }
+
   function closeSettingsIfOpen() {
     var panel = $("#settings-panel");
     var mainSection = $("#main-section");
     if (panel && !panel.hasAttribute("hidden")) {
       panel.setAttribute("hidden", "");
       if (mainSection) mainSection.removeAttribute("hidden");
-      var toggle = $("#btn-settings-toggle");
-      if (toggle) toggle.textContent = "▶ 設定・ライセンス";
+      updateSettingsToggleUi(false);
     }
   }
 
@@ -1216,11 +1228,11 @@
         if (isOpen) {
           panel.setAttribute("hidden", "");
           if (mainSection) mainSection.removeAttribute("hidden");
-          settingsToggle.textContent = "▶ 設定・ライセンス";
+          updateSettingsToggleUi(false);
         } else {
           panel.removeAttribute("hidden");
           if (mainSection) mainSection.setAttribute("hidden", "");
-          settingsToggle.textContent = "▼ 設定・ライセンス";
+          updateSettingsToggleUi(true);
           panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       });
