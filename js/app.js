@@ -91,6 +91,108 @@
     }, 3200);
   }
 
+  function showAppDialog(options) {
+    return new Promise(function (resolve) {
+      var overlay = $("#app-dialog");
+      var msgEl = $("#app-dialog-message");
+      var detailEl = $("#app-dialog-detail");
+      var okBtn = $("#app-dialog-ok");
+      var cancelBtn = $("#app-dialog-cancel");
+      if (!overlay || !msgEl || !detailEl || !okBtn || !cancelBtn) {
+        resolve(options && options.cancelable === false ? true : false);
+        return;
+      }
+
+      var cancelable = !options || options.cancelable !== false;
+      var prevActive = document.activeElement;
+      var done = false;
+
+      msgEl.textContent = String((options && options.message) || "");
+      var detail = String((options && options.detail) || "").trim();
+      detailEl.textContent = detail;
+      detailEl.hidden = detail === "";
+
+      okBtn.textContent = (options && options.okLabel) || "OK";
+      okBtn.className =
+        "app-dialog-btn " +
+        ((options && options.danger)
+          ? "app-dialog-btn-danger"
+          : "app-dialog-btn-primary");
+
+      cancelBtn.textContent = (options && options.cancelLabel) || "キャンセル";
+      cancelBtn.hidden = !cancelable;
+
+      function cleanup() {
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        document.removeEventListener("keydown", onKeyDown, true);
+      }
+
+      function close(result) {
+        if (done) return;
+        done = true;
+        cleanup();
+        overlay.setAttribute("hidden", "");
+        if (prevActive && typeof prevActive.focus === "function") {
+          window.setTimeout(function () {
+            try {
+              prevActive.focus();
+            } catch (_) {}
+          }, 0);
+        }
+        resolve(result);
+      }
+
+      function onOk(ev) {
+        if (ev) ev.preventDefault();
+        close(true);
+      }
+
+      function onCancel(ev) {
+        if (ev) ev.preventDefault();
+        close(false);
+      }
+
+      function onKeyDown(ev) {
+        if (ev.key !== "Escape") return;
+        ev.preventDefault();
+        close(cancelable ? false : true);
+      }
+
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      document.addEventListener("keydown", onKeyDown, true);
+      overlay.removeAttribute("hidden");
+
+      window.setTimeout(function () {
+        if (cancelable && options && options.danger) {
+          cancelBtn.focus();
+        } else {
+          okBtn.focus();
+        }
+      }, 0);
+    });
+  }
+
+  function showAppAlert(message, options) {
+    var opts = Object.assign({}, options || {}, {
+      message: message,
+      cancelable: false,
+      okLabel: (options && options.okLabel) || "閉じる",
+    });
+    return showAppDialog(opts).then(function () {});
+  }
+
+  function showAppConfirm(message, options) {
+    var opts = Object.assign({}, options || {}, {
+      message: message,
+      cancelable: true,
+    });
+    return showAppDialog(opts).then(function (ok) {
+      return !!ok;
+    });
+  }
+
   function setEntryLimitInlineWarning(msg) {
     var el = $("#entry-limit-warning-inline");
     if (!el) return;
@@ -755,68 +857,86 @@
   function onSaveRow(tr) {
     var draft = tr.getAttribute("data-draft") === "1";
     var vals = readRowFromTr(tr);
-    if (!window.confirm("編集内容を保存しますか？")) return;
+    return showAppConfirm("編集内容を保存しますか？", {
+      okLabel: "保存する",
+    }).then(function (ok) {
+      if (!ok) return;
 
-    if (draft) {
-      return refreshCount().then(function (n) {
-        if (n >= Number(state.license.itemLimit)) {
-          window.alert(
-            "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
-          );
-          setEntryLimitInlineWarning(
-            "登録上限（" + state.license.itemLimit + "件）に達しているため保存できません。"
-          );
-          return;
+      if (draft) {
+        return refreshCount().then(function (n) {
+          if (n >= Number(state.license.itemLimit)) {
+            return showAppAlert(
+              "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
+            ).then(function () {
+              setEntryLimitInlineWarning(
+                "登録上限（" + state.license.itemLimit + "件）に達しているため保存できません。"
+              );
+            });
+          }
+          var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
+          return db.putEntry(state.idb, entry).then(function () {
+            state.draft = null;
+            if (state.voiceRegisterMode) {
+              state.voicePreviewEntry = entry;
+            }
+            toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+            return renderTable();
+          });
+        });
+      }
+
+      var id = tr.getAttribute("data-id");
+      if (!id) return;
+      return db.getAllEntries(state.idb).then(function (rows) {
+        var prev = null;
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i].id === id) {
+            prev = rows[i];
+            break;
+          }
         }
-        var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
-        return db.putEntry(state.idb, entry).then(function () {
-          state.draft = null;
-          if (state.voiceRegisterMode) {
-            state.voicePreviewEntry = entry;
+        if (!prev) return;
+        var next = db.patchEntry(prev, vals);
+        return db.putEntry(state.idb, next).then(function () {
+          // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
+          // しないと renderTable が古い entry（memo空）で再描画してしまう
+          if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
+            state.voicePreviewEntry = next;
           }
           toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
-      });
-    }
-
-    var id = tr.getAttribute("data-id");
-    if (!id) return;
-    return db.getAllEntries(state.idb).then(function (rows) {
-      var prev = null;
-      for (var i = 0; i < rows.length; i++) {
-        if (rows[i].id === id) {
-          prev = rows[i];
-          break;
-        }
-      }
-      if (!prev) return;
-      var next = db.patchEntry(prev, vals);
-      return db.putEntry(state.idb, next).then(function () {
-        // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
-        // しないと renderTable が古い entry（memo空）で再描画してしまう
-        if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
-          state.voicePreviewEntry = next;
-        }
-        toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
-        return renderTable();
       });
     });
   }
 
   function onDeleteRow(tr) {
     var draft = tr.getAttribute("data-draft") === "1";
+    var title = String((readRowFromTr(tr).title || "")).trim();
+    var detail = title ? "サービス名: " + title : "";
     if (draft) {
-      if (!window.confirm("この行を破棄しますか？")) return;
-      state.draft = null;
-      return renderTable();
+      return showAppConfirm("この行を破棄しますか？", {
+        detail: detail,
+        okLabel: "破棄する",
+        danger: true,
+      }).then(function (ok) {
+        if (!ok) return;
+        state.draft = null;
+        return renderTable();
+      });
     }
     var id = tr.getAttribute("data-id");
     if (!id) return;
-    if (!window.confirm("この登録を削除しますか？")) return;
-    return db.deleteEntry(state.idb, id).then(function () {
-      toast("削除しました。");
-      return renderTable();
+    return showAppConfirm("この登録を削除しますか？", {
+      detail: detail,
+      okLabel: "削除する",
+      danger: true,
+    }).then(function (ok) {
+      if (!ok) return;
+      return db.deleteEntry(state.idb, id).then(function () {
+        toast("削除しました。");
+        return renderTable();
+      });
     });
   }
 
@@ -1007,26 +1127,22 @@
     var raw = ($("#license-key-input") && $("#license-key-input").value) || "";
     var key = lic.normalizeLicenseKeyInput(raw);
     if (!key) {
-      window.alert("ライセンスキーを入力してください。");
-      return Promise.resolve();
+      return showAppAlert("ライセンスキーを入力してください。");
     }
     setLicenseDiagnostics("");
     if (!lic.isValidLicenseKeyFormat(key)) {
-      window.alert(
+      return showAppAlert(
         "ライセンスキー形式が不正です（PN1-XXXX-XXXX-XXXX・英数字大文字）。"
       );
-      return Promise.resolve();
     }
     if (!navigator.onLine) {
-      window.alert("初回認証はオンライン環境で行ってください。");
-      return Promise.resolve();
+      return showAppAlert("初回認証はオンライン環境で行ってください。");
     }
     var url = getLicenseApiUrl();
     if (!url) {
-      window.alert(
+      return showAppAlert(
         "管理サーバーURLが未設定です。js/config.js の LICENSE_API_URL を設定してください。"
       );
-      return Promise.resolve();
     }
     var btn = $("#btn-license-activate");
     if (btn) btn.disabled = true;
@@ -1043,8 +1159,7 @@
             result && result.errorCode,
             result && result.message
           );
-          window.alert(msg);
-          return;
+          return showAppAlert(msg);
         }
         var checkedAt = result.checkedAt || new Date().toISOString();
         var doc = {
@@ -1077,7 +1192,7 @@
         var detail = formatLicenseApiError(err);
         setLicenseDiagnostics(detail);
         console.error("License activate failed:", err);
-        window.alert(
+        return showAppAlert(
           "サーバー接続に失敗しました。設定・ライセンス欄の診断メッセージを確認してください。"
         );
       })
@@ -1154,12 +1269,10 @@
         try {
           data = JSON.parse(text);
         } catch (e) {
-          window.alert("バックアップファイルの形式が正しくありません。");
-          return;
+          return showAppAlert("バックアップファイルの形式が正しくありません。");
         }
         if (!data || data.app !== C.APP_ID || !Array.isArray(data.items)) {
-          window.alert("バックアップファイルの形式が正しくありません。");
-          return;
+          return showAppAlert("バックアップファイルの形式が正しくありません。");
         }
         return db.getLicense(state.idb).then(function (lic) {
           var items = data.items;
@@ -1187,11 +1300,11 @@
               return saveSearchQueryToSettings(state.searchQuery).then(function () {
                 return renderTable().then(function () {
                   if (truncated) {
-                    window.alert(
+                    return showAppAlert(
                       "このプランの登録上限を超えるため、先頭から取り込める分のみ登録しました。超過分は登録されていません。"
                     );
                   } else {
-                    window.alert(
+                    return showAppAlert(
                       "バックアップファイルを読み込みました。既存データは置き換えられました。"
                     );
                   }
@@ -1202,7 +1315,7 @@
         });
       })
       .catch(function () {
-        window.alert("バックアップファイルの読み込みに失敗しました。");
+        return showAppAlert("バックアップファイルの読み込みに失敗しました。");
       });
   }
 
@@ -1333,7 +1446,7 @@
       })
       .catch(function (e) {
         console.error(e);
-        window.alert(
+        return showAppAlert(
           "データベースを初期化できませんでした。プライベートブラウズやストレージ制限を確認してください。"
         );
       });

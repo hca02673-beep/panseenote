@@ -235,6 +235,17 @@
       </div>
     </div><!-- /#terms-modal -->
 
+    <div id="app-dialog" class="app-dialog-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="app-dialog-message">
+      <div class="app-dialog-box" role="document">
+        <p id="app-dialog-message" class="app-dialog-message"></p>
+        <p id="app-dialog-detail" class="app-dialog-detail" hidden></p>
+        <div class="app-dialog-actions">
+          <button type="button" id="app-dialog-cancel" class="app-dialog-btn app-dialog-btn-secondary">キャンセル</button>
+          <button type="button" id="app-dialog-ok" class="app-dialog-btn app-dialog-btn-primary">OK</button>
+        </div>
+      </div>
+    </div><!-- /#app-dialog -->
+
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script src="js/config.js"></script>

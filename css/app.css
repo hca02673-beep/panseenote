@@ -915,6 +915,96 @@ button.sm {
   cursor: not-allowed;
 }
 
+/* ======================================================
+   共通ダイアログ（alert / confirm 置換）
+   ====================================================== */
+
+.app-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.app-dialog-overlay[hidden] {
+  display: none;
+}
+
+.app-dialog-box {
+  width: min(100%, 28rem);
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.28);
+  padding: 1.15rem 1rem 1rem;
+}
+
+.app-dialog-message {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+.app-dialog-detail {
+  margin: 0.65rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--muted);
+  text-align: center;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.app-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.app-dialog-btn {
+  min-width: 6.2rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font: inherit;
+  font-weight: 700;
+}
+
+.app-dialog-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.app-dialog-btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.app-dialog-btn-danger {
+  background: var(--btn-delete-red);
+  border-color: var(--btn-delete-red);
+  color: #fff;
+}
+
+.app-dialog-btn-danger:hover {
+  background: var(--btn-delete-red-hover);
+  border-color: var(--btn-delete-red-hover);
+}
+
+.app-dialog-btn-secondary {
+  background: var(--card);
+  color: var(--fg);
+}
+
 @media (max-width: 639px) {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
@@ -937,6 +1027,30 @@ button.sm {
 
   .terms-section p {
     font-size: 0.83rem;
+  }
+
+  .app-dialog-box {
+    width: min(100%, 22rem);
+    padding: 1rem 0.85rem 0.9rem;
+    border-radius: 12px;
+  }
+
+  .app-dialog-message {
+    font-size: 0.95rem;
+  }
+
+  .app-dialog-detail {
+    font-size: 0.84rem;
+  }
+
+  .app-dialog-actions {
+    gap: 0.45rem;
+  }
+
+  .app-dialog-btn {
+    min-width: 5.6rem;
+    padding: 0.52rem 0.75rem;
+    font-size: 0.92rem;
   }
 }
 
