@@ -1008,7 +1008,8 @@ button.sm {
     font-size: 0.72rem;
   }
 
-  table.entries-table              { min-width: 26rem; }
+  /* width: 100% をやめて固定値にすることで、colspan セルとの循環依存を断つ */
+  table.entries-table              { width: 26rem; min-width: 26rem; }
 
   .entries-table col.col-title,
   td.col-title                     { min-width: 11rem; }
