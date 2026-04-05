@@ -1449,12 +1449,267 @@
       .then(function () {
         return maybeCheckLicenseOnline().catch(function () {});
       })
+      .then(function () {
+        initSttTest();
+      })
       .catch(function (e) {
         console.error(e);
         return showAppAlert(
           "データベースを初期化できませんでした。プライベートブラウズやストレージ制限を確認してください。"
         );
       });
+  }
+
+  /* ================================================================
+     音声認識テストツール（開発者用）
+     促音（っ）系と通常系の発音の認識精度を計測するためのツール。
+     設定・ライセンスパネル内に配置。
+     ================================================================ */
+
+  /** 発話テスト原稿リスト
+   *  ★ = 促音（っ）が含まれ認識ミスが起きやすい候補
+   *  原稿は必ず「冊目」「ページ」文脈で発話させる（単独数字は発音が変わるため）
+   */
+  var STT_PROMPTS = [
+    // ── 1冊目 × 1桁ページ（基準値） ──
+    "1冊目1ページ テスト",
+    "1冊目2ページ テスト",
+    "1冊目3ページ テスト",
+    "1冊目4ページ テスト",
+    "1冊目5ページ テスト",
+    "1冊目6ページ テスト",
+    "1冊目7ページ テスト",
+    "1冊目8ページ テスト",
+    "1冊目9ページ テスト",
+    // ── 1冊目 × 10台 ──
+    "1冊目10ページ テスト",
+    "1冊目11ページ テスト",
+    "1冊目12ページ テスト",
+    "1冊目15ページ テスト",
+    "1冊目18ページ テスト",
+    "1冊目19ページ テスト",
+    // ── 1冊目 × 20台（★促音：にじゅっ） ──
+    "1冊目20ページ テスト",
+    "1冊目21ページ テスト",
+    "1冊目22ページ テスト",
+    "1冊目23ページ テスト",
+    "1冊目25ページ テスト",
+    "1冊目28ページ テスト",
+    "1冊目29ページ テスト",
+    // ── 1冊目 × 30台（★促音：さんじゅっ） ──
+    "1冊目30ページ テスト",
+    "1冊目31ページ テスト",
+    "1冊目38ページ テスト",
+    // ── 1冊目 × 40～90（促音混在） ──
+    "1冊目40ページ テスト",
+    "1冊目41ページ テスト",
+    "1冊目50ページ テスト",
+    "1冊目51ページ テスト",
+    "1冊目60ページ テスト",
+    "1冊目61ページ テスト",
+    "1冊目70ページ テスト",
+    "1冊目71ページ テスト",
+    "1冊目80ページ テスト",
+    "1冊目81ページ テスト",
+    "1冊目90ページ テスト",
+    "1冊目91ページ テスト",
+    "1冊目99ページ テスト",
+    // ── 冊目側の促音テスト（ページは1で固定） ──
+    "20冊目1ページ テスト",
+    "30冊目1ページ テスト",
+    "40冊目1ページ テスト",
+    "50冊目1ページ テスト",
+    "60冊目1ページ テスト",
+    "70冊目1ページ テスト",
+    "80冊目1ページ テスト",
+    "90冊目1ページ テスト",
+    // ── 冊目・ページ両方に促音 ──
+    "20冊目20ページ テスト",
+    "20冊目21ページ テスト",
+    "21冊目20ページ テスト",
+    "20冊目28ページ テスト",
+    "28冊目20ページ テスト",
+    "30冊目30ページ テスト",
+    "40冊目40ページ テスト",
+    "80冊目80ページ テスト",
+    "90冊目90ページ テスト",
+    // ── 桁数ミスを誘発しやすい組み合わせ ──
+    "8冊目80ページ テスト",
+    "80冊目8ページ テスト",
+    "2冊目20ページ テスト",
+    "20冊目2ページ テスト",
+    "9冊目90ページ テスト",
+    "90冊目9ページ テスト",
+    // ── 端値 ──
+    "99冊目99ページ テスト",
+    "0冊目0ページ テスト",
+  ];
+
+  function initSttTest() {
+    var toggleBtn = $("#stt-toggle-btn");
+    var body = $("#stt-body");
+    var startBtn = $("#btn-stt-start");
+    var stopBtn = $("#btn-stt-stop");
+    var clearBtn = $("#btn-stt-clear");
+    var copyBtn = $("#btn-stt-copy");
+    var statusEl = $("#stt-status");
+    var resultEl = $("#stt-result");
+    var promptListEl = $("#stt-prompt-list");
+
+    if (!toggleBtn || !body || !startBtn || !stopBtn) return;
+
+    // 原稿リストを描画
+    if (promptListEl) {
+      var frag = document.createDocumentFragment();
+      for (var pi = 0; pi < STT_PROMPTS.length; pi++) {
+        var li = document.createElement("li");
+        li.textContent = STT_PROMPTS[pi];
+        frag.appendChild(li);
+      }
+      promptListEl.appendChild(frag);
+    }
+
+    // セクション開閉
+    toggleBtn.addEventListener("click", function () {
+      var hidden = body.hasAttribute("hidden");
+      if (hidden) {
+        body.removeAttribute("hidden");
+        toggleBtn.textContent = "▼ 音声認識テスト（開発者用）";
+      } else {
+        body.setAttribute("hidden", "");
+        toggleBtn.textContent = "▶ 音声認識テスト（開発者用）";
+      }
+    });
+
+    var rec = null;
+    var isRecording = false;
+    var accumulated = "";
+
+    function setStatus(msg, isError) {
+      if (!statusEl) return;
+      statusEl.textContent = msg;
+      statusEl.className = "stt-status" + (isError ? " stt-status-error" : "");
+    }
+
+    function buildOutput() {
+      var promptLines = STT_PROMPTS.map(function (p, i) {
+        return (i + 1) + ". " + p;
+      }).join("\n");
+      return (
+        "=== STT テスト結果 ===\n" +
+        "取得日時: " + new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }) + "\n\n" +
+        "[STT 出力（連続認識テキスト）]\n" +
+        (accumulated.trim() || "（なし）") + "\n\n" +
+        "[原稿リスト（" + STT_PROMPTS.length + " 件）]\n" +
+        promptLines
+      );
+    }
+
+    function startRecognition() {
+      var Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Ctor) {
+        setStatus("このブラウザは音声認識に対応していません。", true);
+        return;
+      }
+      rec = new Ctor();
+      rec.lang = "ja-JP";
+      rec.continuous = true;
+      rec.interimResults = true;
+
+      var currentInterim = "";
+
+      rec.onresult = function (ev) {
+        var newFinals = "";
+        currentInterim = "";
+        for (var i = ev.resultIndex; i < ev.results.length; i++) {
+          var r = ev.results[i];
+          if (r.isFinal) {
+            newFinals += r[0].transcript;
+          } else {
+            currentInterim += r[0].transcript;
+          }
+        }
+        if (newFinals) accumulated += newFinals;
+        if (resultEl) {
+          resultEl.value = accumulated + (currentInterim ? "\n[認識中...] " + currentInterim : "");
+        }
+      };
+
+      rec.onerror = function (ev) {
+        if (ev.error === "no-speech" || ev.error === "aborted") return;
+        setStatus("認識エラー: " + ev.error, true);
+      };
+
+      rec.onend = function () {
+        if (!isRecording) return;
+        try {
+          rec.start();
+        } catch (e) {
+          setStatus("録音が途切れました。再度「録音開始」を押してください。", true);
+          stopRecording();
+        }
+      };
+
+      try {
+        rec.start();
+        setStatus("● 録音中... 原稿を上から順に読み上げてください");
+      } catch (e) {
+        setStatus("録音を開始できませんでした。", true);
+      }
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      if (rec) {
+        try { rec.stop(); } catch (e) {}
+        rec = null;
+      }
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      if (resultEl) resultEl.value = buildOutput();
+      setStatus("録音停止。「コピー」ボタンで Cursor に貼り付けてください。");
+    }
+
+    startBtn.addEventListener("click", function () {
+      accumulated = "";
+      if (resultEl) resultEl.value = "";
+      setStatus("");
+      isRecording = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      startRecognition();
+    });
+
+    stopBtn.addEventListener("click", function () {
+      stopRecording();
+    });
+
+    clearBtn.addEventListener("click", function () {
+      accumulated = "";
+      if (resultEl) resultEl.value = "";
+      setStatus("");
+    });
+
+    copyBtn.addEventListener("click", function () {
+      if (!resultEl || !resultEl.value) {
+        setStatus("コピーする内容がありません。");
+        return;
+      }
+      var text = resultEl.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          setStatus("クリップボードにコピーしました。");
+        }).catch(function () {
+          resultEl.select();
+          document.execCommand("copy");
+          setStatus("クリップボードにコピーしました。");
+        });
+      } else {
+        resultEl.select();
+        document.execCommand("copy");
+        setStatus("クリップボードにコピーしました。");
+      }
+    });
   }
 
   if (document.readyState === "loading") {

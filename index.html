@@ -174,6 +174,23 @@
             <li>最終バックアップ日: <span id="last-backup-label">—</span></li>
             <li>アプリ版: <span id="app-version-label">—</span> <span id="app-build-label" style="font-size:0.85em;color:var(--muted)"></span></li>
           </ul>
+
+          <!-- 音声認識テストツール（開発者用） -->
+          <hr class="settings-divider" />
+          <button type="button" class="stt-toggle-btn" id="stt-toggle-btn">▶ 音声認識テスト（開発者用）</button>
+          <div class="stt-body" id="stt-body" hidden>
+            <p class="settings-lead">以下の原稿を上から順に読み上げてください。録音開始後、すべて読み終えたら録音停止してください。STT 結果をコピーして Cursor に貼り付けると分析できます。</p>
+            <ol class="stt-prompt-list" id="stt-prompt-list"></ol>
+            <div class="stt-controls">
+              <button type="button" id="btn-stt-start" class="primary">● 録音開始</button>
+              <button type="button" id="btn-stt-stop" disabled>■ 録音停止</button>
+              <button type="button" id="btn-stt-clear">クリア</button>
+              <button type="button" id="btn-stt-copy">コピー</button>
+            </div>
+            <p class="stt-status" id="stt-status" aria-live="polite"></p>
+            <textarea id="stt-result" class="stt-result" readonly rows="10"
+              placeholder="録音停止後、STT 結果と原稿リストがここに表示されます。"></textarea>
+          </div>
         </div>
       </div>
     </div>
