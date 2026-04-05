@@ -660,100 +660,6 @@
     };
   }
 
-  /**
-   * スマホでメモ行を展開する前にテーブル幅をピクセル固定する。
-   * overflow-x:auto 親内で colspan セルが原因となるレイアウト崩れを防ぐ。
-   */
-  /* ── デバッグパネル（確認後に削除） ─────────────────── */
-  function dbg(label) {
-    var el = document.getElementById("_dbg_panel");
-    if (!el) {
-      el = document.createElement("pre");
-      el.id = "_dbg_panel";
-      el.style.cssText = [
-        "position:fixed", "bottom:0", "left:0", "right:0",
-        "background:rgba(255,220,0,0.95)", "color:#000",
-        "font-size:11px", "z-index:99999",
-        "padding:4px 6px", "margin:0",
-        "max-height:8rem", "overflow-y:auto",
-        "white-space:pre-wrap", "border-top:2px solid red"
-      ].join(";");
-      document.body.appendChild(el);
-    }
-    var tbl  = document.querySelector("table.entries-table");
-    var wrap = document.querySelector(".table-wrap");
-    var tdTitle   = tbl ? tbl.querySelector("td.col-title") : null;
-    var tdActions = tbl ? tbl.querySelector("td.col-actions") : null;
-    var line = label
-      + " | tbl=" + (tbl ? tbl.offsetWidth : "?")
-      + " title-td=" + (tdTitle ? tdTitle.offsetWidth : "?")
-      + " act-td=" + (tdActions ? tdActions.offsetWidth : "?")
-      + " scrollL=" + (wrap ? wrap.scrollLeft : "?");
-    el.textContent = line + "\n" + (el.textContent || "").slice(0, 600);
-  }
-  /* ────────────────────────────────────────────────────── */
-
-  /**
-   * スマホでメモ行(colspan)表示時の列幅崩れ防止。
-   * col 要素への指定は Chrome が colspan 再計算で無視するため、
-   * 全データ行の td セル自体にインライン min-width/max-width を設定する。
-   */
-  function lockTableWidth() {
-    if (window.innerWidth > 639) return;
-    var table = document.querySelector("table.entries-table");
-    dbg("lock-before locked=" + (table ? table.dataset.widthLocked : "?"));
-    if (!table || table.dataset.widthLocked === "1") return;
-
-    var w = table.offsetWidth;
-    if (w > 0) table.style.width = w + "px";
-
-    var firstTitleTd = table.querySelector("td.col-title");
-    var titleW = firstTitleTd ? firstTitleTd.offsetWidth : 0;
-
-    var allRows = table.querySelectorAll("tbody tr:not(.memo-row)");
-    for (var i = 0; i < allRows.length; i++) {
-      var row = allRows[i];
-      var tTitle = row.querySelector("td.col-title");
-      if (tTitle && titleW > 0) tTitle.style.minWidth = titleW + "px";
-      var tDate = row.querySelector("td.col-date");
-      if (tDate) {
-        tDate.style.width = "0px";
-        tDate.style.minWidth = "0px";
-        tDate.style.maxWidth = "0px";
-        tDate.style.padding = "0";
-        tDate.style.overflow = "hidden";
-      }
-    }
-    table.dataset.widthLocked = "1";
-    dbg("lock-after");
-  }
-
-  /** メモ行がすべて閉じたときにインラインスタイルを解除する */
-  function unlockTableWidth() {
-    var table = document.querySelector("table.entries-table");
-    if (!table) return;
-    var body = $("#entries-body");
-    if (body && body.querySelector("tr.memo-row:not([hidden])")) return;
-    table.style.width = "";
-
-    var allRows = table.querySelectorAll("tbody tr:not(.memo-row)");
-    for (var i = 0; i < allRows.length; i++) {
-      var row = allRows[i];
-      var tTitle = row.querySelector("td.col-title");
-      if (tTitle) tTitle.style.minWidth = "";
-      var tDate = row.querySelector("td.col-date");
-      if (tDate) {
-        tDate.style.width = "";
-        tDate.style.minWidth = "";
-        tDate.style.maxWidth = "";
-        tDate.style.padding = "";
-        tDate.style.overflow = "";
-      }
-    }
-    delete table.dataset.widthLocked;
-    dbg("unlock");
-  }
-
   function onToggleMemo(tr, btn) {
     var memoTr = tr.nextElementSibling;
     if (!memoTr || !memoTr.classList.contains("memo-row")) return;
@@ -762,12 +668,7 @@
     var isHidden = memoTr.hasAttribute("hidden");
 
     if (isHidden) {
-      dbg("OPEN-start");
-      lockTableWidth();
       memoTr.removeAttribute("hidden");
-      dbg("OPEN-end");
-      // ブラウザの自動スクロール後の状態も記録
-      requestAnimationFrame(function () { dbg("OPEN-raf"); });
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
       if (btn) btn.classList.add("memo-active");
       if (entryId) state.openMemoIds.add(entryId);
@@ -779,7 +680,6 @@
       memoTr.setAttribute("hidden", "");
       if (btn) btn.classList.remove("memo-active");
       if (entryId) state.openMemoIds.delete(entryId);
-      unlockTableWidth();
     }
   }
 
@@ -788,7 +688,6 @@
     if (!state.openMemoIds || state.openMemoIds.size === 0) return;
     var body = $("#entries-body");
     if (!body) return;
-    lockTableWidth();
     state.openMemoIds.forEach(function (id) {
       var tr = body.querySelector('tr[data-id="' + id.replace(/"/g, '\\"') + '"]');
       if (!tr) return;

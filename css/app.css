@@ -985,8 +985,7 @@ button.sm {
   .voice-btn-sub                  { font-size: 0.68rem; }
   .voice-btn-title-row            { gap: 0.25rem; }
 
-  /* テーブル: 登録日付列を非表示
-     width:0 を明示しないと Chrome が colspan 再計算時に幅を復活させるバグがある */
+  /* スマホでは登録日付列を表示しない */
   .entries-table col.col-date      { display: none; width: 0; }
   .entries-table thead .th-date,
   .entries-table tbody td.col-date { display: none; }
@@ -1009,10 +1008,10 @@ button.sm {
     font-size: 0.72rem;
   }
 
-  /* table-wrap を常スクロールコンテキストにして table 幅の再計算を安定させる */
+  /* スマホでは横スクロール前提で表示する */
   .table-wrap                      { overflow-x: scroll; }
 
-  /* width: 100% をやめて固定値にすることで、colspan セルとの循環依存を断つ */
+  /* スマホの最小レイアウト幅 */
   table.entries-table              { width: 26rem; min-width: 26rem; }
 
   .entries-table col.col-title,
