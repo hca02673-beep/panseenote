@@ -985,8 +985,9 @@ button.sm {
   .voice-btn-sub                  { font-size: 0.68rem; }
   .voice-btn-title-row            { gap: 0.25rem; }
 
-  /* テーブル: 登録日付列を非表示 */
-  .entries-table col.col-date,
+  /* テーブル: 登録日付列を非表示
+     width:0 を明示しないと Chrome が colspan 再計算時に幅を復活させるバグがある */
+  .entries-table col.col-date      { display: none; width: 0; }
   .entries-table thead .th-date,
   .entries-table tbody td.col-date { display: none; }
 

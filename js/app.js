@@ -468,6 +468,7 @@
       '<tr class="memo-row"' +
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       " hidden>" +
+      // PC: 4列すべてにspan / スマホ: 登録日付列(非表示)を除く3列
       '<td colspan="4" class="memo-cell">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
