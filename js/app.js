@@ -25,6 +25,10 @@
     voiceSearchMsg: "",
     /** @type {Set<string>} 展開中のメモ行のエントリID */
     openMemoIds: new Set(),
+    /** スマホ時は登録日付列を DOM から外した 3 列構造にする */
+    isCompactTable: false,
+    detachedDateCol: null,
+    detachedDateTh: null,
   };
 
   var $ = function (sel) {
@@ -320,6 +324,62 @@
     );
   }
 
+  function isCompactTableViewport() {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(max-width: 639px)").matches
+    );
+  }
+
+  /**
+   * スマホでは登録日付列を DOM から外し、table 自体を 3 列構造にする。
+   * display:none では Chrome の colspan 再計算に負けるため、列そのものを脱着する。
+   * @returns {boolean} 構造が変わった場合 true
+   */
+  function syncTableStructure() {
+    var table = document.querySelector("table.entries-table");
+    if (!table) return false;
+    var compact = isCompactTableViewport();
+    var changed = state.isCompactTable !== compact;
+    var colgroup = table.querySelector("colgroup");
+    var headRow = table.querySelector("thead tr");
+    if (!colgroup || !headRow) {
+      state.isCompactTable = compact;
+      return changed;
+    }
+
+    var colDate = colgroup.querySelector("col.col-date");
+    var colActions = colgroup.querySelector("col.col-actions");
+    var thDate = headRow.querySelector("th.th-date");
+    var thActions = headRow.querySelector("th.th-actions");
+
+    if (compact) {
+      if (colDate) {
+        state.detachedDateCol = colDate;
+        colgroup.removeChild(colDate);
+        changed = true;
+      }
+      if (thDate) {
+        state.detachedDateTh = thDate;
+        headRow.removeChild(thDate);
+        changed = true;
+      }
+    } else {
+      if (!colDate && state.detachedDateCol) {
+        colgroup.insertBefore(state.detachedDateCol, colActions || null);
+        changed = true;
+      }
+      if (!thDate && state.detachedDateTh) {
+        headRow.insertBefore(state.detachedDateTh, thActions || null);
+        changed = true;
+      }
+    }
+
+    state.isCompactTable = compact;
+    return changed;
+  }
+
   function parseCountFromSummaryText(text) {
     var t = String(text || "");
     var m1 = t.match(/^(\d+)件登録済/);
@@ -426,6 +486,7 @@
   }
 
   function rowHtml(entry, isDraft) {
+    var compactTable = state.isCompactTable || isCompactTableViewport();
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
     var titleEsc = escapeAttr(entry.title || "");
@@ -451,9 +512,11 @@
       '<input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' + pageEsc + '" />' +
       '</div>' +
       '</td>' +
-      '<td class="readonly col-date">' +
-      escapeHtml(dateLabel) +
-      "</td>" +
+      (compactTable
+        ? ""
+        : '<td class="readonly col-date">' +
+          escapeHtml(dateLabel) +
+          "</td>") +
       '<td class="actions col-actions">' +
       '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">メモ</button>' +
       '<button type="button" class="sm row-save btn-action-green">登録</button>' +
@@ -468,8 +531,7 @@
       '<tr class="memo-row"' +
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       " hidden>" +
-      // PC: 4列すべてにspan / スマホ: 登録日付列(非表示)を除く3列
-      '<td colspan="4" class="memo-cell">' +
+      '<td colspan="' + (compactTable ? "3" : "4") + '" class="memo-cell">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
@@ -516,6 +578,7 @@
   }
 
   function renderTable() {
+    syncTableStructure();
     return db.getAllEntries(state.idb).then(function (rows) {
       closeSettingsIfOpen();
       rows = sortEntries(rows);
@@ -1270,6 +1333,9 @@
     var layoutResizeTimer = null;
     function onViewportLayoutChange() {
       updatePlanSummaryLine();
+      if (syncTableStructure() && state.idb) {
+        renderTable().catch(function () {});
+      }
     }
     window.addEventListener("resize", function () {
       window.clearTimeout(layoutResizeTimer);
@@ -1327,6 +1393,7 @@
           $("#manual-search").value = state.searchQuery;
         }
         updatePlanBar();
+        syncTableStructure();
         return checkTerms().then(function () {
           return renderTable();
         });
