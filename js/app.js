@@ -111,6 +111,9 @@
       var detail = String((options && options.detail) || "").trim();
       detailEl.textContent = detail;
       detailEl.hidden = detail === "";
+      detailEl.className =
+        "app-dialog-detail" +
+        ((options && options.detailAsChip) ? " app-dialog-detail-chip" : "");
 
       okBtn.textContent = (options && options.okLabel) || "OK";
       okBtn.className =
@@ -913,10 +916,11 @@
   function onDeleteRow(tr) {
     var draft = tr.getAttribute("data-draft") === "1";
     var title = String((readRowFromTr(tr).title || "")).trim();
-    var detail = title ? "サービス名: " + title : "";
+    var detail = title || "";
     if (draft) {
       return showAppConfirm("この行を破棄しますか？", {
         detail: detail,
+        detailAsChip: true,
         okLabel: "破棄する",
         danger: true,
       }).then(function (ok) {
@@ -929,6 +933,7 @@
     if (!id) return;
     return showAppConfirm("この登録を削除しますか？", {
       detail: detail,
+      detailAsChip: true,
       okLabel: "削除する",
       danger: true,
     }).then(function (ok) {

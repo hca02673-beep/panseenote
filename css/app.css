@@ -962,6 +962,18 @@ button.sm {
   word-break: break-word;
 }
 
+.app-dialog-detail-chip {
+  display: table;
+  max-width: 100%;
+  margin: 0.65rem auto 0;
+  padding: 0.38rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--fg);
+  font-weight: 600;
+}
+
 .app-dialog-actions {
   display: flex;
   justify-content: center;
