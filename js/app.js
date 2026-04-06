@@ -1617,14 +1617,19 @@
       rec.interimResults = true;
 
       var currentInterim = "";
+      // Android Chrome では ev.resultIndex が常に 0 を返すバグがあるため、
+      // 確定済み件数を自前で管理して重複追加を防ぐ。
+      var processedCount = 0;
 
       rec.onresult = function (ev) {
         var newFinals = "";
         currentInterim = "";
-        for (var i = ev.resultIndex; i < ev.results.length; i++) {
+        // processedCount から走査することで Android Chrome の resultIndex=0 バグを回避
+        for (var i = processedCount; i < ev.results.length; i++) {
           var r = ev.results[i];
           if (r.isFinal) {
             newFinals += r[0].transcript;
+            processedCount++;
           } else {
             currentInterim += r[0].transcript;
           }

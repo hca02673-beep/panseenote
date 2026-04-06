@@ -102,6 +102,124 @@
     });
   }
 
+  function normalizeSpeechText(text) {
+    return String(text == null ? "" : text)
+      .normalize("NFKC")
+      .replace(/\u3000/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function toHiragana(text) {
+    return String(text || "").replace(/[ァ-ヶ]/g, function (ch) {
+      return String.fromCharCode(ch.charCodeAt(0) - 0x60);
+    });
+  }
+
+  function buildNumberTokenMap() {
+    var map = Object.create(null);
+    var unitReadings = {
+      0: ["ぜろ", "れい"],
+      1: ["いち", "いっ"],
+      2: ["に"],
+      3: ["さん"],
+      4: ["よん", "し"],
+      5: ["ご"],
+      6: ["ろく", "ろっ"],
+      7: ["なな", "しち"],
+      8: ["はち", "はっ"],
+      9: ["きゅう", "きゅ", "く"],
+    };
+    var kanjiDigits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+    function addToken(token, value) {
+      var key = normalizeSpeechText(token).replace(/\s+/g, "");
+      if (key) map[key] = String(value);
+    }
+
+    function buildKanjiNumber(n) {
+      if (n < 10) return kanjiDigits[n];
+      if (n === 10) return "十";
+      var tens = Math.floor(n / 10);
+      var ones = n % 10;
+      var head = tens === 1 ? "十" : kanjiDigits[tens] + "十";
+      return head + (ones ? kanjiDigits[ones] : "");
+    }
+
+    for (var n = 0; n <= 99; n++) {
+      addToken(String(n), n);
+      addToken(buildKanjiNumber(n), n);
+      addToken(String(n).replace(/\d/g, function (d) {
+        return String.fromCharCode(d.charCodeAt(0) + 0xFEE0);
+      }), n);
+
+      if (n < 10) {
+        unitReadings[n].forEach(function (reading) {
+          addToken(reading, n);
+        });
+        continue;
+      }
+
+      var tens = Math.floor(n / 10);
+      var ones = n % 10;
+      var tensReadings = tens === 1
+        ? ["じゅう", "じゅっ"]
+        : unitReadings[tens].map(function (reading) {
+            return reading + "じゅう";
+          }).concat(unitReadings[tens].map(function (reading) {
+            return reading + "じゅっ";
+          }));
+
+      if (ones === 0) {
+        tensReadings.forEach(function (reading) {
+          addToken(reading, n);
+        });
+        continue;
+      }
+
+      tensReadings.forEach(function (tReading) {
+        unitReadings[ones].forEach(function (oReading) {
+          // 「にじゅっ」系は 20 / 30 / ... のみで使う。21 以上は標準読みを優先する。
+          if (/じゅっ$/.test(tReading)) return;
+          addToken(tReading + oReading, n);
+        });
+      });
+    }
+
+    return map;
+  }
+
+  var NUMBER_TOKEN_MAP = buildNumberTokenMap();
+
+  function parseLooseNumber(token) {
+    var normalized = normalizeSpeechText(token).replace(/\s+/g, "");
+    if (!normalized) return "";
+
+    if (/^\d{1,2}$/.test(normalized)) {
+      return String(parseInt(normalized, 10));
+    }
+
+    var hira = toHiragana(normalized);
+    var softened = hira
+      .replace(/ゔ/g, "ぶ")
+      .replace(/ぺいじ/g, "")
+      .replace(/ぺーじ/g, "")
+      .replace(/ページ/g, "")
+      .replace(/冊目/g, "")
+      .replace(/冊の/g, "")
+      .replace(/さつめ/g, "")
+      .replace(/さつの/g, "");
+
+    if (NUMBER_TOKEN_MAP[softened] != null) {
+      return NUMBER_TOKEN_MAP[softened];
+    }
+    if (NUMBER_TOKEN_MAP[normalized] != null) {
+      return NUMBER_TOKEN_MAP[normalized];
+    }
+
+    return "";
+  }
+
   /**
    * 仕様形式A: （数字）冊目（数字）ページ（見出し）
    * 仕様形式B: メモ（見出し）→ book/page は空欄
@@ -109,12 +227,12 @@
    * @returns {{ ok: boolean, book: string, page: string, title: string, isMemo: boolean }}
    */
   function parseRegisterTranscript(transcript) {
-    var raw = transcript == null ? "" : String(transcript).trim();
+    var raw = normalizeSpeechText(transcript);
     if (!raw) {
       return { ok: false, book: "", page: "", title: "", isMemo: false };
     }
     // 形式B: 「メモ＋名前」
-    var memoRe = /^メモ\s+(.+)$/;
+    var memoRe = /^(?:メモ|めも)\s*(.+)$/;
     var memoM = raw.match(memoRe);
     if (memoM) {
       var memoTitle = (memoM[1] || "").trim();
@@ -123,14 +241,19 @@
       }
     }
     // 形式A: 「○冊目○ページ名前」
-    var re = /^(\d+)\s*冊目\s*(\d+)\s*ページ\s*(.*)$/;
+    // 旧版で効いていた「冊の」「さつめ」「ぺいじ」等の揺れも受ける。
+    var re =
+      /^(.+?)\s*(?:冊目|冊の|さつめ|さつの)\s*(?:の)?\s*(.+?)\s*(?:ページ|頁|ぺーじ|ぺいじ|ぺえじ)\s*(.*)$/;
     var m = raw.match(re);
     if (!m) {
       return { ok: false, book: "", page: "", title: "", isMemo: false };
     }
-    var book = m[1];
-    var page = m[2];
+    var book = parseLooseNumber(m[1]);
+    var page = parseLooseNumber(m[2]);
     var title = (m[3] || "").trim();
+    if (!book || !page) {
+      return { ok: false, book: "", page: "", title: title, isMemo: false };
+    }
     return { ok: true, book: book, page: page, title: title, isMemo: false };
   }
 
