@@ -1039,6 +1039,7 @@
 
         // タイムアウト／無音
         if (!text.trim()) {
+          pushVoiceRecentLog("", null, "無音/タイムアウト", "音声認識がタイムアウト（10秒）しました。");
           state.draft = { title: "", book: "", page: "", memo: "" };
           setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
           return renderTable();
@@ -1048,6 +1049,7 @@
 
         // パース失敗
         if (!parsed.ok) {
+          pushVoiceRecentLog(text, parsed, "解析失敗", PARSE_FAIL_MSG);
           state.draft = { title: "", book: "", page: "", memo: "" };
           setVoiceRegisterMeta(PARSE_FAIL_MSG);
           return renderTable();
@@ -1055,12 +1057,14 @@
 
         // サービス名なし（形式A・形式B共通）
         if (!parsed.title.trim()) {
+          pushVoiceRecentLog(text, parsed, "サービス名不足", PARSE_FAIL_MSG);
           state.draft = { title: "", book: parsed.book, page: parsed.page, memo: "" };
           setVoiceRegisterMeta(PARSE_FAIL_MSG);
           return renderTable();
         }
 
         // 登録成功
+        pushVoiceRecentLog(text, parsed, "成功", parsed.isMemo ? "音声メモとして解析しました。" : "冊目・ページ付きで解析しました。");
         var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page, "");
         return db.putEntry(state.idb, entry).then(function () {
           state.voicePreviewEntry = entry;
@@ -1450,7 +1454,7 @@
         return maybeCheckLicenseOnline().catch(function () {});
       })
       .then(function () {
-        initSttTest();
+        initVoiceRecentLogs();
       })
       .catch(function (e) {
         console.error(e);
@@ -1461,260 +1465,116 @@
   }
 
   /* ================================================================
-     音声認識テストツール（開発者用）
-     促音（っ）系と通常系の発音の認識精度を計測するためのツール。
-     設定・ライセンスパネル内に配置。
+     直近音声認識ログ（開発者用）
+     音声登録の生認識結果とパース結果を直近5件だけ保持する。
      ================================================================ */
 
-  /** 発話テスト原稿リスト
-   *  ★ = 促音（っ）が含まれ認識ミスが起きやすい候補
-   *  原稿は必ず「冊目」「ページ」文脈で発話させる（単独数字は発音が変わるため）
-   */
-  var STT_PROMPTS = [
-    // ── 1冊目 × 1桁ページ（基準値） ──
-    "1冊目1ページ テスト",
-    "1冊目2ページ テスト",
-    "1冊目3ページ テスト",
-    "1冊目4ページ テスト",
-    "1冊目5ページ テスト",
-    "1冊目6ページ テスト",
-    "1冊目7ページ テスト",
-    "1冊目8ページ テスト",
-    "1冊目9ページ テスト",
-    // ── 1冊目 × 10台 ──
-    "1冊目10ページ テスト",
-    "1冊目11ページ テスト",
-    "1冊目12ページ テスト",
-    "1冊目15ページ テスト",
-    "1冊目18ページ テスト",
-    "1冊目19ページ テスト",
-    // ── 1冊目 × 20台（★促音：にじゅっ） ──
-    "1冊目20ページ テスト",
-    "1冊目21ページ テスト",
-    "1冊目22ページ テスト",
-    "1冊目23ページ テスト",
-    "1冊目25ページ テスト",
-    "1冊目28ページ テスト",
-    "1冊目29ページ テスト",
-    // ── 1冊目 × 30台（★促音：さんじゅっ） ──
-    "1冊目30ページ テスト",
-    "1冊目31ページ テスト",
-    "1冊目38ページ テスト",
-    // ── 1冊目 × 40～90（促音混在） ──
-    "1冊目40ページ テスト",
-    "1冊目41ページ テスト",
-    "1冊目50ページ テスト",
-    "1冊目51ページ テスト",
-    "1冊目60ページ テスト",
-    "1冊目61ページ テスト",
-    "1冊目70ページ テスト",
-    "1冊目71ページ テスト",
-    "1冊目80ページ テスト",
-    "1冊目81ページ テスト",
-    "1冊目90ページ テスト",
-    "1冊目91ページ テスト",
-    "1冊目99ページ テスト",
-    // ── 冊目側の促音テスト（ページは1で固定） ──
-    "20冊目1ページ テスト",
-    "30冊目1ページ テスト",
-    "40冊目1ページ テスト",
-    "50冊目1ページ テスト",
-    "60冊目1ページ テスト",
-    "70冊目1ページ テスト",
-    "80冊目1ページ テスト",
-    "90冊目1ページ テスト",
-    // ── 冊目・ページ両方に促音 ──
-    "20冊目20ページ テスト",
-    "20冊目21ページ テスト",
-    "21冊目20ページ テスト",
-    "20冊目28ページ テスト",
-    "28冊目20ページ テスト",
-    "30冊目30ページ テスト",
-    "40冊目40ページ テスト",
-    "80冊目80ページ テスト",
-    "90冊目90ページ テスト",
-    // ── 桁数ミスを誘発しやすい組み合わせ ──
-    "8冊目80ページ テスト",
-    "80冊目8ページ テスト",
-    "2冊目20ページ テスト",
-    "20冊目2ページ テスト",
-    "9冊目90ページ テスト",
-    "90冊目9ページ テスト",
-    // ── 端値 ──
-    "99冊目99ページ テスト",
-    "0冊目0ページ テスト",
-  ];
+  var VOICE_RECENT_LOGS_KEY = "pansee_recent_voice_logs";
+  var VOICE_RECENT_LOGS_LIMIT = 5;
 
-  function initSttTest() {
-    var toggleBtn = $("#stt-toggle-btn");
-    var body = $("#stt-body");
-    var startBtn = $("#btn-stt-start");
-    var stopBtn = $("#btn-stt-stop");
-    var clearBtn = $("#btn-stt-clear");
-    var copyBtn = $("#btn-stt-copy");
-    var statusEl = $("#stt-status");
-    var resultEl = $("#stt-result");
-    var promptListEl = $("#stt-prompt-list");
-
-    if (!toggleBtn || !body || !startBtn || !stopBtn) return;
-
-    // 原稿リストを描画
-    if (promptListEl) {
-      var frag = document.createDocumentFragment();
-      for (var pi = 0; pi < STT_PROMPTS.length; pi++) {
-        var li = document.createElement("li");
-        li.textContent = STT_PROMPTS[pi];
-        frag.appendChild(li);
-      }
-      promptListEl.appendChild(frag);
+  function loadVoiceRecentLogs() {
+    try {
+      var raw = localStorage.getItem(VOICE_RECENT_LOGS_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.slice(0, VOICE_RECENT_LOGS_LIMIT) : [];
+    } catch (e) {
+      return [];
     }
+  }
 
-    // セクション開閉
+  function saveVoiceRecentLogs(logs) {
+    try {
+      localStorage.setItem(
+        VOICE_RECENT_LOGS_KEY,
+        JSON.stringify((logs || []).slice(0, VOICE_RECENT_LOGS_LIMIT))
+      );
+    } catch (e) {}
+  }
+
+  function summarizeVoiceParsed(parsed) {
+    if (!parsed) return "解析前";
+    if (!parsed.ok) return "解析失敗";
+    if (parsed.isMemo) {
+      return "音声メモ / タイトル: " + (parsed.title || "（空欄）");
+    }
+    return (
+      "冊目: " + (parsed.book || "（空欄）") +
+      " / ページ: " + (parsed.page || "（空欄）") +
+      " / タイトル: " + (parsed.title || "（空欄）")
+    );
+  }
+
+  function pushVoiceRecentLog(rawText, parsed, status, note) {
+    var logs = loadVoiceRecentLogs();
+    logs.unshift({
+      at: new Date().toISOString(),
+      rawText: String(rawText || ""),
+      parsedSummary: summarizeVoiceParsed(parsed),
+      status: String(status || ""),
+      note: String(note || ""),
+    });
+    saveVoiceRecentLogs(logs);
+    renderVoiceRecentLogs();
+  }
+
+  function renderVoiceRecentLogs() {
+    var listEl = $("#voice-log-list");
+    if (!listEl) return;
+    var logs = loadVoiceRecentLogs();
+    if (!logs.length) {
+      listEl.innerHTML = '<p class="voice-log-empty">まだ音声登録ログはありません。</p>';
+      return;
+    }
+    listEl.innerHTML = logs.map(function (log) {
+      var statusClass = log.status === "成功" ? "ok" : "ng";
+      var timeText = "不明";
+      try {
+        timeText = new Date(log.at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+      } catch (e) {}
+      return (
+        '<section class="voice-log-item">' +
+          '<div class="voice-log-meta">' +
+            '<span>' + escapeHtml(timeText) + '</span>' +
+            '<span class="voice-log-status ' + statusClass + '">' + escapeHtml(log.status || "不明") + "</span>" +
+          "</div>" +
+          '<p class="voice-log-label">生の認識結果</p>' +
+          '<p class="voice-log-text mono">' + escapeHtml(log.rawText || "（なし）") + "</p>" +
+          '<p class="voice-log-label">解析結果</p>' +
+          '<p class="voice-log-text">' + escapeHtml(log.parsedSummary || "（なし）") + "</p>" +
+          '<p class="voice-log-label">補足</p>' +
+          '<p class="voice-log-text">' + escapeHtml(log.note || "（なし）") + "</p>" +
+        "</section>"
+      );
+    }).join("");
+  }
+
+  function initVoiceRecentLogs() {
+    var toggleBtn = $("#voice-log-toggle-btn");
+    var body = $("#voice-log-body");
+    var clearBtn = $("#btn-voice-log-clear");
+    if (!toggleBtn || !body) return;
+
     toggleBtn.addEventListener("click", function () {
       var hidden = body.hasAttribute("hidden");
       if (hidden) {
         body.removeAttribute("hidden");
-        toggleBtn.textContent = "▼ 音声認識テスト（開発者用）";
+        toggleBtn.textContent = "▼ 直近音声認識ログ（開発者用）";
+        renderVoiceRecentLogs();
       } else {
         body.setAttribute("hidden", "");
-        toggleBtn.textContent = "▶ 音声認識テスト（開発者用）";
+        toggleBtn.textContent = "▶ 直近音声認識ログ（開発者用）";
       }
     });
 
-    var rec = null;
-    var isRecording = false;
-    var accumulated = "";
-
-    function setStatus(msg, isError) {
-      if (!statusEl) return;
-      statusEl.textContent = msg;
-      statusEl.className = "stt-status" + (isError ? " stt-status-error" : "");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        saveVoiceRecentLogs([]);
+        renderVoiceRecentLogs();
+      });
     }
 
-    function buildOutput() {
-      var promptLines = STT_PROMPTS.map(function (p, i) {
-        return (i + 1) + ". " + p;
-      }).join("\n");
-      return (
-        "=== STT テスト結果 ===\n" +
-        "取得日時: " + new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }) + "\n\n" +
-        "[STT 出力（連続認識テキスト）]\n" +
-        (accumulated.trim() || "（なし）") + "\n\n" +
-        "[原稿リスト（" + STT_PROMPTS.length + " 件）]\n" +
-        promptLines
-      );
-    }
-
-    function startRecognition() {
-      var Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!Ctor) {
-        setStatus("このブラウザは音声認識に対応していません。", true);
-        return;
-      }
-      rec = new Ctor();
-      rec.lang = "ja-JP";
-      rec.continuous = true;
-      rec.interimResults = true;
-
-      var currentInterim = "";
-      // Android Chrome では ev.resultIndex が常に 0 を返すバグがあるため、
-      // 確定済み件数を自前で管理して重複追加を防ぐ。
-      var processedCount = 0;
-
-      rec.onresult = function (ev) {
-        var newFinals = "";
-        currentInterim = "";
-        // processedCount から走査することで Android Chrome の resultIndex=0 バグを回避
-        for (var i = processedCount; i < ev.results.length; i++) {
-          var r = ev.results[i];
-          if (r.isFinal) {
-            newFinals += r[0].transcript;
-            processedCount++;
-          } else {
-            currentInterim += r[0].transcript;
-          }
-        }
-        if (newFinals) accumulated += newFinals;
-        if (resultEl) {
-          resultEl.value = accumulated + (currentInterim ? "\n[認識中...] " + currentInterim : "");
-        }
-      };
-
-      rec.onerror = function (ev) {
-        if (ev.error === "no-speech" || ev.error === "aborted") return;
-        setStatus("認識エラー: " + ev.error, true);
-      };
-
-      rec.onend = function () {
-        if (!isRecording) return;
-        try {
-          rec.start();
-        } catch (e) {
-          setStatus("録音が途切れました。再度「録音開始」を押してください。", true);
-          stopRecording();
-        }
-      };
-
-      try {
-        rec.start();
-        setStatus("● 録音中... 原稿を上から順に読み上げてください");
-      } catch (e) {
-        setStatus("録音を開始できませんでした。", true);
-      }
-    }
-
-    function stopRecording() {
-      isRecording = false;
-      if (rec) {
-        try { rec.stop(); } catch (e) {}
-        rec = null;
-      }
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      if (resultEl) resultEl.value = buildOutput();
-      setStatus("録音停止。「コピー」ボタンで Cursor に貼り付けてください。");
-    }
-
-    startBtn.addEventListener("click", function () {
-      accumulated = "";
-      if (resultEl) resultEl.value = "";
-      setStatus("");
-      isRecording = true;
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      startRecognition();
-    });
-
-    stopBtn.addEventListener("click", function () {
-      stopRecording();
-    });
-
-    clearBtn.addEventListener("click", function () {
-      accumulated = "";
-      if (resultEl) resultEl.value = "";
-      setStatus("");
-    });
-
-    copyBtn.addEventListener("click", function () {
-      if (!resultEl || !resultEl.value) {
-        setStatus("コピーする内容がありません。");
-        return;
-      }
-      var text = resultEl.value;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
-          setStatus("クリップボードにコピーしました。");
-        }).catch(function () {
-          resultEl.select();
-          document.execCommand("copy");
-          setStatus("クリップボードにコピーしました。");
-        });
-      } else {
-        resultEl.select();
-        document.execCommand("copy");
-        setStatus("クリップボードにコピーしました。");
-      }
-    });
+    renderVoiceRecentLogs();
   }
 
   if (document.readyState === "loading") {

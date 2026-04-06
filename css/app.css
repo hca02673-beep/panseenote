@@ -720,7 +720,7 @@ button.sm {
 }
 
 /* ======================================================
-   音声認識テストツール（開発者用）
+   直近音声認識ログ（開発者用）
    ====================================================== */
 
 .settings-divider {
@@ -729,7 +729,7 @@ button.sm {
   margin: 1.1rem 0 0.75rem;
 }
 
-.stt-toggle-btn {
+.voice-log-toggle-btn {
   width: 100%;
   text-align: left;
   font-size: 0.88rem;
@@ -742,64 +742,90 @@ button.sm {
   cursor: pointer;
 }
 
-.stt-toggle-btn:hover {
+.voice-log-toggle-btn:hover {
   color: var(--fg);
 }
 
-.stt-body {
+.voice-log-body {
   padding-top: 0.6rem;
 }
 
-.stt-prompt-list {
-  margin: 0 0 0.75rem;
-  padding: 0.5rem 0.5rem 0.5rem 2rem;
-  max-height: 16rem;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  font-size: 0.85rem;
-  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  line-height: 1.85;
-  color: var(--fg);
-}
-
-.stt-controls {
+.voice-log-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-bottom: 0.55rem;
 }
 
-.stt-controls button {
+.voice-log-actions button {
   font-size: 0.85rem;
   padding: 0.38rem 0.75rem;
 }
 
-.stt-status {
-  min-height: 1.5rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  margin: 0 0 0.45rem;
-  color: var(--accent);
+.voice-log-list {
+  display: grid;
+  gap: 0.6rem;
 }
 
-.stt-status-error {
+.voice-log-empty {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.voice-log-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 0.7rem 0.8rem;
+}
+
+.voice-log-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.7rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.voice-log-status {
+  font-weight: 700;
+}
+
+.voice-log-status.ok {
+  color: #2563eb;
+}
+
+.voice-log-status.ng {
   color: var(--danger);
 }
 
-.stt-result {
-  width: 100%;
-  box-sizing: border-box;
-  font-size: 0.82rem;
-  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+.voice-log-label {
+  margin: 0.35rem 0 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.voice-log-text {
+  margin: 0;
   padding: 0.5rem 0.65rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
+  border-radius: 6px;
+  background: var(--card);
   color: var(--fg);
-  resize: vertical;
-  line-height: 1.6;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.voice-log-text.mono {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 .settings-hint {
