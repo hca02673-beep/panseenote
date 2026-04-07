@@ -959,6 +959,7 @@
   }
 
   function onVoiceSearch() {
+    closeSettingsIfOpen();
     if (!voice.isSpeechSupported()) {
       state.voiceRegisterMode = false;
       state.voicePreviewEntry = null;
