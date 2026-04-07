@@ -1154,7 +1154,18 @@
       );
     }
     var btn = $("#btn-license-activate");
-    if (btn) btn.disabled = true;
+    var status = $("#license-activate-status");
+    function setActivateBusyUi(isBusy) {
+      if (btn) btn.disabled = !!isBusy;
+      if (status) {
+        if (isBusy) {
+          status.removeAttribute("hidden");
+        } else {
+          status.setAttribute("hidden", "");
+        }
+      }
+    }
+    setActivateBusyUi(true);
     return lic
       .postLicenseAction(url, {
         action: "activate",
@@ -1193,7 +1204,6 @@
           if ($("#license-key-input")) $("#license-key-input").value = key;
           updatePlanBar();
           setLicenseDiagnostics("");
-          closeSettingsIfOpen();
           toast("ライセンス認証に成功しました。");
         });
       })
@@ -1206,7 +1216,7 @@
         );
       })
       .finally(function () {
-        if (btn) btn.disabled = false;
+        setActivateBusyUi(false);
       });
   }
 

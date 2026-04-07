@@ -846,6 +846,13 @@ button.sm {
   font-size: 0.9rem;
 }
 
+.license-activate-status {
+  display: inline-block;
+  margin-left: 0.6rem;
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .license-form-row {
   display: flex;
   flex-wrap: wrap;
