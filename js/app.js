@@ -29,6 +29,8 @@
     isCompactTable: false,
     detachedDateCol: null,
     detachedDateTh: null,
+    /** 直近の明示検索で確定した表示中サブセット */
+    searchSnapshot: null,
   };
 
   var $ = function (sel) {
@@ -246,6 +248,59 @@
       if (ua === ub) return String(b.id).localeCompare(String(a.id));
       return ub.localeCompare(ua);
     });
+  }
+
+  function cloneSearchResult(res) {
+    return {
+      matches: (res && res.matches ? res.matches.slice() : []).map(function (row) {
+        return Object.assign({}, row);
+      }),
+      total: res && typeof res.total === "number" ? res.total : 0,
+      capped: !!(res && res.capped),
+      emptyQuery: !!(res && res.emptyQuery),
+    };
+  }
+
+  function updateSearchSnapshotFromRows(rows) {
+    state.searchSnapshot = cloneSearchResult(applySearch(sortEntries(rows), state.searchQuery));
+    return state.searchSnapshot;
+  }
+
+  function getSearchSnapshotOrCompute(rows) {
+    if (!state.searchSnapshot) {
+      return updateSearchSnapshotFromRows(rows);
+    }
+    return state.searchSnapshot;
+  }
+
+  function updateEntryInSearchSnapshot(entry) {
+    if (!state.searchSnapshot || !entry || !entry.id) return;
+    var matches = state.searchSnapshot.matches || [];
+    for (var i = 0; i < matches.length; i++) {
+      if (matches[i].id === entry.id) {
+        matches[i] = Object.assign({}, entry);
+        return;
+      }
+    }
+  }
+
+  function removeEntryFromSearchSnapshot(id) {
+    if (!state.searchSnapshot || !id) return;
+    var matches = state.searchSnapshot.matches || [];
+    var next = [];
+    var removed = false;
+    for (var i = 0; i < matches.length; i++) {
+      if (matches[i].id === id) {
+        removed = true;
+        continue;
+      }
+      next.push(matches[i]);
+    }
+    if (!removed) return;
+    state.searchSnapshot.matches = next;
+    if (typeof state.searchSnapshot.total === "number" && state.searchSnapshot.total > 0) {
+      state.searchSnapshot.total -= 1;
+    }
   }
 
   function applySearch(rows, q) {
@@ -698,12 +753,12 @@
     }
   }
 
-  function renderTable() {
+  function renderTable(options) {
+    options = options || {};
     syncTableStructure();
     return db.getAllEntries(state.idb).then(function (rows) {
       closeSettingsIfOpen();
       rows = sortEntries(rows);
-      var res = applySearch(rows, state.searchQuery);
       var body = $("#entries-body");
       body.innerHTML = "";
 
@@ -742,6 +797,10 @@
         restoreOpenMemoRows();
         return refreshCount();
       }
+
+      var res = options.refreshSearchResults
+        ? updateSearchSnapshotFromRows(rows)
+        : getSearchSnapshotOrCompute(rows);
 
       for (var i = 0; i < res.matches.length; i++) {
         body.insertAdjacentHTML("beforeend", rowHtml(res.matches[i], false));
@@ -900,12 +959,13 @@
         }
         if (!prev) return;
         var next = db.patchEntry(prev, vals);
-        return db.putEntry(state.idb, next).then(function () {
+          return db.putEntry(state.idb, next).then(function () {
           // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
           // しないと renderTable が古い entry（memo空）で再描画してしまう
           if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
             state.voicePreviewEntry = next;
           }
+            updateEntryInSearchSnapshot(next);
           toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
@@ -939,6 +999,7 @@
     }).then(function (ok) {
       if (!ok) return;
       return db.deleteEntry(state.idb, id).then(function () {
+        removeEntryFromSearchSnapshot(id);
         toast("削除しました。");
         return renderTable();
       });
@@ -954,7 +1015,7 @@
     state.openMemoIds = new Set();
     state.searchQuery = $("#manual-search").value || "";
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
-      return renderTable();
+      return renderTable({ refreshSearchResults: true });
     });
   }
 
@@ -970,7 +1031,7 @@
       state.openMemoIds = new Set();
       if ($("#manual-search")) $("#manual-search").value = "";
       return saveSearchQueryToSettings("").then(function () {
-        return renderTable();
+        return renderTable({ refreshSearchResults: true });
       });
     }
     return voice.recognizeOnce().then(function (text) {
@@ -986,7 +1047,7 @@
       $("#manual-search").value = text;
       state.searchQuery = text;
       return saveSearchQueryToSettings(state.searchQuery).then(function () {
-        return renderTable().then(function () {
+        return renderTable({ refreshSearchResults: true }).then(function () {
           if (!text.trim()) {
             toast("音声認識がタイムアウトしました。");
           }
@@ -1324,7 +1385,7 @@
               state.draft = null;
               state.searchQuery = $("#manual-search").value || "";
               return saveSearchQueryToSettings(state.searchQuery).then(function () {
-                return renderTable().then(function () {
+                return renderTable({ refreshSearchResults: true }).then(function () {
                   if (truncated) {
                     return showAppAlert(
                       "このプランの登録上限を超えるため、先頭から取り込める分のみ登録しました。超過分は登録されていません。"
@@ -1464,7 +1525,7 @@
         updatePlanBar();
         syncTableStructure();
         return checkTerms().then(function () {
-          return renderTable();
+          return renderTable({ refreshSearchResults: true });
         });
       })
       .then(function () {
