@@ -878,6 +878,10 @@
         ? updateSearchSnapshotFromRows(rows)
         : getSearchSnapshotOrCompute(rows);
       var phoneSheetMode = isPhoneSearchSheetMode();
+      var tableEl = document.querySelector("table.entries-table");
+      var wrapEl = document.querySelector(".table-wrap");
+      if (tableEl) tableEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
+      if (wrapEl) wrapEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
 
       for (var i = 0; i < res.matches.length; i++) {
         body.insertAdjacentHTML(
@@ -959,14 +963,6 @@
     if (memo) memo.value = entry.memo || "";
     state.mobileEditEntryId = entry.id || "";
     overlay.removeAttribute("hidden");
-    if (title) {
-      window.setTimeout(function () {
-        try {
-          title.focus();
-          title.setSelectionRange(title.value.length, title.value.length);
-        } catch (e) {}
-      }, 20);
-    }
   }
 
   function getMobileEditSheetValues() {
