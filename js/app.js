@@ -1165,6 +1165,9 @@
         }
       }
     }
+    if (voice && typeof voice.playEndBeep === "function") {
+      voice.playEndBeep();
+    }
     setActivateBusyUi(true);
     return lic
       .postLicenseAction(url, {
@@ -1217,6 +1220,9 @@
       })
       .finally(function () {
         setActivateBusyUi(false);
+        if (voice && typeof voice.playEndBeep === "function") {
+          voice.playEndBeep();
+        }
       });
   }
 

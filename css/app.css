@@ -853,6 +853,10 @@ button.sm {
   font-weight: 700;
 }
 
+.license-activate-status[hidden] {
+  display: none;
+}
+
 .license-form-row {
   display: flex;
   flex-wrap: wrap;
