@@ -675,7 +675,7 @@
       parts.push("（ヒットなし）");
     }
     if (isPhoneSearchSheetMode() && result.total > 0) {
-      parts.push("（行タップで編集）");
+      parts.push("（行タップで編集画面が開きます）");
     }
     el.textContent = parts.join(" ");
     el.classList.add("has-result");
