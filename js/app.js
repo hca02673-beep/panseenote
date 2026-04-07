@@ -645,7 +645,8 @@
     el.classList.add("has-result");
   }
 
-  function rowHtml(entry, isDraft) {
+  function rowHtml(entry, isDraft, options) {
+    options = options || {};
     var compactTable = state.isCompactTable || isCompactTableViewport();
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
@@ -655,6 +656,8 @@
     var memoEsc = escapeAttr(entry.memo || "");
     var dateLabel = entry.createdAt || "—";
     var hasMemo = (entry.memo || "").trim() !== "";
+    var memoInitiallyOpen = !!options.memoInitiallyOpen;
+    var saveLabel = options.saveLabel || "登録";
 
     var mainTr =
       "<tr" +
@@ -668,7 +671,10 @@
       '" data-field="title" value="' +
       titleEsc +
       '" title="' + titleEsc + '" />' +
-      '<button type="button" class="sm row-memo btn-memo' + (hasMemo ? " has-memo" : "") + '">▼メモ</button>' +
+      '<button type="button" class="sm row-memo btn-memo' +
+      (hasMemo ? " has-memo" : "") +
+      (memoInitiallyOpen ? " memo-active" : "") +
+      '">' + (memoInitiallyOpen ? "▲メモ" : "▼メモ") + "</button>" +
       '</div>' +
       '</td>' +
       '<td class="col-booknum">' +
@@ -683,7 +689,7 @@
           escapeHtml(dateLabel) +
           "</td>") +
       '<td class="actions col-actions">' +
-      '<button type="button" class="sm row-save btn-action-green">登録</button>' +
+      '<button type="button" class="sm row-save btn-action-green">' + escapeHtml(saveLabel) + "</button>" +
       (isDraft
         ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
         : '<button type="button" class="sm row-delete btn-action-delete">削除</button>') +
@@ -694,7 +700,7 @@
     var memoTr =
       '<tr class="memo-row"' +
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
-      " hidden>" +
+      (memoInitiallyOpen ? ">" : " hidden>") +
       '<td colspan="' + (compactTable ? "3" : "4") + '" class="memo-cell">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
@@ -776,11 +782,18 @@
                 memo: dv.memo || "",
                 createdAt: "（未保存）",
               },
-              true
+              true,
+              { memoInitiallyOpen: true, saveLabel: "登録" }
             )
           );
         } else if (state.voicePreviewEntry) {
-          body.insertAdjacentHTML("afterbegin", rowHtml(state.voicePreviewEntry, false));
+          body.insertAdjacentHTML(
+            "afterbegin",
+            rowHtml(state.voicePreviewEntry, false, {
+              memoInitiallyOpen: true,
+              saveLabel: "修正",
+            })
+          );
         }
         var metaEl = $("#search-meta");
         if (metaEl) {
@@ -794,6 +807,7 @@
           }
         }
         wireTableHandlers();
+        bindExpandedMemoRows();
         restoreOpenMemoRows();
         return refreshCount();
       }
@@ -808,6 +822,7 @@
 
       renderSearchMeta(res);
       wireTableHandlers();
+      bindExpandedMemoRows();
       restoreOpenMemoRows();
       return refreshCount();
     });
@@ -844,6 +859,19 @@
         }
       }
     };
+  }
+
+  function bindExpandedMemoRows() {
+    var body = $("#entries-body");
+    if (!body) return;
+    var memoRows = body.querySelectorAll("tr.memo-row:not([hidden])");
+    for (var i = 0; i < memoRows.length; i++) {
+      var memoTr = memoRows[i];
+      var dataTr = memoTr.previousElementSibling;
+      if (!dataTr) continue;
+      var hiddenMemoInput = dataTr.querySelector("input[data-field='memo']");
+      bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
+    }
   }
 
   function onToggleMemo(tr, btn) {
