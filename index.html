@@ -257,6 +257,38 @@
       </div>
     </div><!-- /#app-dialog -->
 
+    <div id="mobile-edit-sheet-overlay" class="mobile-edit-sheet-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="mobile-edit-sheet-title">
+      <div id="mobile-edit-sheet" class="mobile-edit-sheet" role="document">
+        <div class="mobile-edit-sheet-handle" aria-hidden="true"></div>
+        <h2 id="mobile-edit-sheet-title" class="mobile-edit-sheet-title">データ編集</h2>
+        <div class="mobile-edit-sheet-body">
+          <label class="mobile-edit-field">
+            <span>サービス名</span>
+            <textarea id="mobile-edit-title" rows="2" maxlength="100"></textarea>
+          </label>
+          <div class="mobile-edit-bookpage-row">
+            <label class="mobile-edit-field">
+              <span>冊目</span>
+              <input type="text" id="mobile-edit-book" inputmode="numeric" maxlength="3" />
+            </label>
+            <label class="mobile-edit-field">
+              <span>ページ</span>
+              <input type="text" id="mobile-edit-page" inputmode="numeric" maxlength="3" />
+            </label>
+          </div>
+          <label class="mobile-edit-field">
+            <span>メモ</span>
+            <textarea id="mobile-edit-memo" rows="5" maxlength="500"></textarea>
+          </label>
+        </div>
+        <div class="mobile-edit-sheet-actions">
+          <button type="button" id="mobile-edit-cancel" class="app-dialog-btn app-dialog-btn-secondary">キャンセル</button>
+          <button type="button" id="mobile-edit-save" class="app-dialog-btn app-dialog-btn-primary">登録</button>
+          <button type="button" id="mobile-edit-delete" class="app-dialog-btn app-dialog-btn-danger">削除</button>
+        </div>
+      </div>
+    </div><!-- /#mobile-edit-sheet -->
+
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script src="js/config.js"></script>

@@ -29,8 +29,11 @@
     isCompactTable: false,
     detachedDateCol: null,
     detachedDateTh: null,
+    detachedActionsCol: null,
+    detachedActionsTh: null,
     /** 直近の明示検索で確定した表示中サブセット */
     searchSnapshot: null,
+    mobileEditEntryId: "",
   };
 
   var $ = function (sel) {
@@ -484,6 +487,10 @@
     );
   }
 
+  function isPhoneSearchSheetMode() {
+    return isPhoneViewport() && !state.voiceRegisterMode;
+  }
+
   function isCompactTableViewport() {
     return (
       typeof window !== "undefined" &&
@@ -501,6 +508,7 @@
     var table = document.querySelector("table.entries-table");
     if (!table) return false;
     var compact = isCompactTableViewport();
+    var phoneSheet = isPhoneSearchSheetMode();
     var changed = state.isCompactTable !== compact;
     var colgroup = table.querySelector("colgroup");
     var headRow = table.querySelector("thead tr");
@@ -532,6 +540,31 @@
       }
       if (!thDate && state.detachedDateTh) {
         headRow.insertBefore(state.detachedDateTh, thActions || null);
+        changed = true;
+      }
+    }
+
+    colActions = colgroup.querySelector("col.col-actions");
+    thActions = headRow.querySelector("th.th-actions");
+
+    if (phoneSheet) {
+      if (colActions) {
+        state.detachedActionsCol = colActions;
+        colgroup.removeChild(colActions);
+        changed = true;
+      }
+      if (thActions) {
+        state.detachedActionsTh = thActions;
+        headRow.removeChild(thActions);
+        changed = true;
+      }
+    } else {
+      if (!colActions && state.detachedActionsCol) {
+        colgroup.appendChild(state.detachedActionsCol);
+        changed = true;
+      }
+      if (!thActions && state.detachedActionsTh) {
+        headRow.appendChild(state.detachedActionsTh);
         changed = true;
       }
     }
@@ -641,6 +674,9 @@
     } else if (result.total === 0) {
       parts.push("（ヒットなし）");
     }
+    if (isPhoneSearchSheetMode() && result.total > 0) {
+      parts.push("（行タップで編集）");
+    }
     el.textContent = parts.join(" ");
     el.classList.add("has-result");
   }
@@ -648,6 +684,7 @@
   function rowHtml(entry, isDraft, options) {
     options = options || {};
     var compactTable = state.isCompactTable || isCompactTableViewport();
+    var phoneSheetRow = !!options.phoneSheetRow;
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
     var titleEsc = escapeAttr(entry.title || "");
@@ -658,44 +695,69 @@
     var hasMemo = (entry.memo || "").trim() !== "";
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
     var saveLabel = options.saveLabel || "登録";
+    var rowClass = phoneSheetRow ? ' class="row-tappable"' : "";
+
+    var titleInner = phoneSheetRow
+      ? '<div class="title-display-readonly" title="' + titleEsc + '">' +
+          escapeHtml(entry.title || "") +
+        "</div>" +
+        '<input type="hidden" data-field="title" value="' + titleEsc + '" />'
+      : '<div class="title-cell">' +
+          '<input class="inline" type="text" maxlength="' +
+          C.MAX_TITLE_LENGTH +
+          '" data-field="title" value="' +
+          titleEsc +
+          '" title="' + titleEsc + '" />' +
+          '<button type="button" class="sm row-memo btn-memo' +
+          (hasMemo ? " has-memo" : "") +
+          (memoInitiallyOpen ? " memo-active" : "") +
+          '">' + (memoInitiallyOpen ? "▲メモ" : "▼メモ") + "</button>" +
+          '<input type="hidden" data-field="memo" value="' + memoEsc + '" />' +
+        "</div>";
+
+    var bookPageInner = phoneSheetRow
+      ? '<div class="booknum-wrap">' +
+          '<span class="readonly-box">' + escapeHtml(entry.book || "") + "</span>" +
+          '<span class="readonly-box">' + escapeHtml(entry.page || "") + "</span>" +
+        "</div>" +
+        '<input type="hidden" data-field="book" value="' + bookEsc + '" />' +
+        '<input type="hidden" data-field="page" value="' + pageEsc + '" />' +
+        '<input type="hidden" data-field="memo" value="' + memoEsc + '" />'
+      : '<div class="booknum-wrap">' +
+          '<input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' + bookEsc + '" />' +
+          '<input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' + pageEsc + '" />' +
+        "</div>";
 
     var mainTr =
       "<tr" +
+      rowClass +
       dr +
       (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
       ">" +
       '<td class="col-title">' +
-      '<div class="title-cell">' +
-      '<input class="inline" type="text" maxlength="' +
-      C.MAX_TITLE_LENGTH +
-      '" data-field="title" value="' +
-      titleEsc +
-      '" title="' + titleEsc + '" />' +
-      '<button type="button" class="sm row-memo btn-memo' +
-      (hasMemo ? " has-memo" : "") +
-      (memoInitiallyOpen ? " memo-active" : "") +
-      '">' + (memoInitiallyOpen ? "▲メモ" : "▼メモ") + "</button>" +
-      '</div>' +
+      titleInner +
       '</td>' +
       '<td class="col-booknum">' +
-      '<div class="booknum-wrap">' +
-      '<input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="book" value="' + bookEsc + '" />' +
-      '<input class="inline inline-num" type="text" inputmode="numeric" maxlength="3" data-field="page" value="' + pageEsc + '" />' +
-      '</div>' +
+      bookPageInner +
       '</td>' +
       (compactTable
         ? ""
         : '<td class="readonly col-date">' +
           escapeHtml(dateLabel) +
           "</td>") +
-      '<td class="actions col-actions">' +
-      '<button type="button" class="sm row-save btn-action-green">' + escapeHtml(saveLabel) + "</button>" +
-      (isDraft
-        ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
-        : '<button type="button" class="sm row-delete btn-action-delete">削除</button>') +
-      '<input type="hidden" data-field="memo" value="' + memoEsc + '" />' +
-      "</td>" +
+      (phoneSheetRow
+        ? ""
+        : '<td class="actions col-actions">' +
+          '<button type="button" class="sm row-save btn-action-green">' + escapeHtml(saveLabel) + "</button>" +
+          (isDraft
+            ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
+            : '<button type="button" class="sm row-delete btn-action-delete">削除</button>') +
+          "</td>") +
       "</tr>";
+
+    if (phoneSheetRow) {
+      return mainTr;
+    }
 
     var memoTr =
       '<tr class="memo-row"' +
@@ -815,9 +877,13 @@
       var res = options.refreshSearchResults
         ? updateSearchSnapshotFromRows(rows)
         : getSearchSnapshotOrCompute(rows);
+      var phoneSheetMode = isPhoneSearchSheetMode();
 
       for (var i = 0; i < res.matches.length; i++) {
-        body.insertAdjacentHTML("beforeend", rowHtml(res.matches[i], false));
+        body.insertAdjacentHTML(
+          "beforeend",
+          rowHtml(res.matches[i], false, phoneSheetMode ? { phoneSheetRow: true } : undefined)
+        );
       }
 
       renderSearchMeta(res);
@@ -872,6 +938,102 @@
       var hiddenMemoInput = dataTr.querySelector("input[data-field='memo']");
       bindMemoTextarea(memoTr.querySelector("textarea.memo-textarea"), hiddenMemoInput);
     }
+  }
+
+  function closeMobileEditSheet() {
+    var overlay = $("#mobile-edit-sheet-overlay");
+    if (overlay) overlay.setAttribute("hidden", "");
+    state.mobileEditEntryId = "";
+  }
+
+  function openMobileEditSheet(entry) {
+    var overlay = $("#mobile-edit-sheet-overlay");
+    if (!overlay || !entry) return;
+    var title = $("#mobile-edit-title");
+    var book = $("#mobile-edit-book");
+    var page = $("#mobile-edit-page");
+    var memo = $("#mobile-edit-memo");
+    if (title) title.value = entry.title || "";
+    if (book) book.value = entry.book || "";
+    if (page) page.value = entry.page || "";
+    if (memo) memo.value = entry.memo || "";
+    state.mobileEditEntryId = entry.id || "";
+    overlay.removeAttribute("hidden");
+    if (title) {
+      window.setTimeout(function () {
+        try {
+          title.focus();
+          title.setSelectionRange(title.value.length, title.value.length);
+        } catch (e) {}
+      }, 20);
+    }
+  }
+
+  function getMobileEditSheetValues() {
+    return {
+      title: ($("#mobile-edit-title") && $("#mobile-edit-title").value) || "",
+      book: ($("#mobile-edit-book") && $("#mobile-edit-book").value) || "",
+      page: ($("#mobile-edit-page") && $("#mobile-edit-page").value) || "",
+      memo: ($("#mobile-edit-memo") && $("#mobile-edit-memo").value) || "",
+    };
+  }
+
+  function openMobileEditSheetForRow(tr) {
+    if (!tr) return;
+    var id = tr.getAttribute("data-id");
+    if (!id) return;
+    return db.getAllEntries(state.idb).then(function (rows) {
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].id === id) {
+          openMobileEditSheet(rows[i]);
+          break;
+        }
+      }
+    });
+  }
+
+  function saveMobileEditSheet() {
+    var id = state.mobileEditEntryId;
+    if (!id) return;
+    var vals = getMobileEditSheetValues();
+    return db.getAllEntries(state.idb).then(function (rows) {
+      var prev = null;
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].id === id) {
+          prev = rows[i];
+          break;
+        }
+      }
+      if (!prev) return;
+      var next = db.patchEntry(prev, vals);
+      return db.putEntry(state.idb, next).then(function () {
+        updateEntryInSearchSnapshot(next);
+        closeMobileEditSheet();
+        toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        return renderTable();
+      });
+    });
+  }
+
+  function deleteMobileEditSheet() {
+    var id = state.mobileEditEntryId;
+    if (!id) return;
+    var vals = getMobileEditSheetValues();
+    var detail = String(vals.title || "").trim();
+    return showAppConfirm("この登録を削除しますか？", {
+      detail: detail,
+      detailAsChip: true,
+      okLabel: "削除する",
+      danger: true,
+    }).then(function (ok) {
+      if (!ok) return;
+      return db.deleteEntry(state.idb, id).then(function () {
+        removeEntryFromSearchSnapshot(id);
+        closeMobileEditSheet();
+        toast("削除しました。");
+        return renderTable();
+      });
+    });
   }
 
   function onToggleMemo(tr, btn) {
@@ -932,6 +1094,11 @@
       var tr = t.closest("tr");
       if (!tr || !body.contains(tr)) return;
       if (tr.classList.contains("memo-row")) return;
+
+      if (isPhoneSearchSheetMode() && !tr.getAttribute("data-draft")) {
+        openMobileEditSheetForRow(tr);
+        return;
+      }
 
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
@@ -1465,6 +1632,29 @@
     $("#btn-license-activate").addEventListener("click", function () {
       onActivateLicense();
     });
+    var mobileEditOverlay = $("#mobile-edit-sheet-overlay");
+    if (mobileEditOverlay) {
+      mobileEditOverlay.addEventListener("click", function (ev) {
+        if (ev.target === mobileEditOverlay) {
+          closeMobileEditSheet();
+        }
+      });
+    }
+    if ($("#mobile-edit-cancel")) {
+      $("#mobile-edit-cancel").addEventListener("click", function () {
+        closeMobileEditSheet();
+      });
+    }
+    if ($("#mobile-edit-save")) {
+      $("#mobile-edit-save").addEventListener("click", function () {
+        saveMobileEditSheet();
+      });
+    }
+    if ($("#mobile-edit-delete")) {
+      $("#mobile-edit-delete").addEventListener("click", function () {
+        deleteMobileEditSheet();
+      });
+    }
     var settingsToggle = $("#btn-settings-toggle");
     if (settingsToggle) {
       settingsToggle.addEventListener("click", function () {
@@ -1491,6 +1681,9 @@
     var layoutResizeTimer = null;
     function onViewportLayoutChange() {
       updatePlanSummaryLine();
+      if (!isPhoneViewport()) {
+        closeMobileEditSheet();
+      }
       if (syncTableStructure() && state.idb) {
         renderTable().catch(function () {});
       }

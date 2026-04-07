@@ -516,6 +516,10 @@ th {
   text-align: center;
 }
 
+.entries-table tr.row-tappable {
+  cursor: pointer;
+}
+
 @media (prefers-color-scheme: dark) {
   th {
     background: rgba(255, 255, 255, 0.04);
@@ -545,6 +549,24 @@ td input.inline {
 
 .entries-table td.col-title input.inline {
   font-size: var(--form-input-large);
+}
+
+.title-display-readonly {
+  width: 100%;
+  min-width: 0;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: inherit;
+  font-size: var(--form-input-large);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .title-cell {
@@ -592,6 +614,21 @@ td.col-booknum {
   font-variant-numeric: tabular-nums;
   display: block;
   margin: 0;
+}
+
+.readonly-box {
+  display: block;
+  width: 3rem;
+  max-width: 3rem;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--form-input-large);
+  font-variant-numeric: tabular-nums;
+  padding: 0.25rem 0.1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: inherit;
 }
 
 td.col-title {
@@ -1137,6 +1174,102 @@ button.sm {
   color: var(--fg);
 }
 
+.mobile-edit-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 2050;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.mobile-edit-sheet-overlay[hidden] {
+  display: none;
+}
+
+.mobile-edit-sheet {
+  width: min(100%, 32rem);
+  background: var(--card);
+  color: var(--fg);
+  border-radius: 18px 18px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.22);
+  padding: 0.7rem 0.95rem calc(0.95rem + env(safe-area-inset-bottom));
+  max-height: min(88vh, 42rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-edit-sheet-handle {
+  width: 3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--border);
+  margin: 0 auto 0.65rem;
+}
+
+.mobile-edit-sheet-title {
+  margin: 0 0 0.7rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.mobile-edit-sheet-body {
+  overflow-y: auto;
+}
+
+.mobile-edit-field {
+  display: block;
+  margin-bottom: 0.7rem;
+}
+
+.mobile-edit-field > span {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.mobile-edit-field input,
+.mobile-edit-field textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.mobile-edit-field textarea {
+  resize: vertical;
+}
+
+.mobile-edit-bookpage-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.mobile-edit-bookpage-row .mobile-edit-field {
+  flex: 1 1 0;
+}
+
+.mobile-edit-sheet-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.mobile-edit-sheet-actions .app-dialog-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 @media (max-width: 639px) {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
@@ -1283,6 +1416,13 @@ button.sm {
     padding: 0.15rem 0.1rem;
   }
 
+  .readonly-box {
+    width: 2rem;
+    max-width: 2rem;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.1rem;
+  }
+
   /* 冊目・頁ヘッダー: 小さめ */
   .entries-table th.th-booknum {
     font-size: 0.72rem;
@@ -1315,6 +1455,11 @@ button.sm {
     gap: 0.2rem;
   }
 
+  .title-display-readonly {
+    font-size: 0.95rem;
+    padding: 0.28rem 0.32rem;
+  }
+
   .title-cell .btn-memo {
     min-width: 3.8rem;
     padding: 0.2rem 0.3rem;
@@ -1328,5 +1473,12 @@ button.sm {
   }
   .actions button {
     margin: 0.1rem;
+  }
+
+  .mobile-edit-sheet {
+    width: 100%;
+    max-height: 90vh;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
   }
 }
