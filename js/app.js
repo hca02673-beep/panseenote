@@ -696,10 +696,15 @@
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
     var saveLabel = options.saveLabel || "登録";
     var rowClass = phoneSheetRow ? ' class="row-tappable"' : "";
+    var memoIndicatorHtml =
+      '<span class="memo-indicator' + (hasMemo ? "" : " is-hidden") + '">メモ</span>';
 
     var titleInner = phoneSheetRow
-      ? '<div class="title-display-readonly" title="' + titleEsc + '">' +
-          escapeHtml(entry.title || "") +
+      ? '<div class="title-display-row">' +
+          '<div class="title-display-readonly" title="' + titleEsc + '">' +
+            escapeHtml(entry.title || "") +
+          "</div>" +
+          memoIndicatorHtml +
         "</div>" +
         '<input type="hidden" data-field="title" value="' + titleEsc + '" />'
       : '<div class="title-cell">' +
@@ -708,6 +713,7 @@
           '" data-field="title" value="' +
           titleEsc +
           '" title="' + titleEsc + '" />' +
+          memoIndicatorHtml +
           '<button type="button" class="sm row-memo btn-memo' +
           (hasMemo ? " has-memo" : "") +
           (memoInitiallyOpen ? " memo-active" : "") +

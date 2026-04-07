@@ -569,6 +569,17 @@ td input.inline {
   word-break: break-word;
 }
 
+.title-display-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.title-display-row .title-display-readonly {
+  flex: 1 1 auto;
+}
+
 .title-cell {
   display: flex;
   align-items: center;
@@ -580,6 +591,26 @@ td input.inline {
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
+}
+
+.memo-indicator {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.35rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #dbeafe;
+  color: #3b82f6;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.memo-indicator.is-hidden {
+  visibility: hidden;
 }
 
 .title-cell .row-memo {
@@ -1484,6 +1515,16 @@ button.sm {
   .title-display-readonly {
     font-size: 0.95rem;
     padding: 0.28rem 0.32rem;
+  }
+
+  .title-display-row {
+    gap: 0.2rem;
+  }
+
+  .memo-indicator {
+    min-width: 2.1rem;
+    padding: 0.08rem 0.28rem;
+    font-size: 0.66rem;
   }
 
   .title-cell .btn-memo {
