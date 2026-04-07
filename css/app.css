@@ -1521,10 +1521,15 @@ button.sm {
     gap: 0.2rem;
   }
 
-  .memo-indicator {
-    min-width: 2.1rem;
-    padding: 0.08rem 0.28rem;
-    font-size: 0.66rem;
+  table.entries-table.phone-sheet-mode .memo-indicator {
+    min-width: 0.9rem;
+    padding: 0.12rem 0.08rem;
+    font-size: 0.58rem;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: -0.05em;
+    align-self: stretch;
   }
 
   .title-cell .btn-memo {
