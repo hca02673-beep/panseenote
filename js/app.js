@@ -709,11 +709,11 @@
         "</div>" +
         '<input type="hidden" data-field="title" value="' + titleEsc + '" />'
       : '<div class="title-cell">' +
-          '<input class="inline" type="text" maxlength="' +
+          '<textarea class="inline desktop-title-textarea" rows="1" maxlength="' +
           C.MAX_TITLE_LENGTH +
-          '" data-field="title" value="' +
-          titleEsc +
-          '" title="' + titleEsc + '" />' +
+          '" data-field="title" title="' + titleEsc + '">' +
+          escapeHtml(entry.title || "") +
+          "</textarea>" +
           (showMemoButton
             ? '<button type="button" class="sm row-memo btn-memo' +
               (hasMemo ? " has-memo" : "") +
@@ -971,6 +971,7 @@
           }
         }
         wireTableHandlers();
+        bindDesktopTitleTextareas();
         bindExpandedMemoRows();
         restoreOpenMemoRows();
         return refreshCount();
@@ -989,6 +990,7 @@
 
       renderSearchMeta(res);
       wireTableHandlers();
+      bindDesktopTitleTextareas();
       bindExpandedMemoRows();
       restoreOpenMemoRows();
       return refreshCount();
@@ -1008,6 +1010,36 @@
       hiddenMemoInput.value = ta.value;
       ta.title = ta.value;
     };
+  }
+
+  function fitDesktopTitleTextarea(ta) {
+    if (!ta) return;
+    ta.style.height = "auto";
+    var cs = window.getComputedStyle(ta);
+    var lineHeight = parseFloat(cs.lineHeight) || 20;
+    var chrome =
+      (parseFloat(cs.paddingTop) || 0) +
+      (parseFloat(cs.paddingBottom) || 0) +
+      (parseFloat(cs.borderTopWidth) || 0) +
+      (parseFloat(cs.borderBottomWidth) || 0);
+    var maxHeight = lineHeight * 2 + chrome;
+    ta.style.height = Math.min(ta.scrollHeight, maxHeight) + "px";
+    ta.style.overflowY = "hidden";
+  }
+
+  function bindDesktopTitleTextareas() {
+    var body = $("#entries-body");
+    if (!body) return;
+    var titleAreas = body.querySelectorAll("textarea.desktop-title-textarea[data-field='title']");
+    for (var i = 0; i < titleAreas.length; i++) {
+      (function (ta) {
+        fitDesktopTitleTextarea(ta);
+        ta.oninput = function () {
+          ta.title = ta.value;
+          fitDesktopTitleTextarea(ta);
+        };
+      })(titleAreas[i]);
+    }
   }
 
   function bindExpandedMemoRows() {

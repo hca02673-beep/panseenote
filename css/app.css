@@ -547,7 +547,23 @@ td input.inline {
   color: inherit;
 }
 
+td textarea.inline {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: inherit;
+  box-sizing: border-box;
+}
+
 .entries-table td.col-title input.inline {
+  font-size: var(--form-input-large);
+}
+
+.entries-table td.col-title textarea.inline {
   font-size: var(--form-input-large);
 }
 
@@ -582,15 +598,21 @@ td input.inline {
 
 .title-cell {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35rem;
   min-width: 0;
 }
 
-.title-cell input.inline {
+.title-cell input.inline,
+.title-cell textarea.inline {
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
+}
+
+.title-cell textarea.desktop-title-textarea {
+  line-height: 1.35;
+  resize: none;
 }
 
 .memo-indicator {
