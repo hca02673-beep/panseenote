@@ -994,15 +994,6 @@
     });
   }
 
-  function updateMemoBtnColor(btn, hasContent) {
-    if (!btn) return;
-    if (hasContent) {
-      btn.classList.add("has-memo");
-    } else {
-      btn.classList.remove("has-memo");
-    }
-  }
-
   /** メモ欄展開状態に応じたボタン表記（閉: ▼メモ / 開: ▲メモ） */
   function setMemoBtnLabel(btn, expanded) {
     if (!btn) return;
@@ -1015,15 +1006,6 @@
     ta.oninput = function () {
       hiddenMemoInput.value = ta.value;
       ta.title = ta.value;
-      // メモボタンの背景色をリアルタイムで更新
-      var tr = ta.closest("tr.memo-row");
-      if (tr) {
-        var dataTr = tr.previousElementSibling;
-        if (dataTr) {
-          var btn = dataTr.querySelector("button.row-memo");
-          updateMemoBtnColor(btn, ta.value.trim() !== "");
-        }
-      }
     };
   }
 
