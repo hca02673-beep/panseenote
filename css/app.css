@@ -1341,6 +1341,10 @@ button.sm {
   border-radius: 18px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   padding: 0.8rem 0.8rem 0.9rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .mobile-inline-editor .mobile-edit-field {
@@ -1370,9 +1374,12 @@ button.sm {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  width: 100%;
+  max-width: 100%;
 }
 
 table.entries-table.voice-register-mobile-mode {
+  display: block;
   width: 100%;
   min-width: 0;
   border: none;
@@ -1390,8 +1397,10 @@ table.entries-table.voice-register-mobile-mode tr,
 table.entries-table.voice-register-mobile-mode td {
   display: block;
   width: 100%;
+  max-width: 100%;
   border: none;
   background: transparent;
+  box-sizing: border-box;
 }
 
 table.entries-table.voice-register-mobile-mode tbody tr:nth-child(even) {
@@ -1580,24 +1589,24 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   .table-wrap                      { overflow-x: scroll; }
 
   /* スマホの最小レイアウト幅 */
-  table.entries-table              { width: 26rem; min-width: 26rem; }
+  table.entries-table:not(.voice-register-mobile-mode) { width: 26rem; min-width: 26rem; }
 
-  .entries-table col.col-title,
-  td.col-title                     { min-width: 15rem; }
+  .entries-table:not(.voice-register-mobile-mode) col.col-title,
+  table.entries-table:not(.voice-register-mobile-mode) td.col-title { min-width: 15rem; }
 
-  .table-wrap.phone-sheet-mode     { overflow-x: auto; }
+  .table-wrap.phone-sheet-mode:not(.voice-register-mobile-mode) { overflow-x: auto; }
 
-  table.entries-table.phone-sheet-mode {
+  table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) {
     width: 21.5rem;
     min-width: 21.5rem;
   }
 
-  table.entries-table.phone-sheet-mode col.col-title,
-  table.entries-table.phone-sheet-mode td.col-title {
+  table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) col.col-title,
+  table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) td.col-title {
     min-width: 10.5rem;
   }
 
-  table.entries-table.phone-sheet-mode .title-display-readonly {
+  table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) .title-display-readonly {
     font-size: 0.88rem;
   }
 

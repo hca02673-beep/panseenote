@@ -685,6 +685,7 @@
     options = options || {};
     var compactTable = state.isCompactTable || isCompactTableViewport();
     var phoneSheetRow = !!options.phoneSheetRow;
+    var showMemoButton = options.showMemoButton !== false;
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
     var titleEsc = escapeAttr(entry.title || "");
@@ -713,10 +714,12 @@
           '" data-field="title" value="' +
           titleEsc +
           '" title="' + titleEsc + '" />' +
-          '<button type="button" class="sm row-memo btn-memo' +
-          (hasMemo ? " has-memo" : "") +
-          (memoInitiallyOpen ? " memo-active" : "") +
-          '">' + (memoInitiallyOpen ? "▲メモ" : "▼メモ") + "</button>" +
+          (showMemoButton
+            ? '<button type="button" class="sm row-memo btn-memo' +
+              (hasMemo ? " has-memo" : "") +
+              (memoInitiallyOpen ? " memo-active" : "") +
+              '">' + (memoInitiallyOpen ? "▲メモ" : "▼メモ") + "</button>"
+            : "") +
           '<input type="hidden" data-field="memo" value="' + memoEsc + '" />' +
         "</div>";
 
@@ -937,7 +940,7 @@
                     createdAt: "（未保存）",
                   },
                   true,
-                  { memoInitiallyOpen: true, saveLabel: "登録" }
+                  { memoInitiallyOpen: true, saveLabel: "登録", showMemoButton: false }
                 )
           );
         } else if (state.voicePreviewEntry) {
@@ -951,6 +954,7 @@
               : rowHtml(state.voicePreviewEntry, false, {
                   memoInitiallyOpen: true,
                   saveLabel: "修正",
+                  showMemoButton: false,
                 })
           );
         }
