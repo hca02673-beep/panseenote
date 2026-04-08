@@ -1364,6 +1364,48 @@ button.sm {
   margin-top: 0.85rem;
 }
 
+.table-wrap.voice-register-mobile-mode {
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+table.entries-table.voice-register-mobile-mode {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  table-layout: auto;
+  background: transparent;
+}
+
+table.entries-table.voice-register-mobile-mode colgroup,
+table.entries-table.voice-register-mobile-mode thead {
+  display: none;
+}
+
+table.entries-table.voice-register-mobile-mode tbody,
+table.entries-table.voice-register-mobile-mode tr,
+table.entries-table.voice-register-mobile-mode td {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+
+table.entries-table.voice-register-mobile-mode tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+table.entries-table.voice-register-mobile-mode .mobile-inline-editor-row {
+  margin: 0;
+}
+
+table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
+  padding: 0;
+}
+
 @media (max-width: 639px) {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
@@ -1418,6 +1460,10 @@ button.sm {
 
   .mobile-inline-editor {
     padding: 0.75rem 0.7rem 0.85rem;
+  }
+
+  .table-wrap.voice-register-mobile-mode {
+    margin-top: 0.2rem;
   }
 }
 

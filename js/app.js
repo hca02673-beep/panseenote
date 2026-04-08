@@ -893,7 +893,20 @@
       closeSettingsIfOpen();
       rows = sortEntries(rows);
       var body = $("#entries-body");
+      var tableEl = document.querySelector("table.entries-table");
+      var wrapEl = document.querySelector(".table-wrap");
+      var phoneSheetMode = isPhoneSearchSheetMode();
+      var phoneVoiceRegisterMode = state.voiceRegisterMode && isPhoneViewport();
       body.innerHTML = "";
+
+      if (tableEl) {
+        tableEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
+        tableEl.classList.toggle("voice-register-mobile-mode", phoneVoiceRegisterMode);
+      }
+      if (wrapEl) {
+        wrapEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
+        wrapEl.classList.toggle("voice-register-mobile-mode", phoneVoiceRegisterMode);
+      }
 
       if (state.voiceRegisterMode) {
         var phoneVoiceEditorMode = isPhoneSearchSheetMode();
@@ -961,11 +974,6 @@
       var res = options.refreshSearchResults
         ? updateSearchSnapshotFromRows(rows)
         : getSearchSnapshotOrCompute(rows);
-      var phoneSheetMode = isPhoneSearchSheetMode();
-      var tableEl = document.querySelector("table.entries-table");
-      var wrapEl = document.querySelector(".table-wrap");
-      if (tableEl) tableEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
-      if (wrapEl) wrapEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
 
       for (var i = 0; i < res.matches.length; i++) {
         body.insertAdjacentHTML(
