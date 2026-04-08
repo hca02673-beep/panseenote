@@ -488,7 +488,7 @@
   }
 
   function isPhoneSearchSheetMode() {
-    return isPhoneViewport() && !state.voiceRegisterMode;
+    return isPhoneViewport();
   }
 
   function isCompactTableViewport() {
