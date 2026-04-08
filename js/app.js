@@ -772,7 +772,7 @@
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       (memoInitiallyOpen ? ">" : " hidden>") +
       '<td colspan="' + (compactTable ? "3" : "4") + '" class="memo-cell">' +
-      '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（保存ボタンで確定）...">' +
+      '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（登録ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
       "</td>" +
@@ -821,7 +821,7 @@
       "</div>" +
       '<label class="mobile-edit-field">' +
       "<span>メモ</span>" +
-      '<textarea rows="5" maxlength="500" data-field="memo">' +
+      '<textarea rows="5" maxlength="500" data-field="memo" placeholder="メモを入力（登録ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
       "</label>" +
@@ -1342,7 +1342,7 @@
       });
     }
 
-    var AUTO_PARSE_GUIDE_MSG = "「〇冊目〇ページ サービス名」で、〇冊目〇ページが自動登録できます。";
+    var AUTO_PARSE_GUIDE_MSG = "「〇冊目〇ページ サービス名」形式でも登録できます。";
 
     // 上限チェックを音声認識開始前に行う
     return refreshCount().then(function (n) {
@@ -1385,8 +1385,8 @@
           ? "冊目・ページ付きで解析しました。"
           : "冊目・ページは解析できなかったため、サービス名のみ登録しました。";
         var registerMetaMsg = parsed.ok
-          ? "音声から登録しました。手動で修正登録ができます。"
-          : "音声から登録しました。" + AUTO_PARSE_GUIDE_MSG + "手動で修正登録ができます。";
+          ? "音声登録完了。手動で修正登録ができます。"
+          : "音声登録完了。" + AUTO_PARSE_GUIDE_MSG + "手動で修正登録ができます。";
 
         pushVoiceRecentLog(text, parsed, "成功", registerNote);
         var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
