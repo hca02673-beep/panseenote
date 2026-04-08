@@ -713,7 +713,6 @@
           '" data-field="title" value="' +
           titleEsc +
           '" title="' + titleEsc + '" />' +
-          memoIndicatorHtml +
           '<button type="button" class="sm row-memo btn-memo' +
           (hasMemo ? " has-memo" : "") +
           (memoInitiallyOpen ? " memo-active" : "") +
