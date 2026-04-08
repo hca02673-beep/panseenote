@@ -797,6 +797,7 @@
       ">" +
       '<td colspan="' + colSpan + '" class="mobile-inline-editor-cell">' +
       '<div class="mobile-inline-editor">' +
+      '<h2 class="mobile-edit-sheet-title">音声データ編集</h2>' +
       '<label class="mobile-edit-field">' +
       "<span>サービス名</span>" +
       '<textarea class="mobile-inline-title" rows="2" maxlength="' +
