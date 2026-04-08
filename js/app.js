@@ -1318,7 +1318,7 @@
       state.voiceSearchMsg = "";
       state.openMemoIds = new Set();
       if (!text.trim()) {
-        state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索もご利用可能です";
+        state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索も利用可能です。";
       }
       $("#manual-search").value = text;
       state.searchQuery = text;
@@ -1348,7 +1348,7 @@
       });
     }
 
-    var PARSE_FAIL_MSG = "音声認識失敗（「○\"冊目\"○\"ページ\" サービス名」または「\"メモ\" サービス名」と発話）。手動で登録ができます。";
+    var AUTO_PARSE_GUIDE_MSG = "「〇冊目〇ページ サービス名」で、〇冊目〇ページが自動登録できます。";
 
     // 上限チェックを音声認識開始前に行う
     return refreshCount().then(function (n) {
@@ -1384,32 +1384,21 @@
         }
 
         var parsed = voice.parseRegisterTranscript(text);
+        var registeredTitle = (parsed.title || "").trim();
+        var registeredBook = parsed.ok ? parsed.book : "";
+        var registeredPage = parsed.ok ? parsed.page : "";
+        var registerNote = parsed.ok
+          ? "冊目・ページ付きで解析しました。"
+          : "冊目・ページは解析できなかったため、サービス名のみ登録しました。";
+        var registerMetaMsg = parsed.ok
+          ? "音声から登録しました。手動で修正登録ができます。"
+          : "音声から登録しました。" + AUTO_PARSE_GUIDE_MSG + "手動で修正登録ができます。";
 
-        // パース失敗
-        if (!parsed.ok) {
-          pushVoiceRecentLog(text, parsed, "解析失敗", PARSE_FAIL_MSG);
-          state.draft = { title: "", book: "", page: "", memo: "" };
-          setVoiceRegisterMeta(PARSE_FAIL_MSG);
-          return renderTable();
-        }
-
-        // サービス名なし（形式A・形式B共通）
-        if (!parsed.title.trim()) {
-          pushVoiceRecentLog(text, parsed, "サービス名不足", PARSE_FAIL_MSG);
-          state.draft = { title: "", book: parsed.book, page: parsed.page, memo: "" };
-          setVoiceRegisterMeta(PARSE_FAIL_MSG);
-          return renderTable();
-        }
-
-        // 登録成功
-        pushVoiceRecentLog(text, parsed, "成功", parsed.isMemo ? "音声メモとして解析しました。" : "冊目・ページ付きで解析しました。");
-        var entry = db.buildNewEntry(parsed.title, parsed.book, parsed.page, "");
+        pushVoiceRecentLog(text, parsed, "成功", registerNote);
+        var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
         return db.putEntry(state.idb, entry).then(function () {
           state.voicePreviewEntry = entry;
-          var msg = parsed.isMemo
-            ? "音声メモ（冊・ページは空欄）を登録しました。手動で修正登録ができます。"
-            : "音声から登録しました。手動で修正登録ができます。";
-          setVoiceRegisterMeta(msg);
+          setVoiceRegisterMeta(registerMetaMsg);
           toast("音声登録内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
@@ -1845,7 +1834,7 @@
   }
 
   /* ================================================================
-     直近音声認識ログ（開発者用）
+     直近音声登録認識ログ（開発者用）
      音声登録の生認識結果とパース結果を直近5件だけ保持する。
      ================================================================ */
 
@@ -1874,10 +1863,7 @@
 
   function summarizeVoiceParsed(parsed) {
     if (!parsed) return "解析前";
-    if (!parsed.ok) return "解析失敗";
-    if (parsed.isMemo) {
-      return "音声メモ / タイトル: " + (parsed.title || "（空欄）");
-    }
+    if (!parsed.ok) return "サービス名のみ / タイトル: " + (parsed.title || "（空欄）");
     return (
       "冊目: " + (parsed.book || "（空欄）") +
       " / ページ: " + (parsed.page || "（空欄）") +
@@ -1939,11 +1925,11 @@
       var hidden = body.hasAttribute("hidden");
       if (hidden) {
         body.removeAttribute("hidden");
-        toggleBtn.textContent = "▼ 直近音声認識ログ（開発者用）";
+        toggleBtn.textContent = "▼ 直近音声登録認識ログ（開発者用）";
         renderVoiceRecentLogs();
       } else {
         body.setAttribute("hidden", "");
-        toggleBtn.textContent = "▶ 直近音声認識ログ（開発者用）";
+        toggleBtn.textContent = "▶ 直近音声登録認識ログ（開発者用）";
       }
     });
 

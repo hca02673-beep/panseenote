@@ -222,7 +222,7 @@
 
   /**
    * 仕様形式A: （数字）冊目（数字）ページ（見出し）
-   * 仕様形式B: メモ（見出し）→ book/page は空欄
+   * それ以外は title に生の認識結果を入れて ok:false を返す。
    * @param {string} transcript
    * @returns {{ ok: boolean, book: string, page: string, title: string, isMemo: boolean }}
    */
@@ -231,28 +231,19 @@
     if (!raw) {
       return { ok: false, book: "", page: "", title: "", isMemo: false };
     }
-    // 形式B: 「メモ＋名前」
-    var memoRe = /^(?:メモ|めも)\s*(.+)$/;
-    var memoM = raw.match(memoRe);
-    if (memoM) {
-      var memoTitle = (memoM[1] || "").trim();
-      if (memoTitle) {
-        return { ok: true, book: "", page: "", title: memoTitle, isMemo: true };
-      }
-    }
     // 形式A: 「○冊目○ページ名前」
     // 旧版で効いていた「冊の」「さつめ」「ぺいじ」等の揺れも受ける。
     var re =
       /^(.+?)\s*(?:冊目|冊の|さつめ|さつの)\s*(?:の)?\s*(.+?)\s*(?:ページ|頁|ぺーじ|ぺいじ|ぺえじ)\s*(.*)$/;
     var m = raw.match(re);
     if (!m) {
-      return { ok: false, book: "", page: "", title: "", isMemo: false };
+      return { ok: false, book: "", page: "", title: raw, isMemo: false };
     }
     var book = parseLooseNumber(m[1]);
     var page = parseLooseNumber(m[2]);
     var title = (m[3] || "").trim();
-    if (!book || !page) {
-      return { ok: false, book: "", page: "", title: title, isMemo: false };
+    if (!book || !page || !title) {
+      return { ok: false, book: "", page: "", title: raw, isMemo: false };
     }
     return { ok: true, book: book, page: page, title: title, isMemo: false };
   }
