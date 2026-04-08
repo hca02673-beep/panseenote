@@ -5,6 +5,27 @@
   "use strict";
 
   var C = global.PANSEE_CONFIG;
+  var activeRecognition = null;
+  var activeSessionId = 0;
+  var activeCancel = null;
+
+  function makeRecognitionError(code) {
+    var err = new Error(code || "recognition_error");
+    err.code = code || "recognition_error";
+    return err;
+  }
+
+  function clearActiveRecognition(sessionId, rec) {
+    if (sessionId !== activeSessionId) return;
+    if (rec && activeRecognition !== rec) return;
+    activeRecognition = null;
+    activeCancel = null;
+  }
+
+  function cancelOngoingRecognition(reasonCode) {
+    if (!activeCancel) return;
+    activeCancel(reasonCode || "replaced");
+  }
 
   function getSpeechRecognitionCtor() {
     return (
@@ -54,15 +75,26 @@
     if (!Ctor) {
       return Promise.resolve("");
     }
-    return new Promise(function (resolve) {
+    cancelOngoingRecognition("replaced");
+    return new Promise(function (resolve, reject) {
       var rec = new Ctor();
+      var sessionId = activeSessionId + 1;
+      activeSessionId = sessionId;
+      activeRecognition = rec;
       rec.lang = C.SPEECH_LANG;
       rec.continuous = false;
       rec.interimResults = false;
       var settled = false;
+
+      function cleanup() {
+        global.clearTimeout(timer);
+        clearActiveRecognition(sessionId, rec);
+      }
+
       var timer = global.setTimeout(function () {
         if (settled) return;
         settled = true;
+        cleanup();
         try {
           rec.stop();
         } catch (e) {}
@@ -72,13 +104,31 @@
       function finish(text) {
         if (settled) return;
         settled = true;
-        global.clearTimeout(timer);
+        cleanup();
         resolve(text || "");
       }
 
+      activeCancel = function (reasonCode) {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        try {
+          rec.abort();
+        } catch (e) {}
+        reject(makeRecognitionError(reasonCode || "replaced"));
+      };
+
       var bestText = "";
 
-      rec.onerror = function () {
+      rec.onerror = function (ev) {
+        var code = ev && ev.error ? String(ev.error) : "error";
+        if (code === "aborted") {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          reject(makeRecognitionError("aborted"));
+          return;
+        }
         finish(bestText);
       };
       rec.onresult = function (ev) {
@@ -94,6 +144,7 @@
       try {
         rec.start();
       } catch (e) {
+        cleanup();
         finish("");
       }
     }).then(function (text) {

@@ -1323,6 +1323,11 @@
           }
         });
       });
+    }).catch(function (err) {
+      if (err && (err.code === "replaced" || err.code === "aborted")) {
+        return;
+      }
+      throw err;
     });
   }
 
@@ -1396,7 +1401,10 @@
           toast("音声登録内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
-      }).catch(function () {
+      }).catch(function (err) {
+        if (err && (err.code === "replaced" || err.code === "aborted")) {
+          return;
+        }
         state.draft = { title: "", book: "", page: "", memo: "" };
         state.voicePreviewEntry = null;
         setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
