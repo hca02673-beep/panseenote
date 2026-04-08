@@ -35,6 +35,7 @@
     searchSnapshot: null,
     homeSearchQuery: "",
     mobileEditEntryId: "",
+    mobileBackGuardReady: false,
   };
 
   var $ = function (sel) {
@@ -261,6 +262,45 @@
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable({ refreshSearchResults: true });
     });
+  }
+
+  function ensureMobileBackGuard() {
+    if (!isPhoneViewport() || state.mobileBackGuardReady) return;
+    if (!window.history || !window.history.replaceState || !window.history.pushState) return;
+    var baseState = Object.assign({}, window.history.state || {}, { panseeBackGuard: "base" });
+    var guardState = Object.assign({}, window.history.state || {}, { panseeBackGuard: "guard" });
+    window.history.replaceState(baseState, "", window.location.href);
+    window.history.pushState(guardState, "", window.location.href);
+    state.mobileBackGuardReady = true;
+  }
+
+  function rearmMobileBackGuard() {
+    if (!isPhoneViewport()) return;
+    if (!window.history || !window.history.pushState) return;
+    var guardState = Object.assign({}, window.history.state || {}, { panseeBackGuard: "guard" });
+    window.history.pushState(guardState, "", window.location.href);
+  }
+
+  function handleMobileBackNavigation() {
+    if (!isPhoneViewport()) return;
+    if ($("#mobile-edit-sheet-overlay") && !$("#mobile-edit-sheet-overlay").hasAttribute("hidden")) {
+      closeMobileEditSheet();
+      rearmMobileBackGuard();
+      return;
+    }
+    if ($("#settings-panel") && !$("#settings-panel").hasAttribute("hidden")) {
+      goHomeScreen().finally(function () {
+        rearmMobileBackGuard();
+      });
+      return;
+    }
+    if (state.voiceRegisterMode) {
+      goHomeScreen().finally(function () {
+        rearmMobileBackGuard();
+      });
+      return;
+    }
+    rearmMobileBackGuard();
   }
 
   function sortEntries(rows) {
@@ -1754,6 +1794,10 @@
   }
 
   function init() {
+    window.addEventListener("popstate", function () {
+      handleMobileBackNavigation();
+    });
+    ensureMobileBackGuard();
     $("#btn-export").addEventListener("click", function () {
       onExport();
     });
@@ -1833,6 +1877,8 @@
       updatePlanSummaryLine();
       if (!isPhoneViewport()) {
         closeMobileEditSheet();
+      } else {
+        ensureMobileBackGuard();
       }
       if (syncTableStructure() && state.idb) {
         renderTable().catch(function () {});
@@ -1894,6 +1940,7 @@
         if ($("#manual-search")) {
           $("#manual-search").value = state.searchQuery;
         }
+        ensureMobileBackGuard();
         updatePlanBar();
         syncTableStructure();
         return checkTerms().then(function () {
