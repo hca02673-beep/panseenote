@@ -483,6 +483,11 @@ table.entries-table {
   min-width: 9rem;
 }
 
+table.entries-table.voice-register-mode col.col-actions {
+  width: 12rem;
+  min-width: 12rem;
+}
+
 th,
 td {
   border: 1px solid var(--border);
@@ -718,6 +723,12 @@ td.readonly {
   max-width: 9rem;
   box-sizing: border-box;
   vertical-align: middle;
+}
+
+.entries-table td.col-actions.voice-register-actions {
+  width: 12rem;
+  min-width: 12rem;
+  max-width: 12rem;
 }
 
 /* メモボタン */

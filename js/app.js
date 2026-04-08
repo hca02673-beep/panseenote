@@ -33,6 +33,7 @@
     detachedActionsTh: null,
     /** 直近の明示検索で確定した表示中サブセット */
     searchSnapshot: null,
+    homeSearchQuery: "",
     mobileEditEntryId: "",
   };
 
@@ -230,6 +231,7 @@
   }
 
   function startVoiceRegisterSingleRowMode() {
+    state.homeSearchQuery = state.searchQuery;
     state.voiceRegisterMode = true;
     state.voicePreviewEntry = null;
     state.voiceRegisterMetaMsg = "";
@@ -241,6 +243,23 @@
       return refreshCount().then(function () {
         return renderTable();
       });
+    });
+  }
+
+  function goHomeScreen() {
+    closeSettingsIfOpen();
+    state.voiceRegisterMode = false;
+    state.voicePreviewEntry = null;
+    state.draft = null;
+    state.voiceRegisterMetaMsg = "";
+    state.voiceSearchMsg = "";
+    state.openMemoIds = new Set();
+    state.searchQuery = String(state.homeSearchQuery || "");
+    if ($("#manual-search")) {
+      $("#manual-search").value = state.searchQuery;
+    }
+    return saveSearchQueryToSettings(state.searchQuery).then(function () {
+      return renderTable({ refreshSearchResults: true });
     });
   }
 
@@ -686,6 +705,7 @@
     var compactTable = state.isCompactTable || isCompactTableViewport();
     var phoneSheetRow = !!options.phoneSheetRow;
     var showMemoButton = options.showMemoButton !== false;
+    var showExitButton = !!options.showExitButton;
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
     var titleEsc = escapeAttr(entry.title || "");
@@ -696,6 +716,8 @@
     var hasMemo = (entry.memo || "").trim() !== "";
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
     var saveLabel = options.saveLabel || "登録";
+    var deleteLabel = options.deleteLabel || "削除";
+    var exitLabel = options.exitLabel || "終了";
     var rowClass = phoneSheetRow ? ' class="row-tappable"' : "";
     var memoIndicatorHtml =
       '<span class="memo-indicator' + (hasMemo ? "" : " is-hidden") + '">メモ</span>';
@@ -755,11 +777,14 @@
           "</td>") +
       (phoneSheetRow
         ? ""
-        : '<td class="actions col-actions">' +
+        : '<td class="actions col-actions' + (showExitButton ? " voice-register-actions" : "") + '">' +
+          (showExitButton
+            ? '<button type="button" class="sm row-exit">' + escapeHtml(exitLabel) + "</button>"
+            : "") +
           '<button type="button" class="sm row-save btn-action-green">' + escapeHtml(saveLabel) + "</button>" +
           (isDraft
-            ? '<button type="button" class="sm row-delete btn-action-delete" disabled>削除</button>'
-            : '<button type="button" class="sm row-delete btn-action-delete">削除</button>') +
+            ? '<button type="button" class="sm row-delete btn-action-delete" disabled>' + escapeHtml(deleteLabel) + "</button>"
+            : '<button type="button" class="sm row-delete btn-action-delete">' + escapeHtml(deleteLabel) + "</button>") +
           "</td>") +
       "</tr>";
 
@@ -787,8 +812,9 @@
     var dr = isDraft ? ' data-draft="1"' : "";
     var compactTable = state.isCompactTable || isCompactTableViewport();
     var colSpan = isPhoneSearchSheetMode() ? 2 : (compactTable ? 3 : 4);
-    var saveLabel = options.saveLabel || (isDraft ? "手動登録" : "修正登録");
-    var deleteLabel = options.deleteLabel || "登録削除";
+    var saveLabel = options.saveLabel || "登録";
+    var deleteLabel = options.deleteLabel || "削除";
+    var exitLabel = options.exitLabel || "終了";
 
     return (
       '<tr class="mobile-inline-editor-row"' +
@@ -827,6 +853,9 @@
       "</textarea>" +
       "</label>" +
       '<div class="mobile-edit-sheet-actions mobile-inline-editor-actions">' +
+      '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-exit">' +
+      escapeHtml(exitLabel) +
+      "</button>" +
       '<button type="button" class="app-dialog-btn btn-action-green row-save">' +
       escapeHtml(saveLabel) +
       "</button>" +
@@ -901,15 +930,18 @@
       var wrapEl = document.querySelector(".table-wrap");
       var phoneSheetMode = isPhoneSearchSheetMode();
       var phoneVoiceRegisterMode = state.voiceRegisterMode && isPhoneViewport();
+      var desktopVoiceRegisterMode = state.voiceRegisterMode && !isPhoneViewport();
       body.innerHTML = "";
 
       if (tableEl) {
         tableEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
         tableEl.classList.toggle("voice-register-mobile-mode", phoneVoiceRegisterMode);
+        tableEl.classList.toggle("voice-register-mode", desktopVoiceRegisterMode);
       }
       if (wrapEl) {
         wrapEl.classList.toggle("phone-sheet-mode", phoneSheetMode);
         wrapEl.classList.toggle("voice-register-mobile-mode", phoneVoiceRegisterMode);
+        wrapEl.classList.toggle("voice-register-mode", desktopVoiceRegisterMode);
       }
 
       if (state.voiceRegisterMode) {
@@ -929,7 +961,7 @@
                     createdAt: "（未保存）",
                   },
                   true,
-                  { saveLabel: "手動登録", deleteLabel: "登録削除" }
+                  { saveLabel: "登録", deleteLabel: "削除", exitLabel: "終了" }
                 )
               : rowHtml(
                   {
@@ -941,7 +973,14 @@
                     createdAt: "（未保存）",
                   },
                   true,
-                  { memoInitiallyOpen: true, saveLabel: "登録", showMemoButton: false }
+                  {
+                    memoInitiallyOpen: true,
+                    saveLabel: "登録",
+                    deleteLabel: "削除",
+                    exitLabel: "終了",
+                    showMemoButton: false,
+                    showExitButton: true,
+                  }
                 )
           );
         } else if (state.voicePreviewEntry) {
@@ -949,13 +988,17 @@
             "afterbegin",
             phoneVoiceEditorMode
               ? mobileVoiceEditorRowHtml(state.voicePreviewEntry, false, {
-                  saveLabel: "修正登録",
-                  deleteLabel: "登録削除",
+                  saveLabel: "登録",
+                  deleteLabel: "削除",
+                  exitLabel: "終了",
                 })
               : rowHtml(state.voicePreviewEntry, false, {
                   memoInitiallyOpen: true,
-                  saveLabel: "修正",
+                  saveLabel: "登録",
+                  deleteLabel: "削除",
+                  exitLabel: "終了",
                   showMemoButton: false,
+                  showExitButton: true,
                 })
           );
         }
@@ -1204,6 +1247,8 @@
 
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
+      } else if (t.classList.contains("row-exit")) {
+        goHomeScreen();
       } else if (t.classList.contains("row-delete")) {
         onDeleteRow(tr);
       } else if (t.classList.contains("row-memo")) {
@@ -1317,6 +1362,7 @@
     state.voiceSearchMsg = "";
     state.openMemoIds = new Set();
     state.searchQuery = $("#manual-search").value || "";
+    state.homeSearchQuery = state.searchQuery;
     return saveSearchQueryToSettings(state.searchQuery).then(function () {
       return renderTable({ refreshSearchResults: true });
     });
@@ -1349,6 +1395,7 @@
       }
       $("#manual-search").value = text;
       state.searchQuery = text;
+      state.homeSearchQuery = state.searchQuery;
       return saveSearchQueryToSettings(state.searchQuery).then(function () {
         return renderTable({ refreshSearchResults: true }).then(function () {
           if (!text.trim()) {
@@ -1768,9 +1815,7 @@
         if (!panel) return;
         var isOpen = !panel.hasAttribute("hidden");
         if (isOpen) {
-          panel.setAttribute("hidden", "");
-          if (mainSection) mainSection.removeAttribute("hidden");
-          updateSettingsToggleUi(false);
+          goHomeScreen();
         } else {
           panel.removeAttribute("hidden");
           if (mainSection) mainSection.setAttribute("hidden", "");
@@ -1845,6 +1890,7 @@
           } catch (_) {}
         })();
         state.searchQuery = String((state.settings && state.settings.lastSearchQuery) || "");
+        state.homeSearchQuery = state.searchQuery;
         if ($("#manual-search")) {
           $("#manual-search").value = state.searchQuery;
         }
