@@ -778,6 +778,66 @@
     return mainTr + memoTr;
   }
 
+  function mobileVoiceEditorRowHtml(entry, isDraft, options) {
+    options = options || {};
+    var id = entry.id ? String(entry.id) : "";
+    var dr = isDraft ? ' data-draft="1"' : "";
+    var compactTable = state.isCompactTable || isCompactTableViewport();
+    var colSpan = isPhoneSearchSheetMode() ? 2 : (compactTable ? 3 : 4);
+    var saveLabel = options.saveLabel || (isDraft ? "手動登録" : "修正登録");
+    var deleteLabel = options.deleteLabel || "登録削除";
+
+    return (
+      '<tr class="mobile-inline-editor-row"' +
+      dr +
+      (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
+      ">" +
+      '<td colspan="' + colSpan + '" class="mobile-inline-editor-cell">' +
+      '<div class="mobile-inline-editor">' +
+      '<label class="mobile-edit-field">' +
+      "<span>サービス名</span>" +
+      '<textarea class="mobile-inline-title" rows="2" maxlength="' +
+      C.MAX_TITLE_LENGTH +
+      '" data-field="title">' +
+      escapeHtml(entry.title || "") +
+      "</textarea>" +
+      "</label>" +
+      '<div class="mobile-edit-bookpage-row">' +
+      '<label class="mobile-edit-field">' +
+      "<span>冊目</span>" +
+      '<input type="text" inputmode="numeric" maxlength="3" data-field="book" value="' +
+      escapeAttr(entry.book || "") +
+      '" />' +
+      "</label>" +
+      '<label class="mobile-edit-field">' +
+      "<span>ページ</span>" +
+      '<input type="text" inputmode="numeric" maxlength="3" data-field="page" value="' +
+      escapeAttr(entry.page || "") +
+      '" />' +
+      "</label>" +
+      "</div>" +
+      '<label class="mobile-edit-field">' +
+      "<span>メモ</span>" +
+      '<textarea rows="5" maxlength="500" data-field="memo">' +
+      escapeHtml(entry.memo || "") +
+      "</textarea>" +
+      "</label>" +
+      '<div class="mobile-edit-sheet-actions mobile-inline-editor-actions">' +
+      '<button type="button" class="app-dialog-btn btn-action-green row-save">' +
+      escapeHtml(saveLabel) +
+      "</button>" +
+      '<button type="button" class="app-dialog-btn app-dialog-btn-danger row-delete"' +
+      (isDraft ? " disabled" : "") +
+      ">" +
+      escapeHtml(deleteLabel) +
+      "</button>" +
+      "</div>" +
+      "</div>" +
+      "</td>" +
+      "</tr>"
+    );
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -791,7 +851,7 @@
   }
 
   function readRowFromTr(tr) {
-    var inputs = tr.querySelectorAll("input[data-field]");
+    var inputs = tr.querySelectorAll("input[data-field], textarea[data-field]");
     var o = { title: "", book: "", page: "", memo: "" };
     for (var i = 0; i < inputs.length; i++) {
       var inp = inputs[i];
@@ -836,30 +896,49 @@
       body.innerHTML = "";
 
       if (state.voiceRegisterMode) {
+        var phoneVoiceEditorMode = isPhoneSearchSheetMode();
         if (state.draft) {
           var dv = state.draft;
           body.insertAdjacentHTML(
             "afterbegin",
-            rowHtml(
-              {
-                id: dv.id || "",
-                title: dv.title,
-                book: dv.book,
-                page: dv.page,
-                memo: dv.memo || "",
-                createdAt: "（未保存）",
-              },
-              true,
-              { memoInitiallyOpen: true, saveLabel: "登録" }
-            )
+            phoneVoiceEditorMode
+              ? mobileVoiceEditorRowHtml(
+                  {
+                    id: dv.id || "",
+                    title: dv.title,
+                    book: dv.book,
+                    page: dv.page,
+                    memo: dv.memo || "",
+                    createdAt: "（未保存）",
+                  },
+                  true,
+                  { saveLabel: "手動登録", deleteLabel: "登録削除" }
+                )
+              : rowHtml(
+                  {
+                    id: dv.id || "",
+                    title: dv.title,
+                    book: dv.book,
+                    page: dv.page,
+                    memo: dv.memo || "",
+                    createdAt: "（未保存）",
+                  },
+                  true,
+                  { memoInitiallyOpen: true, saveLabel: "登録" }
+                )
           );
         } else if (state.voicePreviewEntry) {
           body.insertAdjacentHTML(
             "afterbegin",
-            rowHtml(state.voicePreviewEntry, false, {
-              memoInitiallyOpen: true,
-              saveLabel: "修正",
-            })
+            phoneVoiceEditorMode
+              ? mobileVoiceEditorRowHtml(state.voicePreviewEntry, false, {
+                  saveLabel: "修正登録",
+                  deleteLabel: "登録削除",
+                })
+              : rowHtml(state.voicePreviewEntry, false, {
+                  memoInitiallyOpen: true,
+                  saveLabel: "修正",
+                })
           );
         }
         var metaEl = $("#search-meta");
@@ -1096,17 +1175,18 @@
       if (!tr || !body.contains(tr)) return;
       if (tr.classList.contains("memo-row")) return;
 
-      if (isPhoneSearchSheetMode() && !tr.getAttribute("data-draft")) {
-        openMobileEditSheetForRow(tr);
-        return;
-      }
-
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
       } else if (t.classList.contains("row-delete")) {
         onDeleteRow(tr);
       } else if (t.classList.contains("row-memo")) {
         onToggleMemo(tr, t);
+      } else if (
+        isPhoneSearchSheetMode() &&
+        !tr.getAttribute("data-draft") &&
+        !tr.classList.contains("mobile-inline-editor-row")
+      ) {
+        openMobileEditSheetForRow(tr);
       }
     };
 

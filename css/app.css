@@ -1200,6 +1200,14 @@ button.sm {
   border-color: var(--btn-delete-red-hover);
 }
 
+.app-dialog-btn-danger:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app-dialog-btn-secondary {
   background: var(--card);
   color: var(--fg);
@@ -1311,6 +1319,51 @@ button.sm {
   min-width: 0;
 }
 
+#mobile-edit-save {
+  background: var(--btn-save-green);
+  border-color: var(--btn-save-green);
+  color: #fff;
+}
+
+#mobile-edit-save:hover {
+  background: var(--btn-save-green-hover);
+  border-color: var(--btn-save-green-hover);
+}
+
+.mobile-inline-editor-cell {
+  padding: 0.55rem 0.45rem;
+  background: var(--bg);
+}
+
+.mobile-inline-editor {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 0.8rem 0.8rem 0.9rem;
+}
+
+.mobile-inline-editor .mobile-edit-field {
+  margin-bottom: 0.8rem;
+}
+
+.mobile-inline-editor .mobile-edit-field:last-of-type {
+  margin-bottom: 0;
+}
+
+.mobile-inline-editor textarea,
+.mobile-inline-editor input {
+  background: var(--bg);
+}
+
+.mobile-inline-editor .mobile-inline-title {
+  min-height: 5.2rem;
+}
+
+.mobile-inline-editor-actions {
+  margin-top: 0.85rem;
+}
+
 @media (max-width: 639px) {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
@@ -1357,6 +1410,14 @@ button.sm {
     min-width: 5.6rem;
     padding: 0.52rem 0.75rem;
     font-size: 0.92rem;
+  }
+
+  .mobile-inline-editor-cell {
+    padding: 0.45rem 0.35rem;
+  }
+
+  .mobile-inline-editor {
+    padding: 0.75rem 0.7rem 0.85rem;
   }
 }
 
