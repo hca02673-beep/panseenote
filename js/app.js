@@ -305,10 +305,10 @@
 
   function sortEntries(rows) {
     return rows.slice().sort(function (a, b) {
-      var ua = String(a.updatedAt || a.createdAt || "");
-      var ub = String(b.updatedAt || b.createdAt || "");
-      if (ua === ub) return String(b.id).localeCompare(String(a.id));
-      return ub.localeCompare(ua);
+      var ca = String(a.createdAt || "");
+      var cb = String(b.createdAt || "");
+      if (ca === cb) return String(b.id).localeCompare(String(a.id));
+      return cb.localeCompare(ca);
     });
   }
 
@@ -984,6 +984,33 @@
     saveBtn.disabled = !isRowDirty(tr);
   }
 
+  function syncDesktopListRowAfterSave(tr, entry) {
+    if (!isDirtyTrackedDesktopListRow(tr) || !entry) return;
+    var vals = readRowFromTr(tr);
+    tr.setAttribute("data-initial-title", vals.title || "");
+    tr.setAttribute("data-initial-book", vals.book || "");
+    tr.setAttribute("data-initial-page", vals.page || "");
+    tr.setAttribute("data-initial-memo", vals.memo || "");
+    var memoBtn = tr.querySelector("button.row-memo");
+    if (memoBtn) {
+      memoBtn.classList.toggle("has-memo", String(vals.memo || "").trim() !== "");
+    }
+    updateSaveButtonStateForRow(tr);
+  }
+
+  function removeDesktopListRowFromDom(tr) {
+    if (!tr) return;
+    var rowId = tr.getAttribute("data-id") || "";
+    var memoTr = tr.nextElementSibling;
+    if (memoTr && memoTr.classList && memoTr.classList.contains("memo-row")) {
+      memoTr.remove();
+    }
+    tr.remove();
+    if (rowId) {
+      state.openMemoIds.delete(rowId);
+    }
+  }
+
   /** 設定パネル開閉に合わせてヘッダーボタンの文言・スタイルを同期する */
   function updateSettingsToggleUi(isPanelOpen) {
     var toggle = $("#btn-settings-toggle");
@@ -1411,7 +1438,7 @@
       }
       if (!prev) return;
       var next = db.patchEntry(prev, vals);
-        return db.putEntry(state.idb, next).then(function () {
+      return db.putEntry(state.idb, next).then(function () {
         // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
         // しないと renderTable が古い entry（memo空）で再描画してしまう
         if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
@@ -1419,6 +1446,10 @@
         }
         updateEntryInSearchSnapshot(next);
         toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        if (isDirtyTrackedDesktopListRow(tr)) {
+          syncDesktopListRowAfterSave(tr, next);
+          return;
+        }
         return renderTable();
       });
     });
@@ -1452,6 +1483,11 @@
       return db.deleteEntry(state.idb, id).then(function () {
         removeEntryFromSearchSnapshot(id);
         toast("削除しました。");
+        if (isDirtyTrackedDesktopListRow(tr)) {
+          removeDesktopListRowFromDom(tr);
+          renderSearchMeta(state.searchSnapshot || { total: 0, capped: false });
+          return refreshCount();
+        }
         return renderTable();
       });
     });
