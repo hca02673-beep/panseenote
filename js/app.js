@@ -746,6 +746,8 @@
     var phoneSheetRow = !!options.phoneSheetRow;
     var showMemoButton = options.showMemoButton !== false;
     var showExitButton = !!options.showExitButton;
+    var initialValues = options.initialValues || null;
+    var saveDisabled = !!options.saveDisabled;
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
     var titleEsc = escapeAttr(entry.title || "");
@@ -803,6 +805,10 @@
       rowClass +
       dr +
       (id ? ' data-id="' + escapeAttr(id) + '"' : "") +
+      (initialValues ? ' data-initial-title="' + escapeAttr(initialValues.title || "") + '"' : "") +
+      (initialValues ? ' data-initial-book="' + escapeAttr(initialValues.book || "") + '"' : "") +
+      (initialValues ? ' data-initial-page="' + escapeAttr(initialValues.page || "") + '"' : "") +
+      (initialValues ? ' data-initial-memo="' + escapeAttr(initialValues.memo || "") + '"' : "") +
       ">" +
       '<td class="col-title">' +
       titleInner +
@@ -821,7 +827,7 @@
           (showExitButton
             ? '<button type="button" class="sm row-exit">' + escapeHtml(exitLabel) + "</button>"
             : "") +
-          '<button type="button" class="sm row-save btn-action-green">' + escapeHtml(saveLabel) + "</button>" +
+          '<button type="button" class="sm row-save btn-action-green"' + (saveDisabled ? " disabled" : "") + ">" + escapeHtml(saveLabel) + "</button>" +
           (isDraft
             ? '<button type="button" class="sm row-delete btn-action-delete" disabled>' + escapeHtml(deleteLabel) + "</button>"
             : '<button type="button" class="sm row-delete btn-action-delete">' + escapeHtml(deleteLabel) + "</button>") +
@@ -934,6 +940,48 @@
       }
     }
     return o;
+  }
+
+  function getInitialRowValues(tr) {
+    if (!tr) return null;
+    return {
+      title: tr.getAttribute("data-initial-title") || "",
+      book: tr.getAttribute("data-initial-book") || "",
+      page: tr.getAttribute("data-initial-page") || "",
+      memo: tr.getAttribute("data-initial-memo") || "",
+    };
+  }
+
+  function isDirtyTrackedDesktopListRow(tr) {
+    return !!(
+      tr &&
+      tr.tagName === "TR" &&
+      !state.voiceRegisterMode &&
+      !isPhoneSearchSheetMode() &&
+      tr.hasAttribute("data-id") &&
+      tr.hasAttribute("data-initial-title") &&
+      !tr.classList.contains("memo-row") &&
+      !tr.classList.contains("mobile-inline-editor-row")
+    );
+  }
+
+  function isRowDirty(tr) {
+    if (!isDirtyTrackedDesktopListRow(tr)) return false;
+    var current = readRowFromTr(tr);
+    var initial = getInitialRowValues(tr);
+    return (
+      current.title !== initial.title ||
+      current.book !== initial.book ||
+      current.page !== initial.page ||
+      current.memo !== initial.memo
+    );
+  }
+
+  function updateSaveButtonStateForRow(tr) {
+    if (!isDirtyTrackedDesktopListRow(tr)) return;
+    var saveBtn = tr.querySelector("button.row-save");
+    if (!saveBtn) return;
+    saveBtn.disabled = !isRowDirty(tr);
   }
 
   /** 設定パネル開閉に合わせてヘッダーボタンの文言・スタイルを同期する */
@@ -1067,7 +1115,13 @@
       for (var i = 0; i < res.matches.length; i++) {
         body.insertAdjacentHTML(
           "beforeend",
-          rowHtml(res.matches[i], false, phoneSheetMode ? { phoneSheetRow: true } : undefined)
+          rowHtml(
+            res.matches[i],
+            false,
+            phoneSheetMode
+              ? { phoneSheetRow: true }
+              : { initialValues: res.matches[i], saveDisabled: true }
+          )
         );
       }
 
@@ -1302,10 +1356,25 @@
       }
     };
 
+    body.oninput = function (ev) {
+      var t = ev.target;
+      if (!(t instanceof HTMLElement)) return;
+      var eventTr = t.closest("tr");
+      if (!eventTr || !body.contains(eventTr)) return;
+      if (eventTr.classList.contains("memo-row")) {
+        updateSaveButtonStateForRow(eventTr.previousElementSibling);
+        return;
+      }
+      updateSaveButtonStateForRow(eventTr);
+    };
+
   }
 
   function onSaveRow(tr) {
     var draft = tr.getAttribute("data-draft") === "1";
+    if (!draft && !isRowDirty(tr) && isDirtyTrackedDesktopListRow(tr)) {
+      return Promise.resolve();
+    }
     var vals = readRowFromTr(tr);
     return showAppConfirm("編集内容を保存しますか？", {
       okLabel: "保存する",
