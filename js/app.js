@@ -1376,56 +1376,50 @@
       return Promise.resolve();
     }
     var vals = readRowFromTr(tr);
-    return showAppConfirm("編集内容を保存しますか？", {
-      okLabel: "保存する",
-    }).then(function (ok) {
-      if (!ok) return;
-
-      if (draft) {
-        return refreshCount().then(function (n) {
-          if (n >= Number(state.license.itemLimit)) {
-            return showAppAlert(
-              "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
-            ).then(function () {
-              setEntryLimitInlineWarning(
-                "登録上限（" + state.license.itemLimit + "件）に達しているため保存できません。"
-              );
-            });
-          }
-          var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
-          return db.putEntry(state.idb, entry).then(function () {
-            state.draft = null;
-            if (state.voiceRegisterMode) {
-              state.voicePreviewEntry = entry;
-            }
-            toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
-            return renderTable();
+    if (draft) {
+      return refreshCount().then(function (n) {
+        if (n >= Number(state.license.itemLimit)) {
+          return showAppAlert(
+            "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
+          ).then(function () {
+            setEntryLimitInlineWarning(
+              "登録上限（" + state.license.itemLimit + "件）に達しているため保存できません。"
+            );
           });
-        });
-      }
-
-      var id = tr.getAttribute("data-id");
-      if (!id) return;
-      return db.getAllEntries(state.idb).then(function (rows) {
-        var prev = null;
-        for (var i = 0; i < rows.length; i++) {
-          if (rows[i].id === id) {
-            prev = rows[i];
-            break;
-          }
         }
-        if (!prev) return;
-        var next = db.patchEntry(prev, vals);
-          return db.putEntry(state.idb, next).then(function () {
-          // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
-          // しないと renderTable が古い entry（memo空）で再描画してしまう
-          if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
-            state.voicePreviewEntry = next;
+        var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
+        return db.putEntry(state.idb, entry).then(function () {
+          state.draft = null;
+          if (state.voiceRegisterMode) {
+            state.voicePreviewEntry = entry;
           }
-            updateEntryInSearchSnapshot(next);
           toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
           return renderTable();
         });
+      });
+    }
+
+    var id = tr.getAttribute("data-id");
+    if (!id) return;
+    return db.getAllEntries(state.idb).then(function (rows) {
+      var prev = null;
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].id === id) {
+          prev = rows[i];
+          break;
+        }
+      }
+      if (!prev) return;
+      var next = db.patchEntry(prev, vals);
+        return db.putEntry(state.idb, next).then(function () {
+        // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
+        // しないと renderTable が古い entry（memo空）で再描画してしまう
+        if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
+          state.voicePreviewEntry = next;
+        }
+        updateEntryInSearchSnapshot(next);
+        toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        return renderTable();
       });
     });
   }
