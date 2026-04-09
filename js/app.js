@@ -1530,8 +1530,6 @@
       });
     }
 
-    var AUTO_PARSE_GUIDE_MSG = "「〇冊目〇ページ サービス名」形式でも登録できます。";
-
     // 上限チェックを音声認識開始前に行う
     return refreshCount().then(function (n) {
       var atLimit = n >= Number(state.license.itemLimit);
@@ -1569,12 +1567,12 @@
         var registeredTitle = (parsed.title || "").trim();
         var registeredBook = parsed.ok ? parsed.book : "";
         var registeredPage = parsed.ok ? parsed.page : "";
+        var registeredTitleLabel = registeredTitle || "（空欄）";
         var registerNote = parsed.ok
           ? "冊目・ページ付きで解析しました。"
           : "冊目・ページは解析できなかったため、サービス名のみ登録しました。";
-        var registerMetaMsg = parsed.ok
-          ? "音声登録完了。手動で修正登録ができます。"
-          : "音声登録完了。" + AUTO_PARSE_GUIDE_MSG + "手動で修正登録ができます。";
+        var registerMetaMsg =
+          "「" + registeredTitleLabel + "」が登録されました。音声登録ボタンで次の登録が出来ます。";
 
         pushVoiceRecentLog(text, parsed, "成功", registerNote);
         var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
