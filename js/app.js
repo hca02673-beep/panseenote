@@ -305,11 +305,20 @@
 
   function sortEntries(rows) {
     return rows.slice().sort(function (a, b) {
-      var ca = String(a.createdAt || "");
-      var cb = String(b.createdAt || "");
+      var ca = normalizeEntrySortTimestamp(a.createdAt);
+      var cb = normalizeEntrySortTimestamp(b.createdAt);
       if (ca === cb) return String(b.id).localeCompare(String(a.id));
       return cb.localeCompare(ca);
     });
+  }
+
+  function normalizeEntrySortTimestamp(value) {
+    var raw = String(value || "");
+    if (!raw) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return raw + "T00:00:00.000Z";
+    }
+    return raw;
   }
 
   function cloneSearchResult(res) {
@@ -397,6 +406,13 @@
     var d = new Date(iso);
     if (isNaN(d.getTime())) return String(iso);
     return d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+  }
+
+  function formatEntryCreatedAtDisplay(value) {
+    if (!value) return "—";
+    var raw = String(value);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    return formatIsoDisplay(raw);
   }
 
   function isUnauthenticatedTrial() {
@@ -754,7 +770,7 @@
     var bookEsc = escapeAttr(entry.book || "");
     var pageEsc = escapeAttr(entry.page || "");
     var memoEsc = escapeAttr(entry.memo || "");
-    var dateLabel = entry.createdAt || "—";
+    var dateLabel = formatEntryCreatedAtDisplay(entry.createdAt);
     var hasMemo = (entry.memo || "").trim() !== "";
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
     var saveLabel = options.saveLabel || "登録";

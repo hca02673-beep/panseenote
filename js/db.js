@@ -292,6 +292,10 @@
     });
   }
 
+  function nowIsoTimestamp() {
+    return new Date().toISOString();
+  }
+
   /**
    * @param {string} title
    * @param {string} book
@@ -303,7 +307,7 @@
     if (t.length > C.MAX_TITLE_LENGTH) {
       t = t.slice(0, C.MAX_TITLE_LENGTH);
     }
-    var today = new Date().toISOString().slice(0, 10);
+    var now = nowIsoTimestamp();
     var id =
       global.crypto && crypto.randomUUID
         ? crypto.randomUUID()
@@ -315,8 +319,8 @@
       book: book == null ? "" : String(book),
       page: page == null ? "" : String(page),
       memo: memo == null ? "" : String(memo),
-      createdAt: today,
-      updatedAt: today,
+      createdAt: now,
+      updatedAt: now,
     };
   }
 
@@ -333,7 +337,7 @@
     var book = patch.book !== undefined ? String(patch.book) : prev.book;
     var page = patch.page !== undefined ? String(patch.page) : prev.page;
     var memo = patch.memo !== undefined ? String(patch.memo) : (prev.memo || "");
-    var today = new Date().toISOString().slice(0, 10);
+    var now = nowIsoTimestamp();
     return {
       id: prev.id,
       title: title,
@@ -342,7 +346,7 @@
       page: page,
       memo: memo,
       createdAt: prev.createdAt,
-      updatedAt: today,
+      updatedAt: now,
     };
   }
 
