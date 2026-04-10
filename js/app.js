@@ -1172,7 +1172,6 @@
     return !!(
       tr &&
       tr.tagName === "TR" &&
-      !state.voiceRegisterMode &&
       !isPhoneSearchSheetMode() &&
       tr.hasAttribute("data-id") &&
       tr.hasAttribute("data-initial-title") &&
@@ -1309,6 +1308,8 @@
                     saveLabel: "登録",
                     deleteLabel: "削除",
                     exitLabel: "終了",
+                    initialValues: dv,
+                    saveDisabled: true,
                     showMemoButton: false,
                     showExitButton: true,
                   }
@@ -1328,6 +1329,8 @@
                   saveLabel: "登録",
                   deleteLabel: "削除",
                   exitLabel: "終了",
+                  initialValues: state.voicePreviewEntry,
+                  saveDisabled: true,
                   showMemoButton: false,
                   showExitButton: true,
                 })
@@ -1615,7 +1618,7 @@
 
   function onSaveRow(tr) {
     var draft = tr.getAttribute("data-draft") === "1";
-    if (!draft && !isRowDirty(tr) && isDirtyTrackedDesktopListRow(tr)) {
+    if (!isRowDirty(tr) && isDirtyTrackedDesktopListRow(tr)) {
       return Promise.resolve();
     }
     var vals = readRowFromTr(tr);
