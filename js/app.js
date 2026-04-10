@@ -411,7 +411,8 @@
   function formatEntryCreatedAtDisplay(value) {
     if (!value) return "—";
     var raw = String(value);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    var m = raw.match(/^\d{4}-\d{2}-\d{2}/);
+    if (m) return m[0];
     return formatIsoDisplay(raw);
   }
 
