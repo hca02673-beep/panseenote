@@ -36,6 +36,8 @@
     homeSearchQuery: "",
     mobileEditEntryId: "",
     mobileBackGuardReady: false,
+    exportBusy: false,
+    importBusy: false,
   };
 
   var $ = function (sel) {
@@ -96,6 +98,203 @@
     toast._t = window.setTimeout(function () {
       el.classList.remove("show");
     }, 3200);
+  }
+
+  function isAbortError(err) {
+    return !!(err && (err.name === "AbortError" || err.code === 20));
+  }
+
+  function setDataTransferBusyUi(mode, isBusy) {
+    if (mode === "export") state.exportBusy = !!isBusy;
+    if (mode === "import") state.importBusy = !!isBusy;
+    var disabled = !!(state.exportBusy || state.importBusy);
+    var exportBtn = $("#btn-export");
+    var importBtn = $("#btn-import-trigger");
+    if (exportBtn) exportBtn.disabled = disabled;
+    if (importBtn) importBtn.disabled = disabled;
+  }
+
+  function buildBackupFileName() {
+    return "panseenote-backup-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+  }
+
+  function buildBackupFilePayload() {
+    return Promise.all([
+      db.getAllEntries(state.idb),
+      db.getLicense(state.idb),
+    ]).then(function (pair) {
+      var rows = sortEntries(pair[0]);
+      var lic = pair[1];
+      var payload = {
+        app: C.APP_ID,
+        version: C.EXPORT_JSON_VERSION,
+        exportedAt: new Date().toISOString(),
+        planCode: lic.planCode,
+        itemLimit: lic.itemLimit,
+        items: rows.map(function (e) {
+          return {
+            title: e.title,
+            book: e.book,
+            page: e.page,
+            memo: e.memo || "",
+            createdAt: e.createdAt,
+            updatedAt: e.updatedAt,
+          };
+        }),
+      };
+      return {
+        blob: new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        }),
+        name: buildBackupFileName(),
+      };
+    });
+  }
+
+  function persistLastBackupAt() {
+    var iso = new Date().toISOString();
+    return db.updateSettings(state.idb, { lastBackupAt: iso }).then(function (s) {
+      state.settings = s;
+      updatePlanBar();
+      closeSettingsIfOpen();
+    });
+  }
+
+  function requestSaveFileHandle(name) {
+    return window.showSaveFilePicker({
+      suggestedName: name,
+      types: [
+        {
+          description: "JSON ファイル",
+          accept: {
+            "application/json": [".json"],
+          },
+        },
+      ],
+    });
+  }
+
+  function writeBackupToHandle(handle, blob) {
+    return handle.createWritable().then(function (writable) {
+      return writable.write(blob).then(function () {
+        return writable.close();
+      });
+    });
+  }
+
+  function canShareBackupFile(file) {
+    if (!navigator.share || !file || !navigator.canShare) return false;
+    try {
+      return navigator.canShare({ files: [file] });
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function shareBackupFile(file, name) {
+    return navigator.share({
+      title: name,
+      text: "パンセノートのバックアップファイルです。",
+      files: [file],
+    });
+  }
+
+  function triggerBackupDownload(blob, name) {
+    return new Promise(function (resolve) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(function () {
+        URL.revokeObjectURL(a.href);
+      }, 500);
+      resolve("download");
+    });
+  }
+
+  function exportBackupFile(blob, name) {
+    if (typeof window.showSaveFilePicker === "function") {
+      return saveBackupViaFilePicker(blob, name).then(function () {
+        return "saved";
+      });
+    }
+    var file = null;
+    try {
+      file = new File([blob], name, { type: "application/json" });
+    } catch (_) {
+      file = null;
+    }
+    if (canShareBackupFile(file)) {
+      return shareBackupFile(file, name).then(function () {
+        return "shared";
+      });
+    }
+    return triggerBackupDownload(blob, name);
+  }
+
+  function requestImportFileViaPicker() {
+    if (typeof window.showOpenFilePicker !== "function") {
+      return Promise.resolve(null);
+    }
+    return window.showOpenFilePicker({
+      multiple: false,
+      types: [
+        {
+          description: "JSON ファイル",
+          accept: {
+            "application/json": [".json"],
+          },
+        },
+      ],
+    }).then(function (handles) {
+      if (!handles || !handles[0]) return null;
+      return handles[0].getFile();
+    });
+  }
+
+  function requestImportFileViaInput() {
+    var input = $("#import-file");
+    if (!input) return Promise.resolve(null);
+    input.value = "";
+    return new Promise(function (resolve) {
+      var settled = false;
+      function cleanup() {
+        input.removeEventListener("change", onChange);
+        window.removeEventListener("focus", onFocus, true);
+      }
+      function finish(file) {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(file || null);
+      }
+      function onChange() {
+        window.setTimeout(function () {
+          finish(input.files && input.files[0] ? input.files[0] : null);
+        }, 0);
+      }
+      function onFocus() {
+        window.setTimeout(function () {
+          if (settled) return;
+          finish(input.files && input.files[0] ? input.files[0] : null);
+        }, 800);
+      }
+      input.addEventListener("change", onChange);
+      window.addEventListener("focus", onFocus, true);
+      input.click();
+    });
+  }
+
+  function requestImportFile() {
+    if (typeof window.showOpenFilePicker === "function") {
+      return requestImportFileViaPicker().catch(function (err) {
+        if (isAbortError(err)) return null;
+        throw err;
+      });
+    }
+    return requestImportFileViaInput();
   }
 
   function showAppDialog(options) {
@@ -1790,58 +1989,53 @@
   }
 
   function onExport() {
-    return Promise.all([
-      db.getAllEntries(state.idb),
-      db.getLicense(state.idb),
-    ]).then(function (pair) {
-      var rows = sortEntries(pair[0]);
-      var lic = pair[1];
-      var payload = {
-        app: C.APP_ID,
-        version: C.EXPORT_JSON_VERSION,
-        exportedAt: new Date().toISOString(),
-        planCode: lic.planCode,
-        itemLimit: lic.itemLimit,
-        items: rows.map(function (e) {
-          return {
-            title: e.title,
-            book: e.book,
-            page: e.page,
-            memo: e.memo || "",
-            createdAt: e.createdAt,
-            updatedAt: e.updatedAt,
-          };
-        }),
-      };
-      var blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
+    if (state.exportBusy || state.importBusy) return Promise.resolve();
+    setDataTransferBusyUi("export", true);
+    var saveHandlePromise = null;
+    if (typeof window.showSaveFilePicker === "function") {
+      saveHandlePromise = requestSaveFileHandle(buildBackupFileName());
+    }
+    return Promise.resolve(saveHandlePromise)
+      .then(function (saveHandle) {
+        return buildBackupFilePayload().then(function (pkg) {
+          if (saveHandle) {
+            return writeBackupToHandle(saveHandle, pkg.blob).then(function () {
+              return "saved";
+            });
+          }
+          return exportBackupFile(pkg.blob, pkg.name);
+        });
+      })
+      .then(function (mode) {
+        if (!mode) return;
+        return persistLastBackupAt().then(function () {
+          if (mode === "saved") {
+            toast("バックアップファイルを保存しました。");
+            return;
+          }
+          if (mode === "shared") {
+            toast("バックアップファイルを共有しました。");
+            return;
+          }
+          return showAppAlert(
+            "バックアップファイルのダウンロードを開始しました。保存先は端末・ブラウザ側で確認してください。"
+          );
+        });
+      })
+      .catch(function (err) {
+        if (isAbortError(err)) return;
+        console.error("Backup export failed:", err);
+        return showAppAlert("バックアップファイルの保存に失敗しました。");
+      })
+      .finally(function () {
+        setDataTransferBusyUi("export", false);
       });
-      var a = document.createElement("a");
-      var name =
-        "panseenote-backup-" +
-        new Date().toISOString().replace(/[:.]/g, "-") +
-        ".json";
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.setTimeout(function () {
-        URL.revokeObjectURL(a.href);
-      }, 500);
-
-      var iso = new Date().toISOString();
-      return db.updateSettings(state.idb, { lastBackupAt: iso }).then(function (s) {
-        state.settings = s;
-        updatePlanBar();
-        closeSettingsIfOpen();
-        toast("バックアップファイルを保存しました。");
-      });
-    });
   }
 
   function onImportFile(file) {
     if (!file) return Promise.resolve();
+    if (state.importBusy || state.exportBusy) return Promise.resolve();
+    setDataTransferBusyUi("import", true);
     return new Promise(function (resolve, reject) {
       var fr = new FileReader();
       fr.onload = function () {
@@ -1904,7 +2098,31 @@
       })
       .catch(function () {
         return showAppAlert("バックアップファイルの読み込みに失敗しました。");
+      })
+      .finally(function () {
+        setDataTransferBusyUi("import", false);
       });
+  }
+
+  function onImportRequest() {
+    if (state.importBusy || state.exportBusy) return Promise.resolve();
+    return showAppConfirm("バックアップファイルを読み出しますか？", {
+      detail:
+        "このあとファイル選択画面が開きます。キャンセルする場合は、この画面でキャンセルしてください。",
+      okLabel: "ファイルを選ぶ",
+      cancelLabel: "キャンセル",
+    }).then(function (ok) {
+      if (!ok) return;
+      return requestImportFile()
+        .then(function (file) {
+          if (!file) return;
+          return onImportFile(file);
+        })
+        .finally(function () {
+          var input = $("#import-file");
+          if (input) input.value = "";
+        });
+    });
   }
 
   function init() {
@@ -1916,13 +2134,7 @@
       onExport();
     });
     $("#btn-import-trigger").addEventListener("click", function () {
-      $("#import-file").click();
-    });
-    $("#import-file").addEventListener("change", function () {
-      var f = $("#import-file").files && $("#import-file").files[0];
-      onImportFile(f).finally(function () {
-        $("#import-file").value = "";
-      });
+      onImportRequest();
     });
     $("#btn-search").addEventListener("click", function () {
       runSearch();
