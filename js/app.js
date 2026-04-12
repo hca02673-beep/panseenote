@@ -2061,7 +2061,8 @@
         }
         return db.getLicense(state.idb).then(function (lic) {
           var items = data.items;
-          var limit = Number(lic.itemLimit);
+          var effectiveLicense = state.license || lic || {};
+          var limit = Number(effectiveLicense.itemLimit);
           if (isNaN(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
           var truncated = items.length > limit;
           var slice = items.slice(0, limit);
