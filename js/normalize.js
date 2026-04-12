@@ -8,6 +8,7 @@
   var HW_KATA = "｡｢｣､･ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝﾞﾟ";
   var FW_KATA =
     "。「」、・ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜";
+  var SEARCH_SEPARATOR_RE = /[\s\u3000・･/／\\＼\-_＿.．,，、]+/g;
 
   function halfKatakanaToFull(s) {
     var out = "";
@@ -38,7 +39,8 @@
       return ch.toUpperCase();
     });
     s = s.trim();
-    s = s.replace(/\s+/g, " ");
+    // 区切り文字の有無に左右されずヒットさせる
+    s = s.replace(SEARCH_SEPARATOR_RE, "");
     return s;
   }
 

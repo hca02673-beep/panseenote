@@ -215,6 +215,14 @@
     });
   }
 
+  function buildSearchNormalized(title, memo) {
+    return norm(
+      (title == null ? "" : String(title)) +
+      " " +
+      (memo == null ? "" : String(memo))
+    );
+  }
+
   /**
    * @param {IDBDatabase} db
    * @returns {Promise<object[]>}
@@ -307,6 +315,7 @@
     if (t.length > C.MAX_TITLE_LENGTH) {
       t = t.slice(0, C.MAX_TITLE_LENGTH);
     }
+    var m = memo == null ? "" : String(memo);
     var now = nowIsoTimestamp();
     var id =
       global.crypto && crypto.randomUUID
@@ -315,10 +324,10 @@
     return {
       id: id,
       title: t,
-      titleNormalized: norm(t),
+      searchNormalized: buildSearchNormalized(t, m),
       book: book == null ? "" : String(book),
       page: page == null ? "" : String(page),
-      memo: memo == null ? "" : String(memo),
+      memo: m,
       createdAt: now,
       updatedAt: now,
     };
@@ -341,7 +350,7 @@
     return {
       id: prev.id,
       title: title,
-      titleNormalized: norm(title),
+      searchNormalized: buildSearchNormalized(title, memo),
       book: book,
       page: page,
       memo: memo,

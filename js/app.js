@@ -581,8 +581,8 @@
     var all = [];
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
-      var tn = r.titleNormalized || norm(r.title);
-      if (tn.indexOf(qq) >= 0) all.push(r);
+      var sn = r.searchNormalized || ((r.titleNormalized || "") + (r.memoNormalized || ""));
+      if (sn.indexOf(qq) >= 0) all.push(r);
     }
     var total = all.length;
     var capped = total > C.MAX_SEARCH_DISPLAY;
@@ -2074,7 +2074,6 @@
                   var e = db.buildNewEntry(item.title, item.book, item.page, item.memo || "");
                   if (item.createdAt) e.createdAt = String(item.createdAt);
                   if (item.updatedAt) e.updatedAt = String(item.updatedAt);
-                  e.titleNormalized = norm(e.title);
                   return db.putEntry(state.idb, e);
                 });
               })(slice[i]);
