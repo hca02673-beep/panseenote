@@ -1748,8 +1748,21 @@
       state.voiceRegisterMetaMsg = "";
       state.voiceSearchMsg = "";
       state.openMemoIds = new Set();
-      if (!text.trim()) {
+        if (!text.trim()) {
+          pushVoiceRecentLog("", null, "無音/タイムアウト", "音声認識がタイムアウト（10秒）しました。", {
+            kind: "search",
+            kindLabel: "音声検索",
+            processedLabel: "正規化後",
+            processedSummary: "（空欄）",
+          });
         state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索も利用可能です。";
+        } else {
+          pushVoiceRecentLog(text, null, "成功", "音声検索語を検索欄へ反映しました。", {
+            kind: "search",
+            kindLabel: "音声検索",
+            processedLabel: "正規化後",
+            processedSummary: norm(text) || "（空欄）",
+          });
       }
       $("#manual-search").value = text;
       state.searchQuery = text;
@@ -2291,12 +2304,12 @@
   }
 
   /* ================================================================
-     直近音声登録認識ログ（開発者用）
-     音声登録の生認識結果とパース結果を直近5件だけ保持する。
+     直近音声認識ログ（確認用）
+     音声検索・音声登録の生認識結果を直近10件だけ保持する。
      ================================================================ */
 
   var VOICE_RECENT_LOGS_KEY = "pansee_recent_voice_logs";
-  var VOICE_RECENT_LOGS_LIMIT = 5;
+  var VOICE_RECENT_LOGS_LIMIT = 10;
 
   function loadVoiceRecentLogs() {
     try {
@@ -2328,12 +2341,20 @@
     );
   }
 
-  function pushVoiceRecentLog(rawText, parsed, status, note) {
+  function pushVoiceRecentLog(rawText, parsed, status, note, options) {
+    var opts = options || {};
     var logs = loadVoiceRecentLogs();
     logs.unshift({
       at: new Date().toISOString(),
+      kind: String(opts.kind || "register"),
+      kindLabel: String(opts.kindLabel || "音声登録"),
       rawText: String(rawText || ""),
+      processedLabel: String(opts.processedLabel || "解析結果"),
       parsedSummary: summarizeVoiceParsed(parsed),
+      processedSummary:
+        opts.processedSummary !== undefined && opts.processedSummary !== null
+          ? String(opts.processedSummary)
+          : summarizeVoiceParsed(parsed),
       status: String(status || ""),
       note: String(note || ""),
     });
@@ -2346,7 +2367,7 @@
     if (!listEl) return;
     var logs = loadVoiceRecentLogs();
     if (!logs.length) {
-      listEl.innerHTML = '<p class="voice-log-empty">まだ音声登録ログはありません。</p>';
+      listEl.innerHTML = '<p class="voice-log-empty">まだ音声認識ログはありません。</p>';
       return;
     }
     listEl.innerHTML = logs.map(function (log) {
@@ -2359,12 +2380,13 @@
         '<section class="voice-log-item">' +
           '<div class="voice-log-meta">' +
             '<span>' + escapeHtml(timeText) + '</span>' +
+            '<span>' + escapeHtml(log.kindLabel || (log.kind === "search" ? "音声検索" : "音声登録")) + "</span>" +
             '<span class="voice-log-status ' + statusClass + '">' + escapeHtml(log.status || "不明") + "</span>" +
           "</div>" +
           '<p class="voice-log-label">生の認識結果</p>' +
           '<p class="voice-log-text mono">' + escapeHtml(log.rawText || "（なし）") + "</p>" +
-          '<p class="voice-log-label">解析結果</p>' +
-          '<p class="voice-log-text">' + escapeHtml(log.parsedSummary || "（なし）") + "</p>" +
+          '<p class="voice-log-label">' + escapeHtml(log.processedLabel || "解析結果") + "</p>" +
+          '<p class="voice-log-text">' + escapeHtml(log.processedSummary || log.parsedSummary || "（なし）") + "</p>" +
           '<p class="voice-log-label">補足</p>' +
           '<p class="voice-log-text">' + escapeHtml(log.note || "（なし）") + "</p>" +
         "</section>"
@@ -2382,11 +2404,11 @@
       var hidden = body.hasAttribute("hidden");
       if (hidden) {
         body.removeAttribute("hidden");
-        toggleBtn.textContent = "▼ 直近音声登録認識ログ（開発者用）";
+        toggleBtn.textContent = "▼ 直近音声認識ログ（確認用）";
         renderVoiceRecentLogs();
       } else {
         body.setAttribute("hidden", "");
-        toggleBtn.textContent = "▶ 直近音声登録認識ログ（開発者用）";
+        toggleBtn.textContent = "▶ 直近音声認識ログ（確認用）";
       }
     });
 
