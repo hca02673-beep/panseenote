@@ -374,11 +374,7 @@
       overlay.removeAttribute("hidden");
 
       window.setTimeout(function () {
-        if (cancelable && options && options.danger) {
-          cancelBtn.focus();
-        } else {
-          okBtn.focus();
-        }
+        okBtn.focus();
       }, 0);
     });
   }
