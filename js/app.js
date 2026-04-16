@@ -44,6 +44,81 @@
     return document.querySelector(sel);
   };
 
+  function nowMs() {
+    if (typeof performance !== "undefined" && typeof performance.now === "function") {
+      return performance.now();
+    }
+    return Date.now();
+  }
+
+  function formatTraceDelta(ms) {
+    var n = Number(ms);
+    if (!isFinite(n)) return "0.0";
+    return (Math.round(n * 10) / 10).toFixed(1);
+  }
+
+  function createVoiceTimingTrace(kind) {
+    var baseMs = nowMs();
+    var marks = [{
+      name: "button_click",
+      atMs: baseMs,
+      extra: null,
+    }];
+    return {
+      kind: String(kind || ""),
+      baseMs: baseMs,
+      mark: function (name, extra) {
+        var entry = {
+          name: String(name || ""),
+          atMs: nowMs(),
+          extra: extra || null,
+        };
+        marks.push(entry);
+        try {
+          console.info(
+            "[voice-trace]",
+            this.kind || "unknown",
+            entry.name,
+            "+" + formatTraceDelta(entry.atMs - baseMs) + "ms",
+            entry.extra || ""
+          );
+        } catch (_) {}
+      },
+      snapshot: function () {
+        return marks.slice();
+      },
+    };
+  }
+
+  function buildVoiceTimingSummary(trace) {
+    if (!trace || typeof trace.snapshot !== "function") return "";
+    var marks = trace.snapshot();
+    if (!marks.length) return "";
+    return marks.map(function (mark) {
+      var label = String(mark.name || "");
+      var extra = "";
+      if (mark.extra && typeof mark.extra === "object") {
+        if (mark.extra.code) {
+          extra = " [" + String(mark.extra.code) + "]";
+        } else if (mark.extra.count != null) {
+          extra = " [count=" + String(mark.extra.count) + "]";
+        } else if (mark.extra.timeoutMs != null) {
+          extra = " [timeout=" + String(mark.extra.timeoutMs) + "ms]";
+        } else if (mark.extra.empty != null) {
+          extra = mark.extra.empty ? " [empty]" : " [text]";
+        }
+      }
+      return label + ": +" + formatTraceDelta(mark.atMs - trace.baseMs) + "ms" + extra;
+    }).join(" / ");
+  }
+
+  function appendVoiceTimingNote(note, trace) {
+    var base = String(note || "");
+    var timing = buildVoiceTimingSummary(trace);
+    if (!timing) return base;
+    return base ? (base + " 計測: " + timing) : ("計測: " + timing);
+  }
+
   /**
    * 規約モーダルを表示し、ユーザーが同意したら解決する Promise を返す。
    * @returns {Promise<void>}
@@ -1723,8 +1798,12 @@
   }
 
   function onVoiceSearch() {
+    var trace = createVoiceTimingTrace("search");
+    trace.mark("onVoiceSearch_enter");
     closeSettingsIfOpen();
+    trace.mark("closeSettingsIfOpen_done");
     if (!voice.isSpeechSupported()) {
+      trace.mark("speech_support_checked", { code: "unsupported" });
       state.voiceRegisterMode = false;
       state.voicePreviewEntry = null;
       state.draft = null;
@@ -1737,7 +1816,12 @@
         return renderTable({ refreshSearchResults: true });
       });
     }
-    return voice.recognizeOnce().then(function (text) {
+    trace.mark("speech_support_checked", { code: "supported" });
+    trace.mark("recognizeOnce_call");
+    return voice.recognizeOnce({ trace: trace }).then(function (text) {
+      trace.mark("onVoiceSearch_recognize_resolved", {
+        empty: !String(text || "").trim(),
+      });
       state.voiceRegisterMode = false;
       state.voicePreviewEntry = null;
       state.draft = null;
@@ -1745,7 +1829,7 @@
       state.voiceSearchMsg = "";
       state.openMemoIds = new Set();
         if (!text.trim()) {
-          pushVoiceRecentLog("", null, "無音/タイムアウト", "音声認識がタイムアウト（10秒）しました。", {
+          pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote("音声認識がタイムアウト（10秒）しました。", trace), {
             kind: "search",
             kindLabel: "音声検索",
             processedLabel: "正規化後",
@@ -1753,7 +1837,7 @@
           });
         state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索も利用可能です。";
         } else {
-          pushVoiceRecentLog(text, null, "成功", "音声検索語を検索欄へ反映しました。", {
+          pushVoiceRecentLog(text, null, "成功", appendVoiceTimingNote("音声検索語を検索欄へ反映しました。", trace), {
             kind: "search",
             kindLabel: "音声検索",
             processedLabel: "正規化後",
@@ -1771,6 +1855,9 @@
         });
       });
     }).catch(function (err) {
+      trace.mark("onVoiceSearch_recognize_rejected", {
+        code: err && err.code ? String(err.code) : "error",
+      });
       if (err && (err.code === "replaced" || err.code === "aborted")) {
         return;
       }
@@ -1779,7 +1866,10 @@
   }
 
   function onVoiceRegister() {
+    var trace = createVoiceTimingTrace("register");
+    trace.mark("onVoiceRegister_enter");
     if (!voice.isSpeechSupported()) {
+      trace.mark("speech_support_checked", { code: "unsupported" });
       state.voiceRegisterMode = true;
       state.voicePreviewEntry = null;
       state.voiceRegisterMetaMsg = "このブラウザでは音声認識を利用できません。手動での登録をご利用ください。";
@@ -1793,11 +1883,14 @@
         });
       });
     }
+    trace.mark("speech_support_checked", { code: "supported" });
 
     // 上限チェックを音声認識開始前に行う
     return refreshCount().then(function (n) {
+      trace.mark("refreshCount_done", { count: n });
       var atLimit = n >= Number(state.license.itemLimit);
       if (atLimit) {
+        trace.mark("register_limit_reached");
         state.voiceRegisterMode = false;
         state.voicePreviewEntry = null;
         state.draft = null;
@@ -1814,14 +1907,19 @@
 
       // 上限未達: 音声登録モード開始 → 認識
       return startVoiceRegisterSingleRowMode().then(function () {
-        return voice.recognizeOnce();
+        trace.mark("startVoiceRegisterSingleRowMode_done");
+        trace.mark("recognizeOnce_call");
+        return voice.recognizeOnce({ trace: trace });
       }).then(function (text) {
+        trace.mark("onVoiceRegister_recognize_resolved", {
+          empty: !String(text || "").trim(),
+        });
         state.draft = null;
         state.voicePreviewEntry = null;
 
         // タイムアウト／無音
         if (!text.trim()) {
-          pushVoiceRecentLog("", null, "無音/タイムアウト", "音声認識がタイムアウト（10秒）しました。");
+          pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote("音声認識がタイムアウト（10秒）しました。", trace));
           state.draft = { title: "", book: "", page: "", memo: "" };
           setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
           return renderTable();
@@ -1838,7 +1936,7 @@
         var registerMetaMsg =
           "「" + registeredTitleLabel + "」が登録されました。音声登録ボタンで次の登録が出来ます。";
 
-        pushVoiceRecentLog(text, parsed, "成功", registerNote);
+        pushVoiceRecentLog(text, parsed, "成功", appendVoiceTimingNote(registerNote, trace));
         var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
         return db.putEntry(state.idb, entry).then(function () {
           state.voicePreviewEntry = entry;
@@ -1847,6 +1945,9 @@
           return renderTable();
         });
       }).catch(function (err) {
+        trace.mark("onVoiceRegister_recognize_rejected", {
+          code: err && err.code ? String(err.code) : "error",
+        });
         if (err && (err.code === "replaced" || err.code === "aborted")) {
           return;
         }

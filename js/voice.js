@@ -9,6 +9,18 @@
   var activeSessionId = 0;
   var activeCancel = null;
 
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === "function") {
+      return global.performance.now();
+    }
+    return Date.now();
+  }
+
+  function traceMark(trace, name, extra) {
+    if (!trace || typeof trace.mark !== "function") return;
+    trace.mark(name, extra);
+  }
+
   function makeRecognitionError(code) {
     var err = new Error(code || "recognition_error");
     err.code = code || "recognition_error";
@@ -70,21 +82,29 @@
   /**
    * @returns {Promise<string>} 認識テキスト（空の場合あり）
    */
-  function recognizeOnce() {
+  function recognizeOnce(options) {
     var Ctor = getSpeechRecognitionCtor();
+    var opts = options || {};
+    var trace = opts.trace || null;
     if (!Ctor) {
+      traceMark(trace, "recognition_unsupported");
       return Promise.resolve("");
     }
+    traceMark(trace, "recognizeOnce_enter");
     cancelOngoingRecognition("replaced");
     return new Promise(function (resolve, reject) {
       var rec = new Ctor();
       var sessionId = activeSessionId + 1;
       activeSessionId = sessionId;
       activeRecognition = rec;
+      traceMark(trace, "recognition_instance_created", {
+        sessionId: sessionId,
+      });
       rec.lang = C.SPEECH_LANG;
       rec.continuous = false;
       rec.interimResults = false;
       var settled = false;
+      var sawFirstResult = false;
 
       function cleanup() {
         global.clearTimeout(timer);
@@ -93,6 +113,9 @@
 
       var timer = global.setTimeout(function () {
         if (settled) return;
+        traceMark(trace, "recognition_timeout", {
+          timeoutMs: C.SPEECH_TIMEOUT_MS,
+        });
         settled = true;
         cleanup();
         try {
@@ -122,6 +145,7 @@
 
       rec.onerror = function (ev) {
         var code = ev && ev.error ? String(ev.error) : "error";
+        traceMark(trace, "recognition_onerror", { code: code });
         if (code === "aborted") {
           if (settled) return;
           settled = true;
@@ -131,23 +155,40 @@
         }
         finish(bestText);
       };
+      rec.onstart = function () {
+        traceMark(trace, "recognition_onstart");
+      };
       rec.onresult = function (ev) {
         if (!ev.results || !ev.results.length) return;
         var last = ev.results[ev.results.length - 1];
         if (!last || !last[0]) return;
         bestText = last[0].transcript || "";
+        if (!sawFirstResult) {
+          sawFirstResult = true;
+          traceMark(trace, "recognition_first_result", {
+            elapsedMs: nowMs(),
+          });
+        }
       };
       rec.onend = function () {
+        traceMark(trace, "recognition_onend");
         finish(bestText);
       };
 
       try {
+        traceMark(trace, "recognition_start_requested");
         rec.start();
       } catch (e) {
+        traceMark(trace, "recognition_start_failed", {
+          message: e && e.message ? String(e.message) : "",
+        });
         cleanup();
         finish("");
       }
     }).then(function (text) {
+      traceMark(trace, "recognition_resolved", {
+        empty: !String(text || "").trim(),
+      });
       playEndBeep();
       return text;
     });
