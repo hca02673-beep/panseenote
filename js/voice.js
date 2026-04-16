@@ -54,7 +54,7 @@
   /**
    * 音声認識フェーズ終了の合図（成功失敗に依存しない）
    */
-  function playEndBeep() {
+  function playBeep(freq, durationSec, gainValue) {
     try {
       var AC = global.AudioContext || global.webkitAudioContext;
       if (!AC) return;
@@ -62,13 +62,13 @@
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.value = 0.08;
+      osc.frequency.value = Number(freq) || 880;
+      gain.gain.value = Number(gainValue) || 0.08;
       osc.connect(gain);
       gain.connect(ctx.destination);
       var t0 = ctx.currentTime;
       osc.start(t0);
-      osc.stop(t0 + 0.12);
+      osc.stop(t0 + (Number(durationSec) || 0.12));
       window.setTimeout(function () {
         try {
           ctx.close();
@@ -77,6 +77,20 @@
     } catch (e) {
       /* ビープ不可環境は無視 */
     }
+  }
+
+  /**
+   * 音声認識開始の合図。終了ビープより短く小さくする。
+   */
+  function playStartBeep() {
+    playBeep(1174, 0.035, 0.03);
+  }
+
+  /**
+   * 音声認識フェーズ終了の合図（成功失敗に依存しない）
+   */
+  function playEndBeep() {
+    playBeep(880, 0.12, 0.08);
   }
 
   /**
@@ -344,6 +358,7 @@
     isSpeechSupported: isSpeechSupported,
     recognizeOnce: recognizeOnce,
     parseRegisterTranscript: parseRegisterTranscript,
+    playStartBeep: playStartBeep,
     playEndBeep: playEndBeep,
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -501,19 +501,35 @@
     state.voiceRegisterMetaMsg = msg || "";
   }
 
-  function startVoiceRegisterSingleRowMode() {
-    state.homeSearchQuery = state.searchQuery;
+  function readDisplayedEntryCount() {
+    var ids = ["#plan-summary-line", "#plan-summary-line-sp"];
+    for (var i = 0; i < ids.length; i++) {
+      var el = $(ids[i]);
+      if (!el) continue;
+      var text = String(el.textContent || "").trim();
+      if (!text) continue;
+      return parseCountFromSummaryText(text);
+    }
+    return null;
+  }
+
+  function enterVoiceRegisterResultMode(options) {
+    options = options || {};
+    if (!state.voiceRegisterMode) {
+      state.homeSearchQuery = state.searchQuery;
+    }
     state.voiceRegisterMode = true;
-    state.voicePreviewEntry = null;
-    state.voiceRegisterMetaMsg = "";
+    state.voicePreviewEntry = options.previewEntry || null;
+    state.draft = options.draft || null;
+    state.voiceRegisterMetaMsg = options.metaMsg || "";
+    state.voiceSearchMsg = "";
+    state.openMemoIds = new Set();
     state.searchQuery = "";
     if ($("#manual-search")) {
       $("#manual-search").value = "";
     }
     return saveSearchQueryToSettings("").then(function () {
-      return refreshCount().then(function () {
-        return renderTable();
-      });
+      return renderTable();
     });
   }
 
@@ -1870,91 +1886,85 @@
     trace.mark("onVoiceRegister_enter");
     if (!voice.isSpeechSupported()) {
       trace.mark("speech_support_checked", { code: "unsupported" });
-      state.voiceRegisterMode = true;
-      state.voicePreviewEntry = null;
-      state.voiceRegisterMetaMsg = "このブラウザでは音声認識を利用できません。手動での登録をご利用ください。";
-      state.voiceSearchMsg = "";
-      state.searchQuery = "";
-      state.draft = { title: "", book: "", page: "", memo: "" };
-      if ($("#manual-search")) $("#manual-search").value = "";
-      return saveSearchQueryToSettings("").then(function () {
+      return enterVoiceRegisterResultMode({
+        draft: { title: "", book: "", page: "", memo: "" },
+        metaMsg: "このブラウザでは音声認識を利用できません。手動での登録をご利用ください。",
+      }).then(function () {
         return refreshCount().then(function () {
-          return renderTable();
+          trace.mark("unsupported_register_rendered");
         });
       });
     }
     trace.mark("speech_support_checked", { code: "supported" });
+    var displayedCount = readDisplayedEntryCount();
+    trace.mark("displayed_count_checked", { count: displayedCount });
+    if (
+      displayedCount != null &&
+      displayedCount >= Number(state.license.itemLimit)
+    ) {
+      trace.mark("register_limit_reached");
+      state.voiceRegisterMode = false;
+      state.voicePreviewEntry = null;
+      state.draft = null;
+      state.voiceRegisterMetaMsg = "";
+      state.searchQuery = "";
+      if ($("#manual-search")) $("#manual-search").value = "";
+      setEntryLimitInlineWarning(
+        "登録上限（" + state.license.itemLimit + "件）です。プラン変更で件数増加をご検討ください"
+      );
+      return saveSearchQueryToSettings("").then(function () {
+        return renderTable();
+      });
+    }
 
-    // 上限チェックを音声認識開始前に行う
-    return refreshCount().then(function (n) {
-      trace.mark("refreshCount_done", { count: n });
-      var atLimit = n >= Number(state.license.itemLimit);
-      if (atLimit) {
-        trace.mark("register_limit_reached");
-        state.voiceRegisterMode = false;
-        state.voicePreviewEntry = null;
-        state.draft = null;
-        state.voiceRegisterMetaMsg = "";
-        state.searchQuery = "";
-        if ($("#manual-search")) $("#manual-search").value = "";
-        setEntryLimitInlineWarning(
-          "登録上限（" + state.license.itemLimit + "件）です。プラン変更で件数増加をご検討ください"
-        );
-        return saveSearchQueryToSettings("").then(function () {
-          return renderTable();
+    if (voice && typeof voice.playStartBeep === "function") {
+      trace.mark("register_start_beep_played");
+      voice.playStartBeep();
+    }
+    trace.mark("recognizeOnce_call");
+    return voice.recognizeOnce({ trace: trace }).then(function (text) {
+      trace.mark("onVoiceRegister_recognize_resolved", {
+        empty: !String(text || "").trim(),
+      });
+
+      if (!text.trim()) {
+        pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote("音声認識がタイムアウト（10秒）しました。", trace));
+        return enterVoiceRegisterResultMode({
+          draft: { title: "", book: "", page: "", memo: "" },
+          metaMsg: "音声認識がタイムアウト（10秒）しました。手動で登録ができます。",
         });
       }
 
-      // 上限未達: 音声登録モード開始 → 認識
-      return startVoiceRegisterSingleRowMode().then(function () {
-        trace.mark("startVoiceRegisterSingleRowMode_done");
-        trace.mark("recognizeOnce_call");
-        return voice.recognizeOnce({ trace: trace });
-      }).then(function (text) {
-        trace.mark("onVoiceRegister_recognize_resolved", {
-          empty: !String(text || "").trim(),
-        });
-        state.draft = null;
-        state.voicePreviewEntry = null;
+      var parsed = voice.parseRegisterTranscript(text);
+      var registeredTitle = (parsed.title || "").trim();
+      var registeredBook = parsed.ok ? parsed.book : "";
+      var registeredPage = parsed.ok ? parsed.page : "";
+      var registeredTitleLabel = registeredTitle || "（空欄）";
+      var registerNote = parsed.ok
+        ? "冊目・ページ付きで解析しました。"
+        : "冊目・ページは解析できなかったため、サービス名のみ登録しました。";
+      var registerMetaMsg =
+        "「" + registeredTitleLabel + "」が登録されました。音声登録ボタンで次の登録が出来ます。";
 
-        // タイムアウト／無音
-        if (!text.trim()) {
-          pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote("音声認識がタイムアウト（10秒）しました。", trace));
-          state.draft = { title: "", book: "", page: "", memo: "" };
-          setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
-          return renderTable();
-        }
-
-        var parsed = voice.parseRegisterTranscript(text);
-        var registeredTitle = (parsed.title || "").trim();
-        var registeredBook = parsed.ok ? parsed.book : "";
-        var registeredPage = parsed.ok ? parsed.page : "";
-        var registeredTitleLabel = registeredTitle || "（空欄）";
-        var registerNote = parsed.ok
-          ? "冊目・ページ付きで解析しました。"
-          : "冊目・ページは解析できなかったため、サービス名のみ登録しました。";
-        var registerMetaMsg =
-          "「" + registeredTitleLabel + "」が登録されました。音声登録ボタンで次の登録が出来ます。";
-
-        pushVoiceRecentLog(text, parsed, "成功", appendVoiceTimingNote(registerNote, trace));
-        var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
-        return db.putEntry(state.idb, entry).then(function () {
-          state.voicePreviewEntry = entry;
-          setVoiceRegisterMeta(registerMetaMsg);
-          toast("音声登録内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
-          return renderTable();
+      pushVoiceRecentLog(text, parsed, "成功", appendVoiceTimingNote(registerNote, trace));
+      var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
+      return db.putEntry(state.idb, entry).then(function () {
+        toast("音声登録内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        return enterVoiceRegisterResultMode({
+          previewEntry: entry,
+          metaMsg: registerMetaMsg,
         });
-      }).catch(function (err) {
-        trace.mark("onVoiceRegister_recognize_rejected", {
-          code: err && err.code ? String(err.code) : "error",
-        });
-        if (err && (err.code === "replaced" || err.code === "aborted")) {
-          return;
-        }
-        state.draft = { title: "", book: "", page: "", memo: "" };
-        state.voicePreviewEntry = null;
-        setVoiceRegisterMeta("音声認識がタイムアウト（10秒）しました。手動で登録ができます。");
-        return renderTable();
+      });
+    }).catch(function (err) {
+      trace.mark("onVoiceRegister_recognize_rejected", {
+        code: err && err.code ? String(err.code) : "error",
+      });
+      if (err && (err.code === "replaced" || err.code === "aborted")) {
+        return;
+      }
+      return enterVoiceRegisterResultMode({
+        draft: { title: "", book: "", page: "", memo: "" },
+        metaMsg: "音声認識がタイムアウト（10秒）しました。手動で登録ができます。",
       });
     });
   }
