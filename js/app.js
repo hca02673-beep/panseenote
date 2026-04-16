@@ -1020,7 +1020,7 @@
       if (state.voiceSearchMsg) {
         el.textContent = state.voiceSearchMsg;
       } else if (result.total > 0) {
-        el.textContent = "検索語を入力して検索してください。検索語は短くするのがコツです";
+        el.textContent = "検索してください。";
       } else {
         el.textContent = "登録はまだありません。";
       }
@@ -1037,7 +1037,7 @@
       parts.push("（ヒットなし）");
     }
     if (isPhoneSearchSheetMode() && result.total > 0) {
-      parts.push("（行タップで編集画面が開きます）");
+      parts.push("（行タップで詳細画面（メモ欄）が開きます）");
     }
     el.textContent = parts.join(" ");
     el.classList.add("has-result");
@@ -1586,7 +1586,7 @@
       return db.putEntry(state.idb, next).then(function () {
         updateEntryInSearchSnapshot(next);
         closeMobileEditSheet();
-        toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        toast("保存しました。");
         return renderTable();
       });
     });
@@ -1726,7 +1726,7 @@
           if (state.voiceRegisterMode) {
             state.voicePreviewEntry = entry;
           }
-          toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+          toast("保存しました。");
           return renderTable();
         });
       });
@@ -1751,7 +1751,7 @@
           state.voicePreviewEntry = next;
         }
         updateEntryInSearchSnapshot(next);
-        toast("編集内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        toast("保存しました。");
         if (isDirtyTrackedDesktopListRow(tr)) {
           syncDesktopListRowAfterSave(tr, next);
           return;
@@ -1944,12 +1944,12 @@
         ? "冊目・ページ付きで解析しました。"
         : "冊目・ページは解析できなかったため、サービス名のみ登録しました。";
       var registerMetaMsg =
-        "「" + registeredTitleLabel + "」が登録されました。音声登録ボタンで次の登録が出来ます。";
+        "「" + registeredTitleLabel + "」が登録されました。";
 
       pushVoiceRecentLog(text, parsed, "成功", appendVoiceTimingNote(registerNote, trace));
       var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
       return db.putEntry(state.idb, entry).then(function () {
-        toast("音声登録内容を保存しました。重要情報がある場合は、重要情報部分を手動で削除してください。");
+        toast("保存しました。");
         return enterVoiceRegisterResultMode({
           previewEntry: entry,
           metaMsg: registerMetaMsg,
