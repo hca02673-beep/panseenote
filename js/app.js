@@ -1020,7 +1020,7 @@
       if (state.voiceSearchMsg) {
         el.textContent = state.voiceSearchMsg;
       } else if (result.total > 0) {
-        el.textContent = "検索してください。";
+        el.textContent = "検索してください。検索語は短くするのがコツです";
       } else {
         el.textContent = "登録はまだありません。";
       }
@@ -1586,7 +1586,7 @@
       return db.putEntry(state.idb, next).then(function () {
         updateEntryInSearchSnapshot(next);
         closeMobileEditSheet();
-        toast("保存しました。");
+        toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
         return renderTable();
       });
     });
@@ -1726,7 +1726,7 @@
           if (state.voiceRegisterMode) {
             state.voicePreviewEntry = entry;
           }
-          toast("保存しました。");
+          toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
           return renderTable();
         });
       });
@@ -1751,7 +1751,7 @@
           state.voicePreviewEntry = next;
         }
         updateEntryInSearchSnapshot(next);
-        toast("保存しました。");
+        toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
         if (isDirtyTrackedDesktopListRow(tr)) {
           syncDesktopListRowAfterSave(tr, next);
           return;
@@ -1949,7 +1949,7 @@
       pushVoiceRecentLog(text, parsed, "成功", appendVoiceTimingNote(registerNote, trace));
       var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
       return db.putEntry(state.idb, entry).then(function () {
-        toast("保存しました。");
+        toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
         return enterVoiceRegisterResultMode({
           previewEntry: entry,
           metaMsg: registerMetaMsg,
