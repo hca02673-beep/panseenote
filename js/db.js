@@ -64,6 +64,11 @@
     return {
       id: C.SETTINGS_DOC_ID,
       lastBackupAt: "",
+      lastBackupPath: "",
+      lastImportAt: "",
+      lastImportPath: "",
+      unsavedChangeCount: 0,
+      lastBackupRecommendAt: "",
       lastSearchQuery: "",
       appVersion: C.APP_VERSION,
       termsAcceptedAt: "",
@@ -78,6 +83,12 @@
   function normalizeSettingsDoc(s) {
     var d = s ? Object.assign({}, s) : defaultSettingsDoc();
     if (d.lastBackupAt === undefined || d.lastBackupAt === null) d.lastBackupAt = "";
+    if (d.lastBackupPath === undefined || d.lastBackupPath === null) d.lastBackupPath = "";
+    if (d.lastImportAt === undefined || d.lastImportAt === null) d.lastImportAt = "";
+    if (d.lastImportPath === undefined || d.lastImportPath === null) d.lastImportPath = "";
+    if (d.unsavedChangeCount === undefined || d.unsavedChangeCount === null) d.unsavedChangeCount = 0;
+    d.unsavedChangeCount = Number(d.unsavedChangeCount) || 0;
+    if (d.lastBackupRecommendAt === undefined || d.lastBackupRecommendAt === null) d.lastBackupRecommendAt = "";
     if (d.lastSearchQuery === undefined || d.lastSearchQuery === null) d.lastSearchQuery = "";
     if (d.appVersion === undefined || d.appVersion === null) d.appVersion = C.APP_VERSION;
     if (d.termsAcceptedAt === undefined || d.termsAcceptedAt === null) d.termsAcceptedAt = "";

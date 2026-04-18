@@ -38,6 +38,7 @@
     mobileBackGuardReady: false,
     exportBusy: false,
     importBusy: false,
+    backupRecommendBusy: false,
   };
 
   var $ = function (sel) {
@@ -193,6 +194,12 @@
     return "panseenote-backup-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
   }
 
+  function normalizeFileLabel(name, fallback) {
+    var s = String(name || "").trim();
+    if (s) return s;
+    return String(fallback || "ブラウザ管理");
+  }
+
   function buildBackupFilePayload() {
     return Promise.all([
       db.getAllEntries(state.idb),
@@ -226,12 +233,40 @@
     });
   }
 
-  function persistLastBackupAt() {
-    var iso = new Date().toISOString();
-    return db.updateSettings(state.idb, { lastBackupAt: iso }).then(function (s) {
+  function persistSettingsPatch(patch) {
+    return db.updateSettings(state.idb, patch).then(function (s) {
       state.settings = s;
       updatePlanBar();
+      return s;
+    });
+  }
+
+  function persistBackupExportInfo(fileLabel) {
+    var iso = new Date().toISOString();
+    return persistSettingsPatch({
+      lastBackupAt: iso,
+      lastBackupPath: normalizeFileLabel(fileLabel, "ブラウザ管理"),
+      unsavedChangeCount: 0,
+    }).then(function (s) {
       closeSettingsIfOpen();
+      return s;
+    });
+  }
+
+  function persistBackupImportInfo(fileLabel) {
+    var iso = new Date().toISOString();
+    return persistSettingsPatch({
+      lastImportAt: iso,
+      lastImportPath: normalizeFileLabel(fileLabel, "ブラウザ管理"),
+      unsavedChangeCount: 0,
+    });
+  }
+
+  function incrementUnsavedChangeCount() {
+    if (!state.idb || !state.settings) return Promise.resolve();
+    var current = Number(state.settings.unsavedChangeCount || 0);
+    return persistSettingsPatch({
+      unsavedChangeCount: current + 1,
     });
   }
 
@@ -292,7 +327,10 @@
   function exportBackupFile(blob, name) {
     if (typeof window.showSaveFilePicker === "function") {
       return saveBackupViaFilePicker(blob, name).then(function () {
-        return "saved";
+        return {
+          mode: "saved",
+          fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
+        };
       });
     }
     var file = null;
@@ -303,10 +341,18 @@
     }
     if (canShareBackupFile(file)) {
       return shareBackupFile(file, name).then(function () {
-        return "shared";
+        return {
+          mode: "shared",
+          fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
+        };
       });
     }
-    return triggerBackupDownload(blob, name);
+    return triggerBackupDownload(blob, name).then(function () {
+      return {
+        mode: "download",
+        fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
+      };
+    });
   }
 
   function requestImportFileViaPicker() {
@@ -694,12 +740,27 @@
     return d.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
   }
 
+  function formatTextDisplay(value) {
+    var s = String(value || "").trim();
+    return s ? s : "—";
+  }
+
   function formatEntryCreatedAtDisplay(value) {
     if (!value) return "—";
     var raw = String(value);
     var m = raw.match(/^\d{4}-\d{2}-\d{2}/);
     if (m) return m[0];
     return formatIsoDisplay(raw);
+  }
+
+  function hasEntryContentChanged(prev, next) {
+    if (!prev || !next) return true;
+    return (
+      String(prev.title || "") !== String(next.title || "") ||
+      String(prev.book || "") !== String(next.book || "") ||
+      String(prev.page || "") !== String(next.page || "") ||
+      String(prev.memo || "") !== String(next.memo || "")
+    );
   }
 
   function isUnauthenticatedTrial() {
@@ -983,9 +1044,19 @@
   }
 
   function updatePlanBar() {
-    var lb = state.settings && state.settings.lastBackupAt;
+    var settings = state.settings || {};
     var lbEl = $("#last-backup-label");
-    if (lbEl) lbEl.textContent = lb ? lb : "—";
+    if (lbEl) lbEl.textContent = formatIsoDisplay(settings.lastBackupAt);
+    var lbpEl = $("#last-backup-path-label");
+    if (lbpEl) lbpEl.textContent = formatTextDisplay(settings.lastBackupPath);
+    var liaEl = $("#last-import-at-label");
+    if (liaEl) liaEl.textContent = formatIsoDisplay(settings.lastImportAt);
+    var lipEl = $("#last-import-path-label");
+    if (lipEl) lipEl.textContent = formatTextDisplay(settings.lastImportPath);
+    var ucEl = $("#unsaved-change-count-label");
+    if (ucEl) ucEl.textContent = String(Number(settings.unsavedChangeCount || 0));
+    var lrEl = $("#last-backup-recommend-label");
+    if (lrEl) lrEl.textContent = formatIsoDisplay(settings.lastBackupRecommendAt);
     var vb = $("#app-version-label");
     if (vb) vb.textContent = String(C.APP_VERSION || "—");
     var bb = $("#app-build-label");
@@ -1583,11 +1654,14 @@
       }
       if (!prev) return;
       var next = db.patchEntry(prev, vals);
+      var changed = hasEntryContentChanged(prev, next);
       return db.putEntry(state.idb, next).then(function () {
-        updateEntryInSearchSnapshot(next);
-        closeMobileEditSheet();
-        toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
-        return renderTable();
+        return (changed ? incrementUnsavedChangeCount() : Promise.resolve()).then(function () {
+          updateEntryInSearchSnapshot(next);
+          closeMobileEditSheet();
+          toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
+          return renderTable();
+        });
       });
     });
   }
@@ -1722,12 +1796,14 @@
         }
         var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
         return db.putEntry(state.idb, entry).then(function () {
-          state.draft = null;
-          if (state.voiceRegisterMode) {
-            state.voicePreviewEntry = entry;
-          }
-          toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
-          return renderTable();
+          return incrementUnsavedChangeCount().then(function () {
+            state.draft = null;
+            if (state.voiceRegisterMode) {
+              state.voicePreviewEntry = entry;
+            }
+            toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
+            return renderTable();
+          });
         });
       });
     }
@@ -1744,19 +1820,22 @@
       }
       if (!prev) return;
       var next = db.patchEntry(prev, vals);
+      var changed = hasEntryContentChanged(prev, next);
       return db.putEntry(state.idb, next).then(function () {
-        // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
-        // しないと renderTable が古い entry（memo空）で再描画してしまう
-        if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
-          state.voicePreviewEntry = next;
-        }
-        updateEntryInSearchSnapshot(next);
-        toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
-        if (isDirtyTrackedDesktopListRow(tr)) {
-          syncDesktopListRowAfterSave(tr, next);
-          return;
-        }
-        return renderTable();
+        return (changed ? incrementUnsavedChangeCount() : Promise.resolve()).then(function () {
+          // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
+          // しないと renderTable が古い entry（memo空）で再描画してしまう
+          if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
+            state.voicePreviewEntry = next;
+          }
+          updateEntryInSearchSnapshot(next);
+          toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
+          if (isDirtyTrackedDesktopListRow(tr)) {
+            syncDesktopListRowAfterSave(tr, next);
+            return;
+          }
+          return renderTable();
+        });
       });
     });
   }
@@ -1949,10 +2028,12 @@
       pushVoiceRecentLog(text, parsed, "成功", appendVoiceTimingNote(registerNote, trace));
       var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
       return db.putEntry(state.idb, entry).then(function () {
-        toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
-        return enterVoiceRegisterResultMode({
-          previewEntry: entry,
-          metaMsg: registerMetaMsg,
+        return incrementUnsavedChangeCount().then(function () {
+          toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
+          return enterVoiceRegisterResultMode({
+            previewEntry: entry,
+            metaMsg: registerMetaMsg,
+          });
         });
       });
     }).catch(function (err) {
@@ -1974,6 +2055,18 @@
     var t = new Date(licDoc.nextCheckAfter).getTime();
     if (isNaN(t)) return true;
     return Date.now() >= t;
+  }
+
+  function shouldPromptBackupRecommendation(settings) {
+    if (!settings) return false;
+    var count = Number(settings.unsavedChangeCount || 0);
+    if (!(count >= 1)) return false;
+    var lastShownAt = String(settings.lastBackupRecommendAt || "").trim();
+    if (!lastShownAt) return true;
+    var shownMs = new Date(lastShownAt).getTime();
+    if (isNaN(shownMs)) return true;
+    var intervalDays = count >= 50 ? 1 : 7;
+    return Date.now() >= shownMs + intervalDays * 24 * 60 * 60 * 1000;
   }
 
   function maybeCheckLicenseOnline() {
@@ -2015,6 +2108,42 @@
           /* 通信失敗時はローカル継続 */
         });
     });
+  }
+
+  function maybePromptBackupRecommendation() {
+    if (state.backupRecommendBusy) return Promise.resolve();
+    if (!state.idb || !state.settings) return Promise.resolve();
+    if (state.exportBusy || state.importBusy) return Promise.resolve();
+    if (!shouldPromptBackupRecommendation(state.settings)) return Promise.resolve();
+    state.backupRecommendBusy = true;
+    var unsavedCount = Number(state.settings.unsavedChangeCount || 0);
+    return persistSettingsPatch({
+      lastBackupRecommendAt: new Date().toISOString(),
+    })
+      .then(function () {
+        return showAppConfirm(
+          "データファイルに保存されていない変更が" + unsavedCount + "件有ります。最新のデータをデータファイルへ保存しますか？",
+          {
+            okLabel: "保存する",
+            cancelLabel: "あとで",
+          }
+        );
+      })
+      .then(function (ok) {
+        if (!ok) return;
+        return onExport();
+      })
+      .finally(function () {
+        state.backupRecommendBusy = false;
+      });
+  }
+
+  function runPeriodicMaintenance() {
+    return maybeCheckLicenseOnline()
+      .catch(function () {})
+      .then(function () {
+        return maybePromptBackupRecommendation().catch(function () {});
+      });
   }
 
   function onActivateLicense() {
@@ -2123,20 +2252,23 @@
         return buildBackupFilePayload().then(function (pkg) {
           if (saveHandle) {
             return writeBackupToHandle(saveHandle, pkg.blob).then(function () {
-              return "saved";
+              return {
+                mode: "saved",
+                fileLabel: normalizeFileLabel(saveHandle.name || pkg.name, "ブラウザ管理"),
+              };
             });
           }
           return exportBackupFile(pkg.blob, pkg.name);
         });
       })
-      .then(function (mode) {
-        if (!mode) return;
-        return persistLastBackupAt().then(function () {
-          if (mode === "saved") {
+      .then(function (result) {
+        if (!result) return;
+        return persistBackupExportInfo(result.fileLabel).then(function () {
+          if (result.mode === "saved") {
             toast("バックアップファイルを保存しました。");
             return;
           }
-          if (mode === "shared") {
+          if (result.mode === "shared") {
             toast("バックアップファイルを共有しました。");
             return;
           }
@@ -2202,7 +2334,9 @@
             return chain.then(function () {
               state.draft = null;
               state.searchQuery = $("#manual-search").value || "";
-              return saveSearchQueryToSettings(state.searchQuery).then(function () {
+              return persistBackupImportInfo(file && file.name).then(function () {
+                return saveSearchQueryToSettings(state.searchQuery);
+              }).then(function () {
                 return renderTable({ refreshSearchResults: true }).then(function () {
                   if (truncated) {
                     return showAppAlert(
@@ -2318,7 +2452,7 @@
       });
     }
     window.addEventListener("online", function () {
-      maybeCheckLicenseOnline();
+      runPeriodicMaintenance();
     });
 
     var layoutResizeTimer = null;
@@ -2397,7 +2531,7 @@
         });
       })
       .then(function () {
-        return maybeCheckLicenseOnline().catch(function () {});
+        return runPeriodicMaintenance().catch(function () {});
       })
       .then(function () {
         initVoiceRecentLogs();
