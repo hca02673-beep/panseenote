@@ -177,6 +177,12 @@
             <li>最終読込ファイル: <span id="last-import-path-label">—</span></li>
             <li>未保存の変更件数: <span id="unsaved-change-count-label">—</span></li>
             <li>最終保存推奨表示: <span id="last-backup-recommend-label">—</span></li>
+            <li>利用規約同意日時: <span id="terms-accepted-at-label">—</span></li>
+            <li>アプリセルフID: <span id="app-self-id-label">—</span></li>
+            <li>利用回数: <span id="app-launch-count-label">—</span></li>
+            <li>検索実施回数: <span id="search-count-label">—</span></li>
+            <li>登録実施回数: <span id="register-count-label">—</span></li>
+            <li>最終利用状況送信: <span id="last-usage-sent-at-label">—</span></li>
             <li>アプリ版: <span id="app-version-label">—</span> <span id="app-build-label" style="font-size:0.85em;color:var(--muted)"></span></li>
           </ul>
 
@@ -219,7 +225,8 @@
 
           <section class="terms-section">
             <h3>4. 外部サービスとの通信</h3>
-            <p>本アプリはライセンス認証のため、インターネット経由でライセンス管理サーバー（Google Apps Script）と通信します。送信される情報はライセンスキーおよびアプリバージョン情報のみです。それ以外のユーザーデータがサーバーに送信されることはありません。</p>
+            <p>本アプリはライセンス認証および利用状況確認のため、インターネット経由で Google Apps Script と通信します。送信される情報には、ライセンスキー、アプリバージョン、端末識別の参考情報、利用規約同意日時、アプリセルフID、起動回数、検索回数、登録回数等の利用統計が含まれます。</p>
+            <p>本文・メモ等の登録データそのものは送信対象に含めません。ただし、機密情報・個人情報は本アプリへ登録しない前提でご利用ください。</p>
           </section>
 
           <section class="terms-section">
@@ -298,6 +305,7 @@
 
     <script src="js/config.js"></script>
     <script src="js/license.js"></script>
+    <script src="js/usage.js"></script>
     <script src="js/normalize.js"></script>
     <script src="js/db.js"></script>
     <script src="js/voice.js"></script>

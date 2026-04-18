@@ -9,6 +9,7 @@
   var norm = window.PANSEE_normalizeForSearch;
   var voice = window.PANSEE_voice;
   var lic = window.PANSEE_license;
+  var usage = window.PANSEE_usage;
 
   var state = {
     idb: null,
@@ -39,6 +40,9 @@
     exportBusy: false,
     importBusy: false,
     backupRecommendBusy: false,
+    usageSessionStarted: false,
+    usageSentThisSession: false,
+    usageSendBusy: false,
   };
 
   var $ = function (sel) {
@@ -50,6 +54,18 @@
       return performance.now();
     }
     return Date.now();
+  }
+
+  function makeAppSelfId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return (
+      "ps-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.random().toString(36).slice(2, 10)
+    );
   }
 
   function formatTraceDelta(ms) {
@@ -733,6 +749,40 @@
     });
   }
 
+  function incrementSettingCounter(fieldName) {
+    if (!state.idb || !state.settings) return Promise.resolve();
+    var current = Number(state.settings[fieldName] || 0);
+    var patch = {};
+    patch[fieldName] = current + 1;
+    return persistSettingsPatch(patch).catch(function (err) {
+      console.warn("Metric update failed:", fieldName, err);
+    });
+  }
+
+  function incrementSearchCount() {
+    return incrementSettingCounter("searchCount");
+  }
+
+  function incrementRegisterCount() {
+    return incrementSettingCounter("registerCount");
+  }
+
+  function startUsageSession() {
+    if (state.usageSessionStarted) return Promise.resolve();
+    if (!state.idb || !state.settings) return Promise.resolve();
+    state.usageSessionStarted = true;
+    var patch = {
+      appLaunchCount: Number(state.settings.appLaunchCount || 0) + 1,
+      appVersion: C.APP_VERSION,
+    };
+    if (!String(state.settings.appSelfId || "").trim()) {
+      patch.appSelfId = makeAppSelfId();
+    }
+    return persistSettingsPatch(patch).catch(function (err) {
+      console.warn("Usage session start failed:", err);
+    });
+  }
+
   function formatIsoDisplay(iso) {
     if (!iso) return "—";
     var d = new Date(iso);
@@ -743,6 +793,12 @@
   function formatTextDisplay(value) {
     var s = String(value || "").trim();
     return s ? s : "—";
+  }
+
+  function formatCountDisplay(value) {
+    var n = Number(value || 0);
+    if (!isFinite(n) || n < 0) n = 0;
+    return String(n);
   }
 
   function formatEntryCreatedAtDisplay(value) {
@@ -771,6 +827,10 @@
 
   function getLicenseApiUrl() {
     return C.getLicenseApiUrl();
+  }
+
+  function getUsageApiUrl() {
+    return C.getUsageApiUrl ? C.getUsageApiUrl() : "";
   }
 
   function setLicenseDiagnostics(msg) {
@@ -1054,9 +1114,21 @@
     var lipEl = $("#last-import-path-label");
     if (lipEl) lipEl.textContent = formatTextDisplay(settings.lastImportPath);
     var ucEl = $("#unsaved-change-count-label");
-    if (ucEl) ucEl.textContent = String(Number(settings.unsavedChangeCount || 0));
+    if (ucEl) ucEl.textContent = formatCountDisplay(settings.unsavedChangeCount);
     var lrEl = $("#last-backup-recommend-label");
     if (lrEl) lrEl.textContent = formatIsoDisplay(settings.lastBackupRecommendAt);
+    var taEl = $("#terms-accepted-at-label");
+    if (taEl) taEl.textContent = formatIsoDisplay(settings.termsAcceptedAt);
+    var idEl = $("#app-self-id-label");
+    if (idEl) idEl.textContent = formatTextDisplay(settings.appSelfId);
+    var alEl = $("#app-launch-count-label");
+    if (alEl) alEl.textContent = formatCountDisplay(settings.appLaunchCount);
+    var scEl = $("#search-count-label");
+    if (scEl) scEl.textContent = formatCountDisplay(settings.searchCount);
+    var rcEl = $("#register-count-label");
+    if (rcEl) rcEl.textContent = formatCountDisplay(settings.registerCount);
+    var lusEl = $("#last-usage-sent-at-label");
+    if (lusEl) lusEl.textContent = formatIsoDisplay(settings.lastUsageSentAt);
     var vb = $("#app-version-label");
     if (vb) vb.textContent = String(C.APP_VERSION || "—");
     var bb = $("#app-build-label");
@@ -1797,6 +1869,8 @@
         var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
         return db.putEntry(state.idb, entry).then(function () {
           return incrementUnsavedChangeCount().then(function () {
+            return incrementRegisterCount();
+          }).then(function () {
             state.draft = null;
             if (state.voiceRegisterMode) {
               state.voicePreviewEntry = entry;
@@ -1887,7 +1961,12 @@
     state.openMemoIds = new Set();
     state.searchQuery = $("#manual-search").value || "";
     state.homeSearchQuery = state.searchQuery;
-    return saveSearchQueryToSettings(state.searchQuery).then(function () {
+    var countPromise = String(state.searchQuery || "").trim()
+      ? incrementSearchCount()
+      : Promise.resolve();
+    return countPromise.then(function () {
+      return saveSearchQueryToSettings(state.searchQuery);
+    }).then(function () {
       return renderTable({ refreshSearchResults: true });
     });
   }
@@ -1942,7 +2021,12 @@
       $("#manual-search").value = text;
       state.searchQuery = text;
       state.homeSearchQuery = state.searchQuery;
-      return saveSearchQueryToSettings(state.searchQuery).then(function () {
+      var countPromise = String(state.searchQuery || "").trim()
+        ? incrementSearchCount()
+        : Promise.resolve();
+      return countPromise.then(function () {
+        return saveSearchQueryToSettings(state.searchQuery);
+      }).then(function () {
         return renderTable({ refreshSearchResults: true }).then(function () {
           if (!text.trim()) {
             toast("音声認識がタイムアウトしました。");
@@ -2029,6 +2113,8 @@
       var entry = db.buildNewEntry(registeredTitle, registeredBook, registeredPage, "");
       return db.putEntry(state.idb, entry).then(function () {
         return incrementUnsavedChangeCount().then(function () {
+          return incrementRegisterCount();
+        }).then(function () {
           toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
           return enterVoiceRegisterResultMode({
             previewEntry: entry,
@@ -2067,6 +2153,54 @@
     if (isNaN(shownMs)) return true;
     var intervalDays = count >= 50 ? 1 : 7;
     return Date.now() >= shownMs + intervalDays * 24 * 60 * 60 * 1000;
+  }
+
+  function buildUsagePayload(trigger) {
+    var licDoc = state.license || {};
+    var settings = state.settings || {};
+    return {
+      action: "usage_ping",
+      trigger: String(trigger || "unknown"),
+      sentAt: new Date().toISOString(),
+      licenseKey: String(licDoc.licenseKey || ""),
+      planCode: String(licDoc.planCode || C.DEFAULT_PLAN_CODE || "trial"),
+      termsAcceptedAt: String(settings.termsAcceptedAt || ""),
+      termsVersion: String(settings.termsVersion || ""),
+      appSelfId: String(settings.appSelfId || ""),
+      appLaunchCount: Number(settings.appLaunchCount || 0),
+      searchCount: Number(settings.searchCount || 0),
+      registerCount: Number(settings.registerCount || 0),
+      clientVersion: String(C.APP_VERSION || ""),
+      deviceHint: String(navigator.userAgent || ""),
+    };
+  }
+
+  function maybeSendUsagePing(trigger) {
+    var url = getUsageApiUrl();
+    if (!url || !usage || typeof usage.postUsagePing !== "function") {
+      return Promise.resolve();
+    }
+    if (!navigator.onLine) return Promise.resolve();
+    if (!state.idb || !state.settings) return Promise.resolve();
+    if (!String(state.settings.termsAcceptedAt || "").trim()) return Promise.resolve();
+    if (!String(state.settings.appSelfId || "").trim()) return Promise.resolve();
+    if (state.usageSendBusy || state.usageSentThisSession) return Promise.resolve();
+    state.usageSendBusy = true;
+    return usage
+      .postUsagePing(url, buildUsagePayload(trigger))
+      .then(function (result) {
+        if (!result || result.ok !== true) return;
+        state.usageSentThisSession = true;
+        return persistSettingsPatch({
+          lastUsageSentAt: result.loggedAt || new Date().toISOString(),
+        });
+      })
+      .catch(function (err) {
+        console.warn("Usage ping failed:", err);
+      })
+      .finally(function () {
+        state.usageSendBusy = false;
+      });
   }
 
   function maybeCheckLicenseOnline() {
@@ -2143,6 +2277,14 @@
       .catch(function () {})
       .then(function () {
         return maybePromptBackupRecommendation().catch(function () {});
+      });
+  }
+
+  function runBackgroundMaintenance(trigger) {
+    return maybeSendUsagePing(trigger)
+      .catch(function () {})
+      .then(function () {
+        return runPeriodicMaintenance().catch(function () {});
       });
   }
 
@@ -2452,7 +2594,7 @@
       });
     }
     window.addEventListener("online", function () {
-      runPeriodicMaintenance();
+      runBackgroundMaintenance("online");
     });
 
     var layoutResizeTimer = null;
@@ -2527,11 +2669,13 @@
         updatePlanBar();
         syncTableStructure();
         return checkTerms().then(function () {
+          return startUsageSession();
+        }).then(function () {
           return renderTable({ refreshSearchResults: true });
         });
       })
       .then(function () {
-        return runPeriodicMaintenance().catch(function () {});
+        return runBackgroundMaintenance("startup").catch(function () {});
       })
       .then(function () {
         initVoiceRecentLogs();

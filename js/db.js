@@ -69,6 +69,11 @@
       lastImportPath: "",
       unsavedChangeCount: 0,
       lastBackupRecommendAt: "",
+      appSelfId: "",
+      appLaunchCount: 0,
+      searchCount: 0,
+      registerCount: 0,
+      lastUsageSentAt: "",
       lastSearchQuery: "",
       appVersion: C.APP_VERSION,
       termsAcceptedAt: "",
@@ -89,6 +94,14 @@
     if (d.unsavedChangeCount === undefined || d.unsavedChangeCount === null) d.unsavedChangeCount = 0;
     d.unsavedChangeCount = Number(d.unsavedChangeCount) || 0;
     if (d.lastBackupRecommendAt === undefined || d.lastBackupRecommendAt === null) d.lastBackupRecommendAt = "";
+    if (d.appSelfId === undefined || d.appSelfId === null) d.appSelfId = "";
+    if (d.appLaunchCount === undefined || d.appLaunchCount === null) d.appLaunchCount = 0;
+    d.appLaunchCount = Number(d.appLaunchCount) || 0;
+    if (d.searchCount === undefined || d.searchCount === null) d.searchCount = 0;
+    d.searchCount = Number(d.searchCount) || 0;
+    if (d.registerCount === undefined || d.registerCount === null) d.registerCount = 0;
+    d.registerCount = Number(d.registerCount) || 0;
+    if (d.lastUsageSentAt === undefined || d.lastUsageSentAt === null) d.lastUsageSentAt = "";
     if (d.lastSearchQuery === undefined || d.lastSearchQuery === null) d.lastSearchQuery = "";
     if (d.appVersion === undefined || d.appVersion === null) d.appVersion = C.APP_VERSION;
     if (d.termsAcceptedAt === undefined || d.termsAcceptedAt === null) d.termsAcceptedAt = "";

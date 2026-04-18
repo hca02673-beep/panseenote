@@ -1,6 +1,6 @@
 /**
  * パンセノート — 設定定数
- * ライセンスAPI: GAS Web アプリ 1 URL に POST（activate / check）
+ * ライセンスAPI / 利用状況API の URL 定義
  */
 (function (global) {
   "use strict";
@@ -10,10 +10,10 @@
 
   var CONFIG = {
     APP_ID: "PenseeNote",
-    APP_VERSION: "1.0.8",
-    BUILD_TIMESTAMP: "2026-04-17T07:50:50Z",
+    APP_VERSION: "1.0.9",
+    BUILD_TIMESTAMP: "2026-04-19T03:30:00Z",
     EXPORT_JSON_VERSION: "1.0",
-    TERMS_VERSION: "1.0",
+    TERMS_VERSION: "1.1",
 
     DB_NAME: "panseenote-db",
     DB_VERSION: 1,
@@ -43,6 +43,12 @@
      * 未設定時は window.__PANSEE_LICENSE_API_URL__ で上書き可能
      */
     LICENSE_API_URL: "https://script.google.com/macros/s/AKfycbzCoZsd9oE5BG_DH6AtmhWLDTvgSmm_aNPu6Y6fMX5qJfgySs1rffdm_xqB9B9ohKs/exec",
+
+    /**
+     * 利用状況モニタリング用 GAS Web アプリ URL
+     * 未設定時は window.__PANSEE_USAGE_API_URL__ で上書き可能
+     */
+    USAGE_API_URL: "https://script.google.com/macros/s/AKfycbxKtFIxNWPyDscAWIJHg2KE0sm4ygj_sqd_ppfdEq4C1xp496hMKFMP2t6yC_Sfu-en/exec",
   };
 
   CONFIG.getBasePath = function () {
@@ -56,6 +62,13 @@
     var w = typeof global !== "undefined" ? global : {};
     var ovr = w.__PANSEE_LICENSE_API_URL__;
     var u = ovr != null && String(ovr).trim() !== "" ? String(ovr).trim() : CONFIG.LICENSE_API_URL;
+    return String(u || "").trim();
+  };
+
+  CONFIG.getUsageApiUrl = function () {
+    var w = typeof global !== "undefined" ? global : {};
+    var ovr = w.__PANSEE_USAGE_API_URL__;
+    var u = ovr != null && String(ovr).trim() !== "" ? String(ovr).trim() : CONFIG.USAGE_API_URL;
     return String(u || "").trim();
   };
 
