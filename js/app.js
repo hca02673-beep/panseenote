@@ -2155,6 +2155,15 @@
     return Date.now() >= shownMs + intervalDays * 24 * 60 * 60 * 1000;
   }
 
+  function shouldSendUsagePing(settings) {
+    if (!settings) return false;
+    var lastSentAt = String(settings.lastUsageSentAt || "").trim();
+    if (!lastSentAt) return true;
+    var sentMs = new Date(lastSentAt).getTime();
+    if (isNaN(sentMs)) return true;
+    return Date.now() >= sentMs + 7 * 24 * 60 * 60 * 1000;
+  }
+
   function buildUsagePayload(trigger) {
     var licDoc = state.license || {};
     var settings = state.settings || {};
@@ -2184,6 +2193,7 @@
     if (!state.idb || !state.settings) return Promise.resolve();
     if (!String(state.settings.termsAcceptedAt || "").trim()) return Promise.resolve();
     if (!String(state.settings.appSelfId || "").trim()) return Promise.resolve();
+    if (!shouldSendUsagePing(state.settings)) return Promise.resolve();
     if (state.usageSendBusy || state.usageSentThisSession) return Promise.resolve();
     state.usageSendBusy = true;
     return usage
