@@ -1539,7 +1539,6 @@
                     deleteLabel: "削除",
                     exitLabel: "終了",
                     initialValues: dv,
-                    saveDisabled: true,
                     showMemoButton: false,
                     showExitButton: true,
                   }
