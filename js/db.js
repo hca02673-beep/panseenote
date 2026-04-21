@@ -78,6 +78,8 @@
       appVersion: C.APP_VERSION,
       termsAcceptedAt: "",
       termsVersion: "",
+      preferManualRegister: false,
+      speechTimeoutMs: C.SPEECH_TIMEOUT_MS,
     };
   }
 
@@ -106,6 +108,10 @@
     if (d.appVersion === undefined || d.appVersion === null) d.appVersion = C.APP_VERSION;
     if (d.termsAcceptedAt === undefined || d.termsAcceptedAt === null) d.termsAcceptedAt = "";
     if (d.termsVersion === undefined || d.termsVersion === null) d.termsVersion = "";
+    if (d.preferManualRegister === undefined || d.preferManualRegister === null) d.preferManualRegister = false;
+    d.preferManualRegister = !!d.preferManualRegister;
+    if (d.speechTimeoutMs === undefined || d.speechTimeoutMs === null) d.speechTimeoutMs = C.SPEECH_TIMEOUT_MS;
+    d.speechTimeoutMs = Number(d.speechTimeoutMs) || C.SPEECH_TIMEOUT_MS;
     return d;
   }
 

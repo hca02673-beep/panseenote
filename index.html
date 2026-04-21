@@ -83,10 +83,10 @@
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                   </svg>
                 </span>
-                <span class="voice-btn-title">音声登録</span>
+                <span class="voice-btn-title" id="voice-register-title">音声登録</span>
               </span>
-              <span class="voice-btn-sub">（サービス名）</span>
-              <span class="voice-btn-sub">又は（●冊目●頁・名前）</span>
+              <span class="voice-btn-sub" id="voice-register-sub-primary">（サービス名）</span>
+              <span class="voice-btn-sub" id="voice-register-sub-secondary">又は（●冊目●頁・名前）</span>
             </span>
           </button>
         </div>
@@ -142,9 +142,17 @@
       <div id="settings-panel" class="settings-panel" hidden>
         <div class="settings-panel-title">▼ 設定・ライセンス</div>
         <div class="settings-body">
-          <p class="settings-lead">
-            プラン・登録上限は<strong>サーバー返却値</strong>を保存します。キー形式はクライアントで検査するのみで、有効性はサーバー照合です。
-          </p>
+          <div class="settings-action-row">
+            <a
+              href="https://hca02673-beep.github.io/#pricing"
+              target="_blank"
+              rel="noopener noreferrer"
+              id="btn-plan-up"
+              class="primary settings-link-button"
+            >
+              ▶ プランアップする
+            </a>
+          </div>
           <div class="license-form">
             <label for="license-key-input">ライセンスキー <span id="license-activate-status" class="license-activate-status" hidden>ただいま認証中です。</span></label>
             <div class="license-form-row">
@@ -161,30 +169,49 @@
               </button>
             </div>
           </div>
-          <p id="license-api-url-hint" class="settings-hint"></p>
-          <p id="license-api-diagnostics" class="settings-hint" aria-live="polite"></p>
-          <ul class="license-meta">
-            <li>
-              プラン: <span id="license-plan-detail">—</span>
-            </li>
-            <li>認証状態: <span id="license-status-label">—</span></li>
-            <li>初回認証日時: <span id="license-activated-at">—</span></li>
-            <li>最終サーバー確認: <span id="license-last-checked">—</span></li>
-            <li>次回確認予定: <span id="license-next-check">—</span></li>
-            <li>最終データ保存日時: <span id="last-backup-label">—</span></li>
-            <li>最終保存ファイル: <span id="last-backup-path-label">—</span></li>
-            <li>最終データ読込日時: <span id="last-import-at-label">—</span></li>
-            <li>最終読込ファイル: <span id="last-import-path-label">—</span></li>
-            <li>未保存の変更件数: <span id="unsaved-change-count-label">—</span></li>
-            <li>最終保存推奨表示: <span id="last-backup-recommend-label">—</span></li>
-            <li>利用規約同意日時: <span id="terms-accepted-at-label">—</span></li>
-            <li>アプリセルフID: <span id="app-self-id-label">—</span></li>
-            <li>利用回数: <span id="app-launch-count-label">—</span></li>
-            <li>検索実施回数: <span id="search-count-label">—</span></li>
-            <li>登録実施回数: <span id="register-count-label">—</span></li>
-            <li>最終利用状況送信: <span id="last-usage-sent-at-label">—</span></li>
-            <li>アプリ版: <span id="app-version-label">—</span> <span id="app-build-label" style="font-size:0.85em;color:var(--muted)"></span></li>
-          </ul>
+          <div class="user-settings-section">
+            <p class="user-settings-title">ユーザー設定</p>
+            <label class="settings-check-row" for="setting-prefer-manual-register">
+              <input type="checkbox" id="setting-prefer-manual-register" />
+              <span>音声登録を使用しない（手動登録を使用する）</span>
+            </label>
+            <label class="settings-field-label" for="setting-speech-timeout">
+              音声認識タイムアウト
+            </label>
+            <select id="setting-speech-timeout" class="settings-select">
+              <option value="5000">5秒</option>
+              <option value="10000">10秒</option>
+            </select>
+          </div>
+
+          <hr class="settings-divider" />
+          <button type="button" class="voice-log-toggle-btn" id="internal-settings-toggle-btn">▶ 内部情報・診断</button>
+          <div class="voice-log-body" id="internal-settings-body" hidden>
+            <p id="license-api-url-hint" class="settings-hint"></p>
+            <p id="license-api-diagnostics" class="settings-hint" aria-live="polite"></p>
+            <ul class="license-meta">
+              <li>
+                プラン: <span id="license-plan-detail">—</span>
+              </li>
+              <li>認証状態: <span id="license-status-label">—</span></li>
+              <li>初回認証日時: <span id="license-activated-at">—</span></li>
+              <li>最終サーバー確認: <span id="license-last-checked">—</span></li>
+              <li>次回確認予定: <span id="license-next-check">—</span></li>
+              <li>最終データ保存日時: <span id="last-backup-label">—</span></li>
+              <li>最終保存ファイル: <span id="last-backup-path-label">—</span></li>
+              <li>最終データ読込日時: <span id="last-import-at-label">—</span></li>
+              <li>最終読込ファイル: <span id="last-import-path-label">—</span></li>
+              <li>未保存の変更件数: <span id="unsaved-change-count-label">—</span></li>
+              <li>最終保存推奨表示: <span id="last-backup-recommend-label">—</span></li>
+              <li>利用規約同意日時: <span id="terms-accepted-at-label">—</span></li>
+              <li>アプリセルフID: <span id="app-self-id-label">—</span></li>
+              <li>利用回数: <span id="app-launch-count-label">—</span></li>
+              <li>検索実施回数: <span id="search-count-label">—</span></li>
+              <li>登録実施回数: <span id="register-count-label">—</span></li>
+              <li>最終利用状況送信: <span id="last-usage-sent-at-label">—</span></li>
+              <li>アプリ版: <span id="app-version-label">—</span> <span id="app-build-label" style="font-size:0.85em;color:var(--muted)"></span></li>
+            </ul>
+          </div>
 
           <!-- 直近音声認識ログ（確認用） -->
           <hr class="settings-divider" />

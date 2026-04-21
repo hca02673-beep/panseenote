@@ -563,6 +563,83 @@
     state.voiceRegisterMetaMsg = msg || "";
   }
 
+  function buildEmptyVoiceRegisterDraft() {
+    return { title: "", book: "", page: "", memo: "" };
+  }
+
+  function continueManualVoiceRegister() {
+    return enterVoiceRegisterResultMode({
+      draft: buildEmptyVoiceRegisterDraft(),
+      metaMsg: "引き続き、手動で登録が出来ます。",
+    });
+  }
+
+  function isManualRegisterPreferred() {
+    return !!(state.settings && state.settings.preferManualRegister);
+  }
+
+  function normalizeSpeechTimeoutMs(value) {
+    var n = Number(value);
+    return n === 5000 || n === 10000 ? n : C.SPEECH_TIMEOUT_MS;
+  }
+
+  function getSpeechTimeoutMs() {
+    return normalizeSpeechTimeoutMs(state.settings && state.settings.speechTimeoutMs);
+  }
+
+  function getSpeechTimeoutSecondsLabel() {
+    return String(Math.round(getSpeechTimeoutMs() / 1000)) + "秒";
+  }
+
+  function buildSpeechTimeoutMessage(suffix) {
+    return "音声認識がタイムアウト（" + getSpeechTimeoutSecondsLabel() + "）しました。" + String(suffix || "");
+  }
+
+  function enterManualRegisterMode(metaMsg) {
+    return enterVoiceRegisterResultMode({
+      draft: buildEmptyVoiceRegisterDraft(),
+      metaMsg: String(metaMsg || "手動で登録ができます。"),
+    });
+  }
+
+  function updateVoiceRegisterButtonUi() {
+    var titleEl = $("#voice-register-title");
+    var subPrimaryEl = $("#voice-register-sub-primary");
+    var subSecondaryEl = $("#voice-register-sub-secondary");
+    var manual = isManualRegisterPreferred();
+    if (titleEl) titleEl.textContent = manual ? "データ登録" : "音声登録";
+    if (subPrimaryEl) {
+      subPrimaryEl.textContent = manual ? "（手動入力）" : "（サービス名）";
+    }
+    if (subSecondaryEl) {
+      subSecondaryEl.hidden = manual;
+    }
+  }
+
+  function updateClientSettingsUi() {
+    var manualEl = $("#setting-prefer-manual-register");
+    if (manualEl) manualEl.checked = isManualRegisterPreferred();
+    var timeoutEl = $("#setting-speech-timeout");
+    if (timeoutEl) timeoutEl.value = String(getSpeechTimeoutMs());
+    updateVoiceRegisterButtonUi();
+  }
+
+  function setAccordionExpanded(toggleBtn, body, label, expanded, onOpen) {
+    if (!toggleBtn || !body) return;
+    if (expanded) {
+      body.removeAttribute("hidden");
+      toggleBtn.textContent = "▼ " + label;
+      if (typeof onOpen === "function") onOpen();
+      return;
+    }
+    body.setAttribute("hidden", "");
+    toggleBtn.textContent = "▶ " + label;
+  }
+
+  function openAccordionByIds(toggleId, bodyId, label, onOpen) {
+    setAccordionExpanded($(toggleId), $(bodyId), label, true, onOpen);
+  }
+
   function readDisplayedEntryCount() {
     var ids = ["#plan-summary-line", "#plan-summary-line-sp"];
     for (var i = 0; i < ids.length; i++) {
@@ -837,6 +914,13 @@
     var el = $("#license-api-diagnostics");
     if (!el) return;
     el.textContent = String(msg || "");
+    if (String(msg || "").trim()) {
+      openAccordionByIds(
+        "#internal-settings-toggle-btn",
+        "#internal-settings-body",
+        "内部情報・診断"
+      );
+    }
   }
 
   function formatLicenseApiError(err) {
@@ -1140,6 +1224,7 @@
         bb.textContent = "(build: " + jst.getUTCFullYear() + "-" + pad(jst.getUTCMonth()+1) + "-" + pad(jst.getUTCDate()) + " " + pad(jst.getUTCHours()) + ":" + pad(jst.getUTCMinutes()) + " JST)";
       } catch(_) { bb.textContent = "(" + C.BUILD_TIMESTAMP + ")"; }
     }
+    updateClientSettingsUi();
     updatePlanSummaryLine();
     updateLicenseDetailsPanel();
     updateLicenseWarningBanner();
@@ -1870,11 +1955,10 @@
           return incrementUnsavedChangeCount().then(function () {
             return incrementRegisterCount();
           }).then(function () {
-            state.draft = null;
-            if (state.voiceRegisterMode) {
-              state.voicePreviewEntry = entry;
-            }
             toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
+            if (state.voiceRegisterMode) {
+              return continueManualVoiceRegister();
+            }
             return renderTable();
           });
         });
@@ -1896,13 +1980,11 @@
       var changed = hasEntryContentChanged(prev, next);
       return db.putEntry(state.idb, next).then(function () {
         return (changed ? incrementUnsavedChangeCount() : Promise.resolve()).then(function () {
-          // 5.2: voiceRegisterMode中に保存した場合、voicePreviewEntryを最新データで更新
-          // しないと renderTable が古い entry（memo空）で再描画してしまう
-          if (state.voiceRegisterMode && state.voicePreviewEntry && state.voicePreviewEntry.id === id) {
-            state.voicePreviewEntry = next;
-          }
           updateEntryInSearchSnapshot(next);
           toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
+          if (state.voiceRegisterMode) {
+            return continueManualVoiceRegister();
+          }
           if (isDirtyTrackedDesktopListRow(tr)) {
             syncDesktopListRowAfterSave(tr, next);
             return;
@@ -1972,6 +2054,7 @@
 
   function onVoiceSearch() {
     var trace = createVoiceTimingTrace("search");
+    var timeoutMs = getSpeechTimeoutMs();
     trace.mark("onVoiceSearch_enter");
     closeSettingsIfOpen();
     trace.mark("closeSettingsIfOpen_done");
@@ -1991,7 +2074,7 @@
     }
     trace.mark("speech_support_checked", { code: "supported" });
     trace.mark("recognizeOnce_call");
-    return voice.recognizeOnce({ trace: trace }).then(function (text) {
+    return voice.recognizeOnce({ trace: trace, timeoutMs: timeoutMs }).then(function (text) {
       trace.mark("onVoiceSearch_recognize_resolved", {
         empty: !String(text || "").trim(),
       });
@@ -2002,13 +2085,13 @@
       state.voiceSearchMsg = "";
       state.openMemoIds = new Set();
         if (!text.trim()) {
-          pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote("音声認識がタイムアウト（10秒）しました。", trace), {
+          pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote(buildSpeechTimeoutMessage(""), trace), {
             kind: "search",
             kindLabel: "音声検索",
             processedLabel: "正規化後",
             processedSummary: "（空欄）",
           });
-        state.voiceSearchMsg = "音声認識がタイムアウト（10秒）しました。手動検索も利用可能です。";
+        state.voiceSearchMsg = buildSpeechTimeoutMessage("手動検索も利用可能です。");
         } else {
           pushVoiceRecentLog(text, null, "成功", appendVoiceTimingNote("音声検索語を検索欄へ反映しました。", trace), {
             kind: "search",
@@ -2028,7 +2111,7 @@
       }).then(function () {
         return renderTable({ refreshSearchResults: true }).then(function () {
           if (!text.trim()) {
-            toast("音声認識がタイムアウトしました。");
+            toast(buildSpeechTimeoutMessage(""));
           }
         });
       });
@@ -2045,11 +2128,12 @@
 
   function onVoiceRegister() {
     var trace = createVoiceTimingTrace("register");
+    var timeoutMs = getSpeechTimeoutMs();
     trace.mark("onVoiceRegister_enter");
     if (!voice.isSpeechSupported()) {
       trace.mark("speech_support_checked", { code: "unsupported" });
       return enterVoiceRegisterResultMode({
-        draft: { title: "", book: "", page: "", memo: "" },
+        draft: buildEmptyVoiceRegisterDraft(),
         metaMsg: "このブラウザでは音声認識を利用できません。手動での登録をご利用ください。",
       }).then(function () {
         return refreshCount().then(function () {
@@ -2084,17 +2168,14 @@
       voice.playStartBeep();
     }
     trace.mark("recognizeOnce_call");
-    return voice.recognizeOnce({ trace: trace }).then(function (text) {
+    return voice.recognizeOnce({ trace: trace, timeoutMs: timeoutMs }).then(function (text) {
       trace.mark("onVoiceRegister_recognize_resolved", {
         empty: !String(text || "").trim(),
       });
 
       if (!text.trim()) {
-        pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote("音声認識がタイムアウト（10秒）しました。", trace));
-        return enterVoiceRegisterResultMode({
-          draft: { title: "", book: "", page: "", memo: "" },
-          metaMsg: "音声認識がタイムアウト（10秒）しました。手動で登録ができます。",
-        });
+        pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote(buildSpeechTimeoutMessage(""), trace));
+        return enterManualRegisterMode(buildSpeechTimeoutMessage("手動で登録ができます。"));
       }
 
       var parsed = voice.parseRegisterTranscript(text);
@@ -2128,11 +2209,30 @@
       if (err && (err.code === "replaced" || err.code === "aborted")) {
         return;
       }
-      return enterVoiceRegisterResultMode({
-        draft: { title: "", book: "", page: "", memo: "" },
-        metaMsg: "音声認識がタイムアウト（10秒）しました。手動で登録ができます。",
-      });
+      return enterManualRegisterMode(buildSpeechTimeoutMessage("手動で登録ができます。"));
     });
+  }
+
+  function onManualRegister() {
+    var displayedCount = readDisplayedEntryCount();
+    if (
+      displayedCount != null &&
+      displayedCount >= Number(state.license.itemLimit)
+    ) {
+      state.voiceRegisterMode = false;
+      state.voicePreviewEntry = null;
+      state.draft = null;
+      state.voiceRegisterMetaMsg = "";
+      state.searchQuery = "";
+      if ($("#manual-search")) $("#manual-search").value = "";
+      setEntryLimitInlineWarning(
+        "登録上限（" + state.license.itemLimit + "件）です。プラン変更で件数増加をご検討ください"
+      );
+      return saveSearchQueryToSettings("").then(function () {
+        return renderTable();
+      });
+    }
+    return enterManualRegisterMode("手動で登録ができます。");
   }
 
   function shouldRunPeriodicCheck(licDoc) {
@@ -2557,11 +2657,33 @@
       onVoiceSearch();
     });
     $("#btn-voice-register").addEventListener("click", function () {
+      if (isManualRegisterPreferred()) {
+        onManualRegister();
+        return;
+      }
       onVoiceRegister();
     });
     $("#btn-license-activate").addEventListener("click", function () {
       onActivateLicense();
     });
+    if ($("#setting-prefer-manual-register")) {
+      $("#setting-prefer-manual-register").addEventListener("change", function () {
+        persistSettingsPatch({
+          preferManualRegister: !!this.checked,
+        }).catch(function (err) {
+          console.warn("Manual register setting update failed:", err);
+        });
+      });
+    }
+    if ($("#setting-speech-timeout")) {
+      $("#setting-speech-timeout").addEventListener("change", function () {
+        persistSettingsPatch({
+          speechTimeoutMs: normalizeSpeechTimeoutMs(this.value),
+        }).catch(function (err) {
+          console.warn("Speech timeout setting update failed:", err);
+        });
+      });
+    }
     var mobileEditOverlay = $("#mobile-edit-sheet-overlay");
     if (mobileEditOverlay) {
       mobileEditOverlay.addEventListener("click", function (ev) {
@@ -2687,6 +2809,7 @@
         return runBackgroundMaintenance("startup").catch(function () {});
       })
       .then(function () {
+        initInternalSettingsAccordion();
         initVoiceRecentLogs();
       })
       .catch(function (e) {
@@ -2795,15 +2918,13 @@
     if (!toggleBtn || !body) return;
 
     toggleBtn.addEventListener("click", function () {
-      var hidden = body.hasAttribute("hidden");
-      if (hidden) {
-        body.removeAttribute("hidden");
-        toggleBtn.textContent = "▼ 直近音声認識ログ（確認用）";
-        renderVoiceRecentLogs();
-      } else {
-        body.setAttribute("hidden", "");
-        toggleBtn.textContent = "▶ 直近音声認識ログ（確認用）";
-      }
+      setAccordionExpanded(
+        toggleBtn,
+        body,
+        "直近音声認識ログ（確認用）",
+        body.hasAttribute("hidden"),
+        renderVoiceRecentLogs
+      );
     });
 
     if (clearBtn) {
@@ -2814,6 +2935,20 @@
     }
 
     renderVoiceRecentLogs();
+  }
+
+  function initInternalSettingsAccordion() {
+    var toggleBtn = $("#internal-settings-toggle-btn");
+    var body = $("#internal-settings-body");
+    if (!toggleBtn || !body) return;
+    toggleBtn.addEventListener("click", function () {
+      setAccordionExpanded(
+        toggleBtn,
+        body,
+        "内部情報・診断",
+        body.hasAttribute("hidden")
+      );
+    });
   }
 
   if (document.readyState === "loading") {

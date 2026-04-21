@@ -251,13 +251,15 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-button.primary {
+button.primary,
+a.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
 
-button.primary:hover {
+button.primary:hover,
+a.primary:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }
@@ -833,6 +835,73 @@ button.sm {
 .settings-lead {
   color: var(--fg);
   margin: 0 0 0.75rem;
+}
+
+.settings-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.settings-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.85rem;
+  font-weight: 600;
+}
+
+.settings-link-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.user-settings-section {
+  margin-top: 0.9rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.user-settings-title {
+  margin: 0 0 0.75rem;
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.settings-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--fg);
+  margin-bottom: 0.8rem;
+}
+
+.settings-check-row input {
+  margin: 0;
+}
+
+.settings-field-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.settings-select {
+  width: 100%;
+  max-width: 220px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
 }
 
 /* ======================================================

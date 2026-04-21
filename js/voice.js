@@ -100,6 +100,7 @@
     var Ctor = getSpeechRecognitionCtor();
     var opts = options || {};
     var trace = opts.trace || null;
+    var timeoutMs = Number(opts.timeoutMs) || C.SPEECH_TIMEOUT_MS;
     if (!Ctor) {
       traceMark(trace, "recognition_unsupported");
       return Promise.resolve("");
@@ -128,7 +129,7 @@
       var timer = global.setTimeout(function () {
         if (settled) return;
         traceMark(trace, "recognition_timeout", {
-          timeoutMs: C.SPEECH_TIMEOUT_MS,
+          timeoutMs: timeoutMs,
         });
         settled = true;
         cleanup();
@@ -136,7 +137,7 @@
           rec.stop();
         } catch (e) {}
         resolve("");
-      }, C.SPEECH_TIMEOUT_MS);
+      }, timeoutMs);
 
       function finish(text) {
         if (settled) return;
