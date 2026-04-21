@@ -2472,7 +2472,7 @@
           if ($("#license-key-input")) $("#license-key-input").value = key;
           updatePlanBar();
           setLicenseDiagnostics("");
-          toast("ライセンス認証に成功しました。");
+          toast("認証ありがとうございます。パンセノートの準備が整いました。");
         });
       })
       .catch(function (err) {
@@ -2590,14 +2590,10 @@
               }).then(function () {
                 return renderTable({ refreshSearchResults: true }).then(function () {
                   if (truncated) {
-                    return showAppAlert(
-                      "このプランの登録上限を超えるため、先頭から取り込める分のみ登録しました。超過分は登録されていません。"
-                    );
-                  } else {
-                    return showAppAlert(
-                      "バックアップファイルを読み込みました。既存データは置き換えられました。"
-                    );
+                    toast("バックアップファイルの先頭から、登録上限件数まで読み込みました。");
+                    return;
                   }
+                  toast("バックアップファイルを読み込みました。");
                 });
               });
             });
@@ -2614,13 +2610,7 @@
 
   function onImportRequest() {
     if (state.importBusy || state.exportBusy) return Promise.resolve();
-    return showAppConfirm("バックアップファイルを読み出しますか？", {
-      detail:
-        "このあとファイル選択画面が開きます。キャンセルする場合は、この画面でキャンセルしてください。",
-      okLabel: "ファイルを選ぶ",
-      cancelLabel: "キャンセル",
-    }).then(function (ok) {
-      if (!ok) return;
+    var startImport = function () {
       return requestImportFile()
         .then(function (file) {
           if (!file) return;
@@ -2630,6 +2620,18 @@
           var input = $("#import-file");
           if (input) input.value = "";
         });
+    };
+    if (!isPhoneViewport()) {
+      return startImport();
+    }
+    return showAppConfirm("バックアップファイルを読み出します。", {
+      detail:
+        "このあとファイル選択画面が開きます。キャンセルする場合は、この画面でキャンセルしてください。",
+      okLabel: "ファイルを選ぶ",
+      cancelLabel: "キャンセル",
+    }).then(function (ok) {
+      if (!ok) return;
+      return startImport();
     });
   }
 
