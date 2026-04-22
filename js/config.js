@@ -11,8 +11,8 @@
   var CONFIG = {
     APP_ID: "PenseeNote",
     APP_VERSION: "1.0.9",
-    BUILD_TIMESTAMP: "2026-04-19T03:30:00Z",
-    EXPORT_JSON_VERSION: "2.0",
+    BUILD_TIMESTAMP: "2026-04-21T23:38:10Z",
+    EXPORT_JSON_VERSION: "1.0",
     TERMS_VERSION: "1.1",
 
     DB_NAME: "panseenote-db",
