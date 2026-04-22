@@ -661,9 +661,43 @@
 
   function ensureZipLibReady() {
     if (getZipLib()) return Promise.resolve(getZipLib());
-    return showAppAlert("ZIP処理ライブラリを読み込めませんでした。通信環境を確認して再度お試しください。").then(function () {
-      return Promise.reject(new Error("zip_library_unavailable"));
+    if (ensureZipLibReady._pending) return ensureZipLibReady._pending;
+    ensureZipLibReady._pending = new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      var settled = false;
+      var timeoutId = window.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        reject(new Error("zip_library_timeout"));
+      }, 8000);
+      script.src = "https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js";
+      script.async = true;
+      script.onload = function () {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        var ZipLib = getZipLib();
+        if (ZipLib) {
+          resolve(ZipLib);
+          return;
+        }
+        reject(new Error("zip_library_unavailable"));
+      };
+      script.onerror = function () {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        reject(new Error("zip_library_unavailable"));
+      };
+      document.head.appendChild(script);
+    }).catch(function (err) {
+      return showAppAlert("ZIP処理ライブラリを読み込めませんでした。通信環境を確認して再度お試しください。").then(function () {
+        return Promise.reject(err);
+      });
+    }).finally(function () {
+      ensureZipLibReady._pending = null;
     });
+    return ensureZipLibReady._pending;
   }
 
   function buildPhotoAssetsForEntry(entryId, processed) {
