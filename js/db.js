@@ -28,6 +28,10 @@
         if (!db.objectStoreNames.contains(C.STORES.SETTINGS)) {
           db.createObjectStore(C.STORES.SETTINGS, { keyPath: "id" });
         }
+        if (!db.objectStoreNames.contains(C.STORES.PHOTO_ASSETS)) {
+          var photoStore = db.createObjectStore(C.STORES.PHOTO_ASSETS, { keyPath: "id" });
+          photoStore.createIndex("entryId", "entryId", { unique: false });
+        }
       };
     });
   }
@@ -245,6 +249,28 @@
     });
   }
 
+  function normalizeEntryDoc(entry) {
+    var e = entry ? Object.assign({}, entry) : {};
+    if (e.photoAttached === undefined || e.photoAttached === null) e.photoAttached = false;
+    e.photoAttached = !!e.photoAttached;
+    if (e.photoId === undefined || e.photoId === null) e.photoId = "";
+    if (e.photoThumbId === undefined || e.photoThumbId === null) e.photoThumbId = "";
+    return e;
+  }
+
+  function normalizePhotoAsset(asset) {
+    var a = asset ? Object.assign({}, asset) : {};
+    if (a.id == null) a.id = "";
+    if (a.entryId == null) a.entryId = "";
+    if (a.kind == null) a.kind = "full";
+    if (a.mimeType == null) a.mimeType = C.PHOTO_MIME_TYPE;
+    if (a.blob == null) a.blob = new Blob([], { type: a.mimeType });
+    if (a.width == null) a.width = 0;
+    if (a.height == null) a.height = 0;
+    if (a.sizeBytes == null) a.sizeBytes = a.blob && a.blob.size ? a.blob.size : 0;
+    return a;
+  }
+
   function buildSearchNormalized(title, memo) {
     return norm(
       (title == null ? "" : String(title)) +
@@ -262,7 +288,7 @@
       var tx = db.transaction([C.STORES.ENTRIES], "readonly");
       var req = tx.objectStore(C.STORES.ENTRIES).getAll();
       req.onsuccess = function () {
-        resolve(req.result || []);
+        resolve((req.result || []).map(normalizeEntryDoc));
       };
       req.onerror = function () {
         reject(req.error);
@@ -277,6 +303,16 @@
   function countEntries(db) {
     return getAllEntries(db).then(function (rows) {
       return rows.length;
+    });
+  }
+
+  function countPhotoAttachments(db) {
+    return getAllEntries(db).then(function (rows) {
+      var count = 0;
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].photoAttached) count += 1;
+      }
+      return count;
     });
   }
 
@@ -296,6 +332,19 @@
     });
   }
 
+  function clearPhotoAssets(db) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction([C.STORES.PHOTO_ASSETS], "readwrite");
+      tx.objectStore(C.STORES.PHOTO_ASSETS).clear();
+      tx.oncomplete = function () {
+        resolve();
+      };
+      tx.onerror = function () {
+        reject(tx.error);
+      };
+    });
+  }
+
   /**
    * @param {IDBDatabase} db
    * @param {object} entry
@@ -303,9 +352,27 @@
   function putEntry(db, entry) {
     return new Promise(function (resolve, reject) {
       var tx = db.transaction([C.STORES.ENTRIES], "readwrite");
-      tx.objectStore(C.STORES.ENTRIES).put(entry);
+      tx.objectStore(C.STORES.ENTRIES).put(normalizeEntryDoc(entry));
       tx.oncomplete = function () {
-        resolve(entry);
+        resolve(normalizeEntryDoc(entry));
+      };
+      tx.onerror = function () {
+        reject(tx.error);
+      };
+    });
+  }
+
+  function putEntryWithPhotoAssets(db, entry, photoAssets) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction([C.STORES.ENTRIES, C.STORES.PHOTO_ASSETS], "readwrite");
+      tx.objectStore(C.STORES.ENTRIES).put(normalizeEntryDoc(entry));
+      var store = tx.objectStore(C.STORES.PHOTO_ASSETS);
+      var assets = Array.isArray(photoAssets) ? photoAssets : [];
+      for (var i = 0; i < assets.length; i++) {
+        store.put(normalizePhotoAsset(assets[i]));
+      }
+      tx.oncomplete = function () {
+        resolve(normalizeEntryDoc(entry));
       };
       tx.onerror = function () {
         reject(tx.error);
@@ -319,8 +386,18 @@
    */
   function deleteEntry(db, id) {
     return new Promise(function (resolve, reject) {
-      var tx = db.transaction([C.STORES.ENTRIES], "readwrite");
+      var tx = db.transaction([C.STORES.ENTRIES, C.STORES.PHOTO_ASSETS], "readwrite");
       tx.objectStore(C.STORES.ENTRIES).delete(id);
+      var req = tx.objectStore(C.STORES.PHOTO_ASSETS).index("entryId").openCursor(IDBKeyRange.only(id));
+      req.onsuccess = function (ev) {
+        var cursor = ev.target.result;
+        if (!cursor) return;
+        cursor.delete();
+        cursor.continue();
+      };
+      req.onerror = function () {
+        reject(req.error);
+      };
       tx.oncomplete = function () {
         resolve();
       };
@@ -358,6 +435,9 @@
       book: book == null ? "" : String(book),
       page: page == null ? "" : String(page),
       memo: m,
+      photoAttached: false,
+      photoId: "",
+      photoThumbId: "",
       createdAt: now,
       updatedAt: now,
     };
@@ -384,9 +464,56 @@
       book: book,
       page: page,
       memo: memo,
+      photoAttached:
+        patch.photoAttached !== undefined ? !!patch.photoAttached : !!prev.photoAttached,
+      photoId:
+        patch.photoId !== undefined ? String(patch.photoId || "") : String(prev.photoId || ""),
+      photoThumbId:
+        patch.photoThumbId !== undefined
+          ? String(patch.photoThumbId || "")
+          : String(prev.photoThumbId || ""),
       createdAt: prev.createdAt,
       updatedAt: now,
     };
+  }
+
+  function getPhotoAsset(db, id) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction([C.STORES.PHOTO_ASSETS], "readonly");
+      var req = tx.objectStore(C.STORES.PHOTO_ASSETS).get(id);
+      req.onsuccess = function () {
+        resolve(req.result ? normalizePhotoAsset(req.result) : null);
+      };
+      req.onerror = function () {
+        reject(req.error);
+      };
+    });
+  }
+
+  function getPhotoAssetsByEntryId(db, entryId) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction([C.STORES.PHOTO_ASSETS], "readonly");
+      var req = tx.objectStore(C.STORES.PHOTO_ASSETS).index("entryId").getAll(entryId);
+      req.onsuccess = function () {
+        resolve((req.result || []).map(normalizePhotoAsset));
+      };
+      req.onerror = function () {
+        reject(req.error);
+      };
+    });
+  }
+
+  function getAllPhotoAssets(db) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction([C.STORES.PHOTO_ASSETS], "readonly");
+      var req = tx.objectStore(C.STORES.PHOTO_ASSETS).getAll();
+      req.onsuccess = function () {
+        resolve((req.result || []).map(normalizePhotoAsset));
+      };
+      req.onerror = function () {
+        reject(req.error);
+      };
+    });
   }
 
   global.PANSEE_db = {
@@ -397,11 +524,17 @@
     updateSettings: updateSettings,
     getAllEntries: getAllEntries,
     countEntries: countEntries,
+    countPhotoAttachments: countPhotoAttachments,
     clearEntries: clearEntries,
+    clearPhotoAssets: clearPhotoAssets,
     putEntry: putEntry,
+    putEntryWithPhotoAssets: putEntryWithPhotoAssets,
     deleteEntry: deleteEntry,
     buildNewEntry: buildNewEntry,
     patchEntry: patchEntry,
+    getPhotoAsset: getPhotoAsset,
+    getPhotoAssetsByEntryId: getPhotoAssetsByEntryId,
+    getAllPhotoAssets: getAllPhotoAssets,
     defaultLicenseDoc: defaultLicenseDoc,
     defaultSettingsDoc: defaultSettingsDoc,
     putLicense: putLicense,

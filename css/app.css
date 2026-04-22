@@ -793,6 +793,34 @@ tr.memo-row td.memo-cell {
   box-sizing: border-box;
 }
 
+.photo-thumb-wrap {
+  margin: 0 0 0.6rem;
+}
+
+.photo-thumb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7rem;
+  min-height: 5rem;
+  padding: 0.2rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.photo-thumb-image {
+  display: block;
+  max-width: 100%;
+  max-height: 10rem;
+  border-radius: 6px;
+}
+
+.photo-thumb-placeholder {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 button.sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.85rem;
@@ -1086,6 +1114,51 @@ button.sm {
   .license-warning-banner {
     background: rgba(245, 158, 11, 0.15);
   }
+}
+
+.photo-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.photo-viewer-box {
+  width: min(92vw, 900px);
+  max-height: 92vh;
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.photo-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.photo-viewer-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.photo-viewer-body {
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.photo-viewer-image {
+  max-width: 100%;
+  max-height: 75vh;
+  border-radius: 8px;
 }
 
 /* ======================================================

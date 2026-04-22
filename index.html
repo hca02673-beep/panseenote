@@ -16,7 +16,14 @@
         type="file"
         id="import-file"
         class="sr-only"
-        accept="application/json,.json"
+        accept="application/json,.json,application/zip,.zip"
+        aria-hidden="true"
+      />
+      <input
+        type="file"
+        id="photo-file"
+        class="sr-only"
+        accept="image/*"
         aria-hidden="true"
       />
 
@@ -296,6 +303,18 @@
       </div>
     </div><!-- /#app-dialog -->
 
+    <div id="photo-viewer-overlay" class="photo-viewer-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="photo-viewer-title">
+      <div class="photo-viewer-box" role="document">
+        <div class="photo-viewer-header">
+          <h2 id="photo-viewer-title" class="photo-viewer-title">登録写真</h2>
+          <button type="button" id="photo-viewer-close" class="app-dialog-btn app-dialog-btn-secondary">閉じる</button>
+        </div>
+        <div class="photo-viewer-body">
+          <img id="photo-viewer-image" class="photo-viewer-image" alt="登録写真" />
+        </div>
+      </div>
+    </div><!-- /#photo-viewer-overlay -->
+
     <div id="mobile-edit-sheet-overlay" class="mobile-edit-sheet-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="mobile-edit-sheet-title">
       <div id="mobile-edit-sheet" class="mobile-edit-sheet" role="document">
         <div class="mobile-edit-sheet-handle" aria-hidden="true"></div>
@@ -319,6 +338,7 @@
             <span>メモ</span>
             <textarea id="mobile-edit-memo" rows="5" maxlength="500" placeholder="メモを入力（登録ボタンで確定）..."></textarea>
           </label>
+          <div id="mobile-edit-photo-slot" hidden></div>
         </div>
         <div class="mobile-edit-sheet-actions">
           <button type="button" id="mobile-edit-cancel" class="app-dialog-btn app-dialog-btn-secondary">キャンセル</button>
@@ -335,6 +355,8 @@
     <script src="js/usage.js"></script>
     <script src="js/normalize.js"></script>
     <script src="js/db.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
+    <script src="js/image.js"></script>
     <script src="js/voice.js"></script>
     <script src="js/app.js"></script>
   </body>

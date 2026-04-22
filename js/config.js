@@ -11,17 +11,18 @@
   var CONFIG = {
     APP_ID: "PenseeNote",
     APP_VERSION: "1.0.9",
-    BUILD_TIMESTAMP: "2026-04-21T22:40:04Z",
-    EXPORT_JSON_VERSION: "1.0",
+    BUILD_TIMESTAMP: "2026-04-19T03:30:00Z",
+    EXPORT_JSON_VERSION: "2.0",
     TERMS_VERSION: "1.1",
 
     DB_NAME: "panseenote-db",
-    DB_VERSION: 1,
+    DB_VERSION: 2,
 
     STORES: {
       ENTRIES: "entries",
       LICENSE: "license",
       SETTINGS: "settings",
+      PHOTO_ASSETS: "photo_assets",
     },
 
     /** 未認証・試用（サーバー返却の itemLimit を正とする） */
@@ -35,6 +36,13 @@
     MAX_TITLE_LENGTH: 100,
     SPEECH_TIMEOUT_MS: 10000,
     MAX_SEARCH_DISPLAY: 50,
+    PHOTO_LIMIT: 2000,
+    PHOTO_MIME_TYPE: "image/jpeg",
+    PHOTO_FULL_MAX_EDGE: 1600,
+    PHOTO_FULL_QUALITY: 0.72,
+    PHOTO_THUMB_MAX_EDGE: 320,
+    PHOTO_THUMB_QUALITY: 0.6,
+    BACKUP_JSON_NAME: "backup.json",
 
     SPEECH_LANG: "ja-JP",
 

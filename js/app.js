@@ -8,6 +8,7 @@
   var db = window.PANSEE_db;
   var norm = window.PANSEE_normalizeForSearch;
   var voice = window.PANSEE_voice;
+  var imageUtil = window.PANSEE_image;
   var lic = window.PANSEE_license;
   var usage = window.PANSEE_usage;
 
@@ -43,6 +44,7 @@
     usageSessionStarted: false,
     usageSentThisSession: false,
     usageSendBusy: false,
+    photoPickerContext: null,
   };
 
   var $ = function (sel) {
@@ -207,7 +209,7 @@
   }
 
   function buildBackupFileName() {
-    return "panseenote-backup-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+    return "panseenote-backup-" + new Date().toISOString().replace(/[:.]/g, "-") + ".zip";
   }
 
   function normalizeFileLabel(name, fallback) {
@@ -217,35 +219,72 @@
   }
 
   function buildBackupFilePayload() {
-    return Promise.all([
-      db.getAllEntries(state.idb),
-      db.getLicense(state.idb),
-    ]).then(function (pair) {
-      var rows = sortEntries(pair[0]);
-      var lic = pair[1];
-      var payload = {
-        app: C.APP_ID,
-        version: C.EXPORT_JSON_VERSION,
-        exportedAt: new Date().toISOString(),
-        planCode: lic.planCode,
-        itemLimit: lic.itemLimit,
-        items: rows.map(function (e) {
+    return ensureZipLibReady().then(function (ZipLib) {
+      return Promise.all([
+        db.getAllEntries(state.idb),
+        db.getLicense(state.idb),
+        db.getAllPhotoAssets(state.idb),
+      ]).then(function (triple) {
+        var rows = sortEntries(triple[0]);
+        var lic = triple[1];
+        var assets = triple[2];
+        var photoMap = Object.create(null);
+        for (var i = 0; i < assets.length; i++) {
+          var asset = assets[i];
+          if (!photoMap[asset.entryId]) photoMap[asset.entryId] = {};
+          photoMap[asset.entryId][asset.kind] = asset;
+        }
+        var payload = {
+          app: C.APP_ID,
+          version: C.EXPORT_JSON_VERSION,
+          exportedAt: new Date().toISOString(),
+          planCode: lic.planCode,
+          itemLimit: lic.itemLimit,
+          items: rows.map(function (e) {
+            var item = {
+              title: e.title,
+              book: e.book,
+              page: e.page,
+              memo: e.memo || "",
+              createdAt: e.createdAt,
+              updatedAt: e.updatedAt,
+            };
+            if (e.photoAttached && photoMap[e.id] && photoMap[e.id].full && photoMap[e.id].thumb) {
+              item.photo = {
+                fullFileName: "photos/" + String(e.id) + ".jpg",
+                thumbFileName: "thumbs/" + String(e.id) + ".jpg",
+                mimeType: photoMap[e.id].full.mimeType || C.PHOTO_MIME_TYPE,
+                thumbMimeType: photoMap[e.id].thumb.mimeType || C.PHOTO_MIME_TYPE,
+                width: Number(photoMap[e.id].full.width || 0),
+                height: Number(photoMap[e.id].full.height || 0),
+                thumbWidth: Number(photoMap[e.id].thumb.width || 0),
+                thumbHeight: Number(photoMap[e.id].thumb.height || 0),
+              };
+            }
+            return item;
+          }),
+        };
+        var zip = new ZipLib();
+        zip.file(C.BACKUP_JSON_NAME, JSON.stringify(payload, null, 2));
+        for (var j = 0; j < rows.length; j++) {
+          var row = rows[j];
+          if (!row.photoAttached || !photoMap[row.id] || !photoMap[row.id].full || !photoMap[row.id].thumb) {
+            continue;
+          }
+          zip.file("photos/" + String(row.id) + ".jpg", photoMap[row.id].full.blob);
+          zip.file("thumbs/" + String(row.id) + ".jpg", photoMap[row.id].thumb.blob);
+        }
+        return zip.generateAsync({
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 },
+        }).then(function (blob) {
           return {
-            title: e.title,
-            book: e.book,
-            page: e.page,
-            memo: e.memo || "",
-            createdAt: e.createdAt,
-            updatedAt: e.updatedAt,
+            blob: blob,
+            name: buildBackupFileName(),
           };
-        }),
-      };
-      return {
-        blob: new Blob([JSON.stringify(payload, null, 2)], {
-          type: "application/json",
-        }),
-        name: buildBackupFileName(),
-      };
+        });
+      });
     });
   }
 
@@ -291,9 +330,9 @@
       suggestedName: name,
       types: [
         {
-          description: "JSON ファイル",
+          description: "ZIP ファイル",
           accept: {
-            "application/json": [".json"],
+            "application/zip": [".zip"],
           },
         },
       ],
@@ -342,16 +381,18 @@
 
   function exportBackupFile(blob, name) {
     if (typeof window.showSaveFilePicker === "function") {
-      return saveBackupViaFilePicker(blob, name).then(function () {
-        return {
-          mode: "saved",
-          fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
-        };
+      return requestSaveFileHandle(name).then(function (saveHandle) {
+        return writeBackupToHandle(saveHandle, blob).then(function () {
+          return {
+            mode: "saved",
+            fileLabel: normalizeFileLabel(saveHandle.name || name, "ブラウザ管理"),
+          };
+        });
       });
     }
     var file = null;
     try {
-      file = new File([blob], name, { type: "application/json" });
+      file = new File([blob], name, { type: "application/zip" });
     } catch (_) {
       file = null;
     }
@@ -379,9 +420,10 @@
       multiple: false,
       types: [
         {
-          description: "JSON ファイル",
+          description: "バックアップファイル",
           accept: {
             "application/json": [".json"],
+            "application/zip": [".zip"],
           },
         },
       ],
@@ -563,8 +605,196 @@
     state.voiceRegisterMetaMsg = msg || "";
   }
 
+  function createLocalId(prefix) {
+    var head = prefix || "id";
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return head + "-" + window.crypto.randomUUID();
+    }
+    return head + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
   function buildEmptyVoiceRegisterDraft() {
-    return { title: "", book: "", page: "", memo: "" };
+    return {
+      title: "",
+      book: "",
+      page: "",
+      memo: "",
+      photoAttached: false,
+      photoId: "",
+      photoThumbId: "",
+      photoPending: null,
+      photoThumbDataUrl: "",
+      photoFullDataUrl: "",
+    };
+  }
+
+  function hasPhotoAttached(entry) {
+    return !!(
+      entry &&
+      (
+        entry.photoAttached ||
+        entry.photoPending ||
+        entry.photoId ||
+        entry.photoThumbId ||
+        entry.photoThumbDataUrl
+      )
+    );
+  }
+
+  function hasMemoLikeContent(entry) {
+    return !!(
+      entry &&
+      (
+        String(entry.memo || "").trim() !== "" ||
+        hasPhotoAttached(entry)
+      )
+    );
+  }
+
+  function cloneDraftWithPhotoMeta(source, patch) {
+    return Object.assign(buildEmptyVoiceRegisterDraft(), source || {}, patch || {});
+  }
+
+  function getZipLib() {
+    return window.JSZip || null;
+  }
+
+  function ensureZipLibReady() {
+    if (getZipLib()) return Promise.resolve(getZipLib());
+    return showAppAlert("ZIP処理ライブラリを読み込めませんでした。通信環境を確認して再度お試しください。").then(function () {
+      return Promise.reject(new Error("zip_library_unavailable"));
+    });
+  }
+
+  function buildPhotoAssetsForEntry(entryId, processed) {
+    var photoId = createLocalId("photo");
+    var thumbId = createLocalId("thumb");
+    return {
+      photoId: photoId,
+      thumbId: thumbId,
+      assets: [
+        {
+          id: photoId,
+          entryId: entryId,
+          kind: "full",
+          mimeType: processed.full.mimeType,
+          blob: processed.full.blob,
+          width: processed.full.width,
+          height: processed.full.height,
+          sizeBytes: processed.full.sizeBytes,
+        },
+        {
+          id: thumbId,
+          entryId: entryId,
+          kind: "thumb",
+          mimeType: processed.thumb.mimeType,
+          blob: processed.thumb.blob,
+          width: processed.thumb.width,
+          height: processed.thumb.height,
+          sizeBytes: processed.thumb.sizeBytes,
+        },
+      ],
+    };
+  }
+
+  function getPendingPhotoData(entry) {
+    return entry && entry.photoPending ? entry.photoPending : null;
+  }
+
+  function canAttachPhotoToEntry(entry, isDraft) {
+    if (!state.voiceRegisterMode) return false;
+    if (!entry || hasPhotoAttached(entry)) return false;
+    if (isDraft) return true;
+    return !!(state.voicePreviewEntry && state.voicePreviewEntry.id && entry.id === state.voicePreviewEntry.id);
+  }
+
+  function ensurePhotoLimitAvailable() {
+    return db.countPhotoAttachments(state.idb).then(function (count) {
+      if (count >= C.PHOTO_LIMIT) {
+        return showAppAlert("写真登録上限（" + C.PHOTO_LIMIT + "枚）に達しています。").then(function () {
+          return Promise.reject(new Error("photo_limit_reached"));
+        });
+      }
+      return count;
+    });
+  }
+
+  function buildPhotoThumbButtonHtml(entry, options) {
+    options = options || {};
+    var pending = getPendingPhotoData(entry);
+    var thumbSrc = options.thumbSrc || entry.photoThumbDataUrl || (pending && pending.thumbDataUrl) || "";
+    var fullSrc = options.fullSrc || entry.photoFullDataUrl || (pending && pending.fullDataUrl) || "";
+    var thumbId = entry && entry.photoThumbId ? String(entry.photoThumbId) : "";
+    var fullId = entry && entry.photoId ? String(entry.photoId) : "";
+    if (!hasPhotoAttached(entry) && !thumbSrc && !thumbId) return "";
+    var attrs = "";
+    if (thumbSrc) attrs += ' data-photo-thumb-src="' + escapeAttr(thumbSrc) + '"';
+    if (fullSrc) attrs += ' data-photo-full-src="' + escapeAttr(fullSrc) + '"';
+    if (thumbId) attrs += ' data-photo-thumb-id="' + escapeAttr(thumbId) + '"';
+    if (fullId) attrs += ' data-photo-full-id="' + escapeAttr(fullId) + '"';
+    return (
+      '<div class="photo-thumb-wrap">' +
+      '<button type="button" class="photo-thumb-button"' + attrs + '>' +
+      (thumbSrc
+        ? '<img src="' + escapeAttr(thumbSrc) + '" alt="登録写真サムネイル" class="photo-thumb-image" />'
+        : '<span class="photo-thumb-placeholder">写真</span>') +
+      "</button>" +
+      "</div>"
+    );
+  }
+
+  function openPhotoViewerFromSources(fullSrc, fullId) {
+    var overlay = $("#photo-viewer-overlay");
+    var img = $("#photo-viewer-image");
+    if (!overlay || !img) return Promise.resolve();
+    if (fullSrc) {
+      img.src = fullSrc;
+      overlay.removeAttribute("hidden");
+      return Promise.resolve();
+    }
+    if (!fullId) return Promise.resolve();
+    return db.getPhotoAsset(state.idb, fullId).then(function (asset) {
+      if (!asset || !asset.blob || !imageUtil || typeof imageUtil.blobToDataUrl !== "function") return;
+      return imageUtil.blobToDataUrl(asset.blob).then(function (src) {
+        img.src = src;
+        overlay.removeAttribute("hidden");
+      });
+    });
+  }
+
+  function closePhotoViewer() {
+    var overlay = $("#photo-viewer-overlay");
+    var img = $("#photo-viewer-image");
+    if (overlay) overlay.setAttribute("hidden", "");
+    if (img) img.removeAttribute("src");
+  }
+
+  function hydratePhotoThumbButtons() {
+    if (!imageUtil || typeof imageUtil.blobToDataUrl !== "function") return;
+    var buttons = document.querySelectorAll(".photo-thumb-button[data-photo-thumb-id]:not([data-photo-hydrated='1'])");
+    for (var i = 0; i < buttons.length; i++) {
+      (function (btn) {
+        btn.setAttribute("data-photo-hydrated", "1");
+        var thumbId = btn.getAttribute("data-photo-thumb-id");
+        if (!thumbId) return;
+        db.getPhotoAsset(state.idb, thumbId).then(function (asset) {
+          if (!asset || !asset.blob) return;
+          return imageUtil.blobToDataUrl(asset.blob).then(function (src) {
+            btn.setAttribute("data-photo-thumb-src", src);
+            btn.innerHTML =
+              '<img src="' + escapeAttr(src) + '" alt="登録写真サムネイル" class="photo-thumb-image" />';
+          });
+        }).catch(function () {});
+      })(buttons[i]);
+    }
+  }
+
+  function openPhotoPicker(context) {
+    var input = $("#photo-file");
+    if (!input) return;
+    state.photoPickerContext = context || null;
+    input.value = "";
+    input.click();
   }
 
   function continueManualVoiceRegister() {
@@ -572,6 +802,64 @@
       draft: buildEmptyVoiceRegisterDraft(),
       metaMsg: "引き続き、手動で登録が出来ます。",
     });
+  }
+
+  function attachProcessedPhotoToPreviewEntry(processed) {
+    if (!state.voicePreviewEntry || !state.voicePreviewEntry.id) return Promise.resolve();
+    var current = state.voicePreviewEntry;
+    var bundle = buildPhotoAssetsForEntry(current.id, processed);
+    var next = db.patchEntry(current, {
+      photoAttached: true,
+      photoId: bundle.photoId,
+      photoThumbId: bundle.thumbId,
+    });
+    next.photoThumbDataUrl = processed.thumbDataUrl;
+    next.photoFullDataUrl = processed.fullDataUrl;
+    return db.putEntryWithPhotoAssets(state.idb, next, bundle.assets).then(function () {
+      return incrementUnsavedChangeCount().then(function () {
+        state.voicePreviewEntry = next;
+        updateEntryInSearchSnapshot(next);
+        toast("写真を登録しました。");
+        return renderTable();
+      });
+    });
+  }
+
+  function applyDraftPhoto(processed) {
+    state.draft = cloneDraftWithPhotoMeta(state.draft, {
+      photoAttached: true,
+      photoPending: processed,
+      photoThumbDataUrl: processed.thumbDataUrl,
+      photoFullDataUrl: processed.fullDataUrl,
+    });
+    toast("写真を選択しました。");
+    return renderTable();
+  }
+
+  function onPhotoFileSelected(file) {
+    var ctx = state.photoPickerContext || null;
+    state.photoPickerContext = null;
+    if (!file || !ctx) return Promise.resolve();
+    if (!imageUtil || typeof imageUtil.processPhotoFile !== "function") {
+      return showAppAlert("写真処理を開始できませんでした。");
+    }
+    return ensurePhotoLimitAvailable()
+      .then(function () {
+        return imageUtil.processPhotoFile(file);
+      })
+      .then(function (processed) {
+        if (ctx.kind === "draft") {
+          return applyDraftPhoto(processed);
+        }
+        if (ctx.kind === "preview") {
+          return attachProcessedPhotoToPreviewEntry(processed);
+        }
+      })
+      .catch(function (err) {
+        if (!err || err.message === "photo_limit_reached") return;
+        console.error("Photo processing failed:", err);
+        return showAppAlert("写真の取り込みに失敗しました。");
+      });
   }
 
   function isManualRegisterPreferred() {
@@ -1277,6 +1565,7 @@
     var phoneSheetRow = !!options.phoneSheetRow;
     var showMemoButton = options.showMemoButton !== false;
     var showExitButton = !!options.showExitButton;
+    var allowPhotoButton = !!options.allowPhotoButton;
     var initialValues = options.initialValues || null;
     var saveDisabled = !!options.saveDisabled;
     var id = entry.id ? String(entry.id) : "";
@@ -1286,12 +1575,15 @@
     var pageEsc = escapeAttr(entry.page || "");
     var memoEsc = escapeAttr(entry.memo || "");
     var dateLabel = formatEntryCreatedAtDisplay(entry.createdAt);
-    var hasMemo = (entry.memo || "").trim() !== "";
+    var hasMemo = hasMemoLikeContent(entry);
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
     var saveLabel = options.saveLabel || "登録";
     var deleteLabel = options.deleteLabel || "削除";
     var exitLabel = options.exitLabel || "終了";
     var rowClass = phoneSheetRow ? ' class="row-tappable"' : "";
+    var photoButtonHtml = allowPhotoButton && !hasPhotoAttached(entry)
+      ? '<button type="button" class="sm row-photo">写真選択</button>'
+      : "";
     var memoIndicatorHtml =
       '<span class="memo-indicator' + (hasMemo ? "" : " is-hidden") + '">メモ</span>';
 
@@ -1358,6 +1650,7 @@
           (showExitButton
             ? '<button type="button" class="sm row-exit">' + escapeHtml(exitLabel) + "</button>"
             : "") +
+          photoButtonHtml +
           '<button type="button" class="sm row-save btn-action-green"' + (saveDisabled ? " disabled" : "") + ">" + escapeHtml(saveLabel) + "</button>" +
           (isDraft
             ? '<button type="button" class="sm row-delete btn-action-delete" disabled>' + escapeHtml(deleteLabel) + "</button>"
@@ -1374,6 +1667,7 @@
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       (memoInitiallyOpen ? ">" : " hidden>") +
       '<td colspan="' + (compactTable ? "3" : "4") + '" class="memo-cell">' +
+      buildPhotoThumbButtonHtml(entry) +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（登録ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
@@ -1389,6 +1683,7 @@
     var dr = isDraft ? ' data-draft="1"' : "";
     var compactTable = state.isCompactTable || isCompactTableViewport();
     var colSpan = isPhoneSearchSheetMode() ? 2 : (compactTable ? 3 : 4);
+    var allowPhotoButton = !!options.allowPhotoButton;
     var saveLabel = options.saveLabel || "登録";
     var deleteLabel = options.deleteLabel || "削除";
     var exitLabel = options.exitLabel || "終了";
@@ -1429,10 +1724,14 @@
       escapeHtml(entry.memo || "") +
       "</textarea>" +
       "</label>" +
+      buildPhotoThumbButtonHtml(entry) +
       '<div class="mobile-edit-sheet-actions mobile-inline-editor-actions">' +
       '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-exit">' +
       escapeHtml(exitLabel) +
       "</button>" +
+      (allowPhotoButton && !hasPhotoAttached(entry)
+        ? '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-photo">写真選択</button>'
+        : "") +
       '<button type="button" class="app-dialog-btn btn-action-green row-save">' +
       escapeHtml(saveLabel) +
       "</button>" +
@@ -1523,7 +1822,7 @@
     tr.setAttribute("data-initial-memo", vals.memo || "");
     var memoBtn = tr.querySelector("button.row-memo");
     if (memoBtn) {
-      memoBtn.classList.toggle("has-memo", String(vals.memo || "").trim() !== "");
+      memoBtn.classList.toggle("has-memo", hasMemoLikeContent(entry));
     }
     updateSaveButtonStateForRow(tr);
   }
@@ -1603,10 +1902,16 @@
                     book: dv.book,
                     page: dv.page,
                     memo: dv.memo || "",
+                    photoAttached: !!dv.photoAttached,
+                    photoId: dv.photoId || "",
+                    photoThumbId: dv.photoThumbId || "",
+                    photoThumbDataUrl: dv.photoThumbDataUrl || "",
+                    photoFullDataUrl: dv.photoFullDataUrl || "",
+                    photoPending: dv.photoPending || null,
                     createdAt: "（未保存）",
                   },
                   true,
-                  { saveLabel: "登録", deleteLabel: "削除", exitLabel: "終了" }
+                  { saveLabel: "登録", deleteLabel: "削除", exitLabel: "終了", allowPhotoButton: true }
                 )
               : rowHtml(
                   {
@@ -1615,6 +1920,12 @@
                     book: dv.book,
                     page: dv.page,
                     memo: dv.memo || "",
+                    photoAttached: !!dv.photoAttached,
+                    photoId: dv.photoId || "",
+                    photoThumbId: dv.photoThumbId || "",
+                    photoThumbDataUrl: dv.photoThumbDataUrl || "",
+                    photoFullDataUrl: dv.photoFullDataUrl || "",
+                    photoPending: dv.photoPending || null,
                     createdAt: "（未保存）",
                   },
                   true,
@@ -1626,6 +1937,7 @@
                     initialValues: dv,
                     showMemoButton: false,
                     showExitButton: true,
+                    allowPhotoButton: true,
                   }
                 )
           );
@@ -1637,6 +1949,7 @@
                   saveLabel: "登録",
                   deleteLabel: "削除",
                   exitLabel: "終了",
+                  allowPhotoButton: true,
                 })
               : rowHtml(state.voicePreviewEntry, false, {
                   memoInitiallyOpen: true,
@@ -1647,6 +1960,7 @@
                   saveDisabled: true,
                   showMemoButton: false,
                   showExitButton: true,
+                  allowPhotoButton: true,
                 })
           );
         }
@@ -1665,6 +1979,7 @@
         bindDesktopTitleTextareas();
         bindExpandedMemoRows();
         restoreOpenMemoRows();
+        hydratePhotoThumbButtons();
         return refreshCount();
       }
 
@@ -1690,6 +2005,7 @@
       bindDesktopTitleTextareas();
       bindExpandedMemoRows();
       restoreOpenMemoRows();
+      hydratePhotoThumbButtons();
       return refreshCount();
     });
   }
@@ -1755,6 +2071,11 @@
   function closeMobileEditSheet() {
     var overlay = $("#mobile-edit-sheet-overlay");
     if (overlay) overlay.setAttribute("hidden", "");
+    var photoSlot = $("#mobile-edit-photo-slot");
+    if (photoSlot) {
+      photoSlot.setAttribute("hidden", "");
+      photoSlot.innerHTML = "";
+    }
     state.mobileEditEntryId = "";
   }
 
@@ -1765,10 +2086,21 @@
     var book = $("#mobile-edit-book");
     var page = $("#mobile-edit-page");
     var memo = $("#mobile-edit-memo");
+    var photoSlot = $("#mobile-edit-photo-slot");
     if (title) title.value = entry.title || "";
     if (book) book.value = entry.book || "";
     if (page) page.value = entry.page || "";
     if (memo) memo.value = entry.memo || "";
+    if (photoSlot) {
+      if (hasPhotoAttached(entry)) {
+        photoSlot.innerHTML = buildPhotoThumbButtonHtml(entry);
+        photoSlot.removeAttribute("hidden");
+        hydratePhotoThumbButtons();
+      } else {
+        photoSlot.innerHTML = "";
+        photoSlot.setAttribute("hidden", "");
+      }
+    }
     state.mobileEditEntryId = entry.id || "";
     overlay.removeAttribute("hidden");
   }
@@ -1898,12 +2230,25 @@
     body.onclick = function (ev) {
       var t = ev.target;
       if (!(t instanceof HTMLElement)) return;
+      var photoThumbBtn = t.closest("button.photo-thumb-button");
+      if (photoThumbBtn && body.contains(photoThumbBtn)) {
+        openPhotoViewerFromSources(
+          photoThumbBtn.getAttribute("data-photo-full-src") || "",
+          photoThumbBtn.getAttribute("data-photo-full-id") || ""
+        );
+        return;
+      }
       var tr = t.closest("tr");
       if (!tr || !body.contains(tr)) return;
       if (tr.classList.contains("memo-row")) return;
 
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
+      } else if (t.classList.contains("row-photo")) {
+        openPhotoPicker({
+          kind: tr.getAttribute("data-draft") === "1" ? "draft" : "preview",
+          entryId: tr.getAttribute("data-id") || "",
+        });
       } else if (t.classList.contains("row-exit")) {
         goHomeScreen();
       } else if (t.classList.contains("row-delete")) {
@@ -1951,7 +2296,23 @@
           });
         }
         var entry = db.buildNewEntry(vals.title, vals.book, vals.page, vals.memo);
-        return db.putEntry(state.idb, entry).then(function () {
+        var draftPhoto = state.draft && state.draft.photoPending ? state.draft.photoPending : null;
+        if (!draftPhoto) {
+          return db.putEntry(state.idb, entry);
+        }
+        return ensurePhotoLimitAvailable().then(function () {
+          var bundle = buildPhotoAssetsForEntry(entry.id, draftPhoto);
+          entry = db.patchEntry(entry, {
+            photoAttached: true,
+            photoId: bundle.photoId,
+            photoThumbId: bundle.thumbId,
+          });
+          return db.putEntryWithPhotoAssets(state.idb, entry, bundle.assets);
+        }).catch(function (err) {
+          if (err && err.message === "photo_limit_reached") return Promise.reject(err);
+          throw err;
+        });
+      }).then(function (entry) {
           return incrementUnsavedChangeCount().then(function () {
             return incrementRegisterCount();
           }).then(function () {
@@ -1961,6 +2322,9 @@
             }
             return renderTable();
           });
+        }).catch(function (err) {
+          if (err && err.message === "photo_limit_reached") return;
+          throw err;
         });
       });
     }
@@ -2491,6 +2855,165 @@
       });
   }
 
+  function readFileAsText(file, encoding) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        resolve(String(fr.result || ""));
+      };
+      fr.onerror = function () {
+        reject(fr.error);
+      };
+      fr.readAsText(file, encoding || "utf-8");
+    });
+  }
+
+  function readFileAsArrayBuffer(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        resolve(fr.result);
+      };
+      fr.onerror = function () {
+        reject(fr.error);
+      };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  function importBackupPayload(data, fileLabel, photoResolver) {
+    if (!data || data.app !== C.APP_ID || !Array.isArray(data.items)) {
+      return showAppAlert("バックアップファイルの形式が正しくありません。");
+    }
+    return db.getLicense(state.idb).then(function (lic) {
+      var items = data.items;
+      var effectiveLicense = state.license || lic || {};
+      var limit = Number(effectiveLicense.itemLimit);
+      if (isNaN(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
+      var truncated = items.length > limit;
+      var slice = items.slice(0, limit);
+      var importedPhotoCount = 0;
+      var photoOverflow = false;
+      return db.clearPhotoAssets(state.idb).then(function () {
+        return db.clearEntries(state.idb);
+      }).then(function () {
+        var chain = Promise.resolve();
+        for (var i = 0; i < slice.length; i++) {
+          (function (item) {
+            chain = chain.then(function () {
+              var e = db.buildNewEntry(item.title, item.book, item.page, item.memo || "");
+              if (item.createdAt) e.createdAt = String(item.createdAt);
+              if (item.updatedAt) e.updatedAt = String(item.updatedAt);
+              if (!item.photo || typeof photoResolver !== "function" || importedPhotoCount >= C.PHOTO_LIMIT) {
+                if (item.photo && importedPhotoCount >= C.PHOTO_LIMIT) {
+                  photoOverflow = true;
+                }
+                return db.putEntry(state.idb, e);
+              }
+              return photoResolver(item.photo).then(function (resolved) {
+                if (!resolved || !resolved.full || !resolved.thumb) {
+                  return db.putEntry(state.idb, e);
+                }
+                var bundle = buildPhotoAssetsForEntry(e.id, resolved);
+                e = db.patchEntry(e, {
+                  photoAttached: true,
+                  photoId: bundle.photoId,
+                  photoThumbId: bundle.thumbId,
+                });
+                importedPhotoCount += 1;
+                return db.putEntryWithPhotoAssets(state.idb, e, bundle.assets);
+              });
+            });
+          })(slice[i]);
+        }
+        return chain.then(function () {
+          state.voiceRegisterMode = false;
+          state.voicePreviewEntry = null;
+          state.draft = null;
+          state.openMemoIds = new Set();
+          state.searchQuery = ($("#manual-search") && $("#manual-search").value) || "";
+          return persistBackupImportInfo(fileLabel).then(function () {
+            return saveSearchQueryToSettings(state.searchQuery);
+          }).then(function () {
+            return renderTable({ refreshSearchResults: true }).then(function () {
+              if (truncated) {
+                toast("バックアップファイルの先頭から、登録上限件数まで読み込みました。");
+                return;
+              }
+              if (photoOverflow) {
+                toast("バックアップファイルを読み込みました。写真は上限2000枚まで復元しました。");
+                return;
+              }
+              toast("バックアップファイルを読み込みました。");
+            });
+          });
+        });
+      });
+    });
+  }
+
+  function importJsonBackupFile(file) {
+    return readFileAsText(file, "utf-8").then(function (text) {
+      var data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        return showAppAlert("バックアップファイルの形式が正しくありません。");
+      }
+      return importBackupPayload(data, file && file.name);
+    });
+  }
+
+  function importZipBackupFile(file) {
+    return ensureZipLibReady().then(function (ZipLib) {
+      return readFileAsArrayBuffer(file).then(function (buffer) {
+        return ZipLib.loadAsync(buffer).then(function (zip) {
+          var jsonFile = zip.file(C.BACKUP_JSON_NAME);
+          if (!jsonFile) {
+            return showAppAlert("バックアップファイルの形式が正しくありません。");
+          }
+          return jsonFile.async("string").then(function (text) {
+            var data;
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              return showAppAlert("バックアップファイルの形式が正しくありません。");
+            }
+            return importBackupPayload(data, file && file.name, function (photoMeta) {
+              if (!photoMeta || !photoMeta.fullFileName || !photoMeta.thumbFileName) {
+                return Promise.resolve(null);
+              }
+              var fullFile = zip.file(String(photoMeta.fullFileName));
+              var thumbFile = zip.file(String(photoMeta.thumbFileName));
+              if (!fullFile || !thumbFile) return Promise.resolve(null);
+              return Promise.all([
+                fullFile.async("blob"),
+                thumbFile.async("blob"),
+              ]).then(function (pair) {
+                return {
+                  full: {
+                    blob: pair[0],
+                    mimeType: photoMeta.mimeType || C.PHOTO_MIME_TYPE,
+                    width: Number(photoMeta.width || 0),
+                    height: Number(photoMeta.height || 0),
+                    sizeBytes: pair[0].size,
+                  },
+                  thumb: {
+                    blob: pair[1],
+                    mimeType: photoMeta.thumbMimeType || C.PHOTO_MIME_TYPE,
+                    width: Number(photoMeta.thumbWidth || 0),
+                    height: Number(photoMeta.thumbHeight || 0),
+                    sizeBytes: pair[1].size,
+                  },
+                };
+              });
+            });
+          });
+        });
+      });
+    });
+  }
+
   function onExport() {
     if (state.exportBusy || state.importBusy) return Promise.resolve();
     setDataTransferBusyUi("export", true);
@@ -2542,64 +3065,7 @@
     if (!file) return Promise.resolve();
     if (state.importBusy || state.exportBusy) return Promise.resolve();
     setDataTransferBusyUi("import", true);
-    return new Promise(function (resolve, reject) {
-      var fr = new FileReader();
-      fr.onload = function () {
-        resolve(fr.result);
-      };
-      fr.onerror = function () {
-        reject(fr.error);
-      };
-      fr.readAsText(file, "utf-8");
-    })
-      .then(function (text) {
-        var data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          return showAppAlert("バックアップファイルの形式が正しくありません。");
-        }
-        if (!data || data.app !== C.APP_ID || !Array.isArray(data.items)) {
-          return showAppAlert("バックアップファイルの形式が正しくありません。");
-        }
-        return db.getLicense(state.idb).then(function (lic) {
-          var items = data.items;
-          var effectiveLicense = state.license || lic || {};
-          var limit = Number(effectiveLicense.itemLimit);
-          if (isNaN(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
-          var truncated = items.length > limit;
-          var slice = items.slice(0, limit);
-
-          return db.clearEntries(state.idb).then(function () {
-            var chain = Promise.resolve();
-            for (var i = 0; i < slice.length; i++) {
-              (function (item) {
-                chain = chain.then(function () {
-                  var e = db.buildNewEntry(item.title, item.book, item.page, item.memo || "");
-                  if (item.createdAt) e.createdAt = String(item.createdAt);
-                  if (item.updatedAt) e.updatedAt = String(item.updatedAt);
-                  return db.putEntry(state.idb, e);
-                });
-              })(slice[i]);
-            }
-            return chain.then(function () {
-              state.draft = null;
-              state.searchQuery = $("#manual-search").value || "";
-              return persistBackupImportInfo(file && file.name).then(function () {
-                return saveSearchQueryToSettings(state.searchQuery);
-              }).then(function () {
-                return renderTable({ refreshSearchResults: true }).then(function () {
-                  if (truncated) {
-                    toast("バックアップファイルの先頭から、登録上限件数まで読み込みました。");
-                    return;
-                  }
-                  toast("バックアップファイルを読み込みました。");
-                });
-              });
-            });
-          });
-        });
-      })
+    return (/\.zip$/i.test(String(file.name || "")) ? importZipBackupFile(file) : importJsonBackupFile(file))
       .catch(function () {
         return showAppAlert("バックアップファイルの読み込みに失敗しました。");
       })
@@ -2684,6 +3150,37 @@
         }).catch(function (err) {
           console.warn("Speech timeout setting update failed:", err);
         });
+      });
+    }
+    if ($("#photo-file")) {
+      $("#photo-file").addEventListener("change", function () {
+        var file = this.files && this.files[0] ? this.files[0] : null;
+        onPhotoFileSelected(file);
+        this.value = "";
+      });
+    }
+    if ($("#photo-viewer-close")) {
+      $("#photo-viewer-close").addEventListener("click", function () {
+        closePhotoViewer();
+      });
+    }
+    if ($("#photo-viewer-overlay")) {
+      $("#photo-viewer-overlay").addEventListener("click", function (ev) {
+        if (ev.target === $("#photo-viewer-overlay")) {
+          closePhotoViewer();
+        }
+      });
+    }
+    if ($("#mobile-edit-photo-slot")) {
+      $("#mobile-edit-photo-slot").addEventListener("click", function (ev) {
+        var target = ev.target;
+        if (!(target instanceof HTMLElement)) return;
+        var btn = target.closest("button.photo-thumb-button");
+        if (!btn) return;
+        openPhotoViewerFromSources(
+          btn.getAttribute("data-photo-full-src") || "",
+          btn.getAttribute("data-photo-full-id") || ""
+        );
       });
     }
     var mobileEditOverlay = $("#mobile-edit-sheet-overlay");
