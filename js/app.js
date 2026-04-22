@@ -2360,7 +2360,6 @@
           if (err && err.message === "photo_limit_reached") return;
           throw err;
         });
-      });
     }
 
     var id = tr.getAttribute("data-id");
