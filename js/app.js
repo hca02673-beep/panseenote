@@ -886,12 +886,15 @@
   }
 
   function applyDraftPhoto(processed, currentValues) {
-    state.draft = cloneDraftWithPhotoMeta(state.draft, currentValues || {}, {
-      photoAttached: true,
-      photoPending: processed,
-      photoThumbDataUrl: processed.thumbDataUrl,
-      photoFullDataUrl: processed.fullDataUrl,
-    });
+    state.draft = cloneDraftWithPhotoMeta(
+      state.draft,
+      Object.assign({}, currentValues || {}, {
+        photoAttached: true,
+        photoPending: processed,
+        photoThumbDataUrl: processed.thumbDataUrl,
+        photoFullDataUrl: processed.fullDataUrl,
+      })
+    );
     toast("写真を選択しました。");
     return renderTable();
   }
