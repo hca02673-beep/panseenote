@@ -380,6 +380,30 @@
     });
   }
 
+  function deleteEntryPhoto(db, entry) {
+    return new Promise(function (resolve, reject) {
+      var normalized = normalizeEntryDoc(entry);
+      var tx = db.transaction([C.STORES.ENTRIES, C.STORES.PHOTO_ASSETS], "readwrite");
+      tx.objectStore(C.STORES.ENTRIES).put(normalized);
+      var req = tx.objectStore(C.STORES.PHOTO_ASSETS).index("entryId").openCursor(IDBKeyRange.only(normalized.id));
+      req.onsuccess = function (ev) {
+        var cursor = ev.target.result;
+        if (!cursor) return;
+        cursor.delete();
+        cursor.continue();
+      };
+      req.onerror = function () {
+        reject(req.error);
+      };
+      tx.oncomplete = function () {
+        resolve(normalized);
+      };
+      tx.onerror = function () {
+        reject(tx.error);
+      };
+    });
+  }
+
   /**
    * @param {IDBDatabase} db
    * @param {string} id
@@ -529,6 +553,7 @@
     clearPhotoAssets: clearPhotoAssets,
     putEntry: putEntry,
     putEntryWithPhotoAssets: putEntryWithPhotoAssets,
+    deleteEntryPhoto: deleteEntryPhoto,
     deleteEntry: deleteEntry,
     buildNewEntry: buildNewEntry,
     patchEntry: patchEntry,

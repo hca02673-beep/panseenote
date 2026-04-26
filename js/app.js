@@ -22,6 +22,8 @@
     voiceRegisterMode: false,
     /** 音声登録モード突入時のレイアウトを固定（回転・リサイズでも維持） */
     voiceRegisterLayoutLock: null,
+    /** 音声登録データ編集ペインのタイトル種別 */
+    voiceRegisterEditorMode: "",
     voicePreviewEntry: null,
     /** 音声登録モード中に #search-meta へ表示するメッセージ（空なら既定文言） */
     voiceRegisterMetaMsg: "",
@@ -657,6 +659,27 @@
     return Object.assign(buildEmptyVoiceRegisterDraft(), source || {}, patch || {});
   }
 
+  function buildClearedPhotoState() {
+    return {
+      photoAttached: false,
+      photoId: "",
+      photoThumbId: "",
+      photoPending: null,
+      photoThumbDataUrl: "",
+      photoFullDataUrl: "",
+    };
+  }
+
+  function getVoiceRegisterEditorPaneTitle() {
+    if (state.voiceRegisterEditorMode === "manual_pref") {
+      return "手動入力データ編集（新規データ登録）";
+    }
+    if (state.voiceRegisterEditorMode === "voice_success") {
+      return "音声データ編集（登録済みデータの編集）";
+    }
+    return "音声データ編集（新規データ登録）";
+  }
+
   function getZipLib() {
     return window.JSZip || null;
   }
@@ -837,10 +860,11 @@
     return enterVoiceRegisterResultMode({
       draft: buildEmptyVoiceRegisterDraft(),
       metaMsg: "引き続き、手動で登録が出来ます。",
+      editorMode: isManualRegisterPreferred() ? "manual_pref" : "voice_failed",
     });
   }
 
-  function attachProcessedPhotoToPreviewEntry(processed) {
+  function attachProcessedPhotoToPreviewEntry(processed, currentValues) {
     if (!state.voicePreviewEntry || !state.voicePreviewEntry.id) return Promise.resolve();
     var current = state.voicePreviewEntry;
     var bundle = buildPhotoAssetsForEntry(current.id, processed);
@@ -853,7 +877,7 @@
     next.photoFullDataUrl = processed.fullDataUrl;
     return db.putEntryWithPhotoAssets(state.idb, next, bundle.assets).then(function () {
       return incrementUnsavedChangeCount().then(function () {
-        state.voicePreviewEntry = next;
+        state.voicePreviewEntry = Object.assign({}, next, currentValues || {});
         updateEntryInSearchSnapshot(next);
         toast("写真を登録しました。");
         return renderTable();
@@ -861,8 +885,8 @@
     });
   }
 
-  function applyDraftPhoto(processed) {
-    state.draft = cloneDraftWithPhotoMeta(state.draft, {
+  function applyDraftPhoto(processed, currentValues) {
+    state.draft = cloneDraftWithPhotoMeta(state.draft, currentValues || {}, {
       photoAttached: true,
       photoPending: processed,
       photoThumbDataUrl: processed.thumbDataUrl,
@@ -870,6 +894,43 @@
     });
     toast("写真を選択しました。");
     return renderTable();
+  }
+
+  function syncVoiceEditorValuesFromRow(tr) {
+    if (!state.voiceRegisterMode || !tr) return;
+    var vals = readRowFromTr(tr);
+    if (tr.getAttribute("data-draft") === "1") {
+      state.draft = cloneDraftWithPhotoMeta(state.draft, vals);
+      return;
+    }
+    if (state.voicePreviewEntry) {
+      state.voicePreviewEntry = Object.assign({}, state.voicePreviewEntry, vals);
+    }
+  }
+
+  function deletePhotoFromVoiceEditorRow(tr) {
+    if (!tr) return Promise.resolve();
+    syncVoiceEditorValuesFromRow(tr);
+    if (tr.getAttribute("data-draft") === "1") {
+      state.draft = cloneDraftWithPhotoMeta(state.draft, buildClearedPhotoState());
+      toast("写真を削除しました。");
+      return renderTable();
+    }
+    if (!state.voicePreviewEntry || !state.voicePreviewEntry.id) return Promise.resolve();
+    var currentValues = readRowFromTr(tr);
+    var next = db.patchEntry(state.voicePreviewEntry, {
+      photoAttached: false,
+      photoId: "",
+      photoThumbId: "",
+    });
+    return db.deleteEntryPhoto(state.idb, next).then(function (saved) {
+      return incrementUnsavedChangeCount().then(function () {
+        state.voicePreviewEntry = Object.assign({}, saved, currentValues, buildClearedPhotoState());
+        updateEntryInSearchSnapshot(saved);
+        toast("写真を削除しました。");
+        return renderTable();
+      });
+    });
   }
 
   function onPhotoFileSelected(file) {
@@ -885,10 +946,10 @@
       })
       .then(function (processed) {
         if (ctx.kind === "draft") {
-          return applyDraftPhoto(processed);
+          return applyDraftPhoto(processed, ctx.currentValues);
         }
         if (ctx.kind === "preview") {
-          return attachProcessedPhotoToPreviewEntry(processed);
+          return attachProcessedPhotoToPreviewEntry(processed, ctx.currentValues);
         }
       })
       .catch(function (err) {
@@ -923,6 +984,7 @@
     return enterVoiceRegisterResultMode({
       draft: buildEmptyVoiceRegisterDraft(),
       metaMsg: String(metaMsg || "手動で登録ができます。"),
+      editorMode: isManualRegisterPreferred() ? "manual_pref" : "voice_failed",
     });
   }
 
@@ -986,6 +1048,9 @@
     if (entering || !state.voiceRegisterLayoutLock) {
       state.voiceRegisterLayoutLock = snapshotViewportLayoutFlags();
     }
+    if (options.editorMode !== undefined) {
+      state.voiceRegisterEditorMode = String(options.editorMode || "");
+    }
     state.voicePreviewEntry = options.previewEntry || null;
     state.draft = options.draft || null;
     state.voiceRegisterMetaMsg = options.metaMsg || "";
@@ -1004,6 +1069,7 @@
     closeSettingsIfOpen();
     state.voiceRegisterMode = false;
     state.voiceRegisterLayoutLock = null;
+    state.voiceRegisterEditorMode = "";
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
@@ -1748,6 +1814,7 @@
     var saveLabel = options.saveLabel || "登録";
     var deleteLabel = options.deleteLabel || "削除";
     var exitLabel = options.exitLabel || "終了";
+    var photoActionLabel = hasPhotoAttached(entry) ? "写真削除" : "写真選択";
 
     return (
       '<tr class="mobile-inline-editor-row"' +
@@ -1756,7 +1823,7 @@
       ">" +
       '<td colspan="' + colSpan + '" class="mobile-inline-editor-cell">' +
       '<div class="mobile-inline-editor">' +
-      '<h2 class="mobile-edit-sheet-title">音声データ編集</h2>' +
+      '<h2 class="mobile-edit-sheet-title">' + escapeHtml(getVoiceRegisterEditorPaneTitle()) + "</h2>" +
       '<label class="mobile-edit-field">' +
       "<span>サービス名</span>" +
       '<textarea class="mobile-inline-title" rows="2" maxlength="' +
@@ -1790,8 +1857,10 @@
       '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-exit">' +
       escapeHtml(exitLabel) +
       "</button>" +
-      (allowPhotoButton && !hasPhotoAttached(entry)
-        ? '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-photo">写真選択</button>'
+      (allowPhotoButton
+        ? '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-photo" data-photo-action="' +
+          (hasPhotoAttached(entry) ? "remove" : "select") +
+          '">' + photoActionLabel + "</button>"
         : "") +
       '<button type="button" class="app-dialog-btn btn-action-green row-save">' +
       escapeHtml(saveLabel) +
@@ -2267,10 +2336,15 @@
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
       } else if (t.classList.contains("row-photo")) {
-        openPhotoPicker({
-          kind: tr.getAttribute("data-draft") === "1" ? "draft" : "preview",
-          entryId: tr.getAttribute("data-id") || "",
-        });
+        if (t.getAttribute("data-photo-action") === "remove") {
+          deletePhotoFromVoiceEditorRow(tr);
+        } else {
+          openPhotoPicker({
+            kind: tr.getAttribute("data-draft") === "1" ? "draft" : "preview",
+            entryId: tr.getAttribute("data-id") || "",
+            currentValues: readRowFromTr(tr),
+          });
+        }
       } else if (t.classList.contains("row-exit")) {
         goHomeScreen();
       } else if (t.classList.contains("row-delete")) {
@@ -2421,6 +2495,7 @@
   function runSearch() {
     state.voiceRegisterMode = false;
     state.voiceRegisterLayoutLock = null;
+    state.voiceRegisterEditorMode = "";
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
@@ -2448,6 +2523,7 @@
       trace.mark("speech_support_checked", { code: "unsupported" });
       state.voiceRegisterMode = false;
       state.voiceRegisterLayoutLock = null;
+      state.voiceRegisterEditorMode = "";
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2467,6 +2543,7 @@
       });
       state.voiceRegisterMode = false;
       state.voiceRegisterLayoutLock = null;
+      state.voiceRegisterEditorMode = "";
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2539,6 +2616,7 @@
       trace.mark("register_limit_reached");
       state.voiceRegisterMode = false;
       state.voiceRegisterLayoutLock = null;
+      state.voiceRegisterEditorMode = "";
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2588,6 +2666,7 @@
           return enterVoiceRegisterResultMode({
             previewEntry: entry,
             metaMsg: registerMetaMsg,
+            editorMode: "voice_success",
           });
         });
       });
@@ -2610,6 +2689,7 @@
     ) {
       state.voiceRegisterMode = false;
       state.voiceRegisterLayoutLock = null;
+      state.voiceRegisterEditorMode = "";
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2955,6 +3035,7 @@
         return chain.then(function () {
           state.voiceRegisterMode = false;
           state.voiceRegisterLayoutLock = null;
+          state.voiceRegisterEditorMode = "";
           state.voicePreviewEntry = null;
           state.draft = null;
           state.openMemoIds = new Set();
