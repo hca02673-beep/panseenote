@@ -1934,8 +1934,9 @@
       var tableEl = document.querySelector("table.entries-table");
       var wrapEl = document.querySelector(".table-wrap");
       var lock = ensureVoiceRegisterLayoutLock();
-      var phoneSheetMode = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
-      var phoneVoiceRegisterMode = state.voiceRegisterMode && (lock ? !!lock.phone : isPhoneViewport());
+      var phoneSheetMode = state.voiceRegisterMode ? true : (lock ? !!lock.phoneSheet : isPhoneSearchSheetMode());
+      // 音声登録中は端末幅に関係なくデータ編集ペイン（スマホUI）へ統一
+      var phoneVoiceRegisterMode = !!state.voiceRegisterMode;
       var desktopVoiceRegisterMode = state.voiceRegisterMode && !phoneVoiceRegisterMode;
       body.innerHTML = "";
 
@@ -1951,79 +1952,38 @@
       }
 
       if (state.voiceRegisterMode) {
-        var phoneVoiceEditorMode = phoneVoiceRegisterMode;
         if (state.draft) {
           var dv = state.draft;
           body.insertAdjacentHTML(
             "afterbegin",
-            phoneVoiceEditorMode
-              ? mobileVoiceEditorRowHtml(
-                  {
-                    id: dv.id || "",
-                    title: dv.title,
-                    book: dv.book,
-                    page: dv.page,
-                    memo: dv.memo || "",
-                    photoAttached: !!dv.photoAttached,
-                    photoId: dv.photoId || "",
-                    photoThumbId: dv.photoThumbId || "",
-                    photoThumbDataUrl: dv.photoThumbDataUrl || "",
-                    photoFullDataUrl: dv.photoFullDataUrl || "",
-                    photoPending: dv.photoPending || null,
-                    createdAt: "（未保存）",
-                  },
-                  true,
-                  { saveLabel: "登録", deleteLabel: "削除", exitLabel: "終了", allowPhotoButton: true }
-                )
-              : rowHtml(
-                  {
-                    id: dv.id || "",
-                    title: dv.title,
-                    book: dv.book,
-                    page: dv.page,
-                    memo: dv.memo || "",
-                    photoAttached: !!dv.photoAttached,
-                    photoId: dv.photoId || "",
-                    photoThumbId: dv.photoThumbId || "",
-                    photoThumbDataUrl: dv.photoThumbDataUrl || "",
-                    photoFullDataUrl: dv.photoFullDataUrl || "",
-                    photoPending: dv.photoPending || null,
-                    createdAt: "（未保存）",
-                  },
-                  true,
-                  {
-                    memoInitiallyOpen: true,
-                    saveLabel: "登録",
-                    deleteLabel: "削除",
-                    exitLabel: "終了",
-                    initialValues: dv,
-                    showMemoButton: false,
-                    showExitButton: true,
-                    allowPhotoButton: true,
-                  }
-                )
+            mobileVoiceEditorRowHtml(
+              {
+                id: dv.id || "",
+                title: dv.title,
+                book: dv.book,
+                page: dv.page,
+                memo: dv.memo || "",
+                photoAttached: !!dv.photoAttached,
+                photoId: dv.photoId || "",
+                photoThumbId: dv.photoThumbId || "",
+                photoThumbDataUrl: dv.photoThumbDataUrl || "",
+                photoFullDataUrl: dv.photoFullDataUrl || "",
+                photoPending: dv.photoPending || null,
+                createdAt: "（未保存）",
+              },
+              true,
+              { saveLabel: "登録", deleteLabel: "削除", exitLabel: "終了", allowPhotoButton: true }
+            )
           );
         } else if (state.voicePreviewEntry) {
           body.insertAdjacentHTML(
             "afterbegin",
-            phoneVoiceEditorMode
-              ? mobileVoiceEditorRowHtml(state.voicePreviewEntry, false, {
-                  saveLabel: "登録",
-                  deleteLabel: "削除",
-                  exitLabel: "終了",
-                  allowPhotoButton: true,
-                })
-              : rowHtml(state.voicePreviewEntry, false, {
-                  memoInitiallyOpen: true,
-                  saveLabel: "登録",
-                  deleteLabel: "削除",
-                  exitLabel: "終了",
-                  initialValues: state.voicePreviewEntry,
-                  saveDisabled: true,
-                  showMemoButton: false,
-                  showExitButton: true,
-                  allowPhotoButton: true,
-                })
+            mobileVoiceEditorRowHtml(state.voicePreviewEntry, false, {
+              saveLabel: "登録",
+              deleteLabel: "削除",
+              exitLabel: "終了",
+              allowPhotoButton: true,
+            })
           );
         }
         var metaEl = $("#search-meta");
