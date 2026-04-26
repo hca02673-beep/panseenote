@@ -20,6 +20,8 @@
     draft: null,
     searchQuery: "",
     voiceRegisterMode: false,
+    /** 音声登録モード突入時のレイアウトを固定（回転・リサイズでも維持） */
+    voiceRegisterLayoutLock: null,
     voicePreviewEntry: null,
     /** 音声登録モード中に #search-meta へ表示するメッセージ（空なら既定文言） */
     voiceRegisterMetaMsg: "",
@@ -976,10 +978,14 @@
 
   function enterVoiceRegisterResultMode(options) {
     options = options || {};
-    if (!state.voiceRegisterMode) {
+    var entering = !state.voiceRegisterMode;
+    if (entering) {
       state.homeSearchQuery = state.searchQuery;
     }
     state.voiceRegisterMode = true;
+    if (entering || !state.voiceRegisterLayoutLock) {
+      state.voiceRegisterLayoutLock = snapshotViewportLayoutFlags();
+    }
     state.voicePreviewEntry = options.previewEntry || null;
     state.draft = options.draft || null;
     state.voiceRegisterMetaMsg = options.metaMsg || "";
@@ -997,6 +1003,7 @@
   function goHomeScreen() {
     closeSettingsIfOpen();
     state.voiceRegisterMode = false;
+    state.voiceRegisterLayoutLock = null;
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
@@ -1380,6 +1387,23 @@
     return isPhoneViewport();
   }
 
+  function snapshotViewportLayoutFlags() {
+    var phone = isPhoneViewport();
+    return {
+      phone: phone,
+      compact: isCompactTableViewport(),
+      phoneSheet: phone,
+    };
+  }
+
+  function ensureVoiceRegisterLayoutLock() {
+    if (!state.voiceRegisterMode) return null;
+    if (!state.voiceRegisterLayoutLock) {
+      state.voiceRegisterLayoutLock = snapshotViewportLayoutFlags();
+    }
+    return state.voiceRegisterLayoutLock;
+  }
+
   function isCompactTableViewport() {
     return (
       typeof window !== "undefined" &&
@@ -1396,8 +1420,9 @@
   function syncTableStructure() {
     var table = document.querySelector("table.entries-table");
     if (!table) return false;
-    var compact = isCompactTableViewport();
-    var phoneSheet = isPhoneSearchSheetMode();
+    var lock = ensureVoiceRegisterLayoutLock();
+    var compact = lock ? !!lock.compact : isCompactTableViewport();
+    var phoneSheet = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
     var changed = state.isCompactTable !== compact;
     var colgroup = table.querySelector("colgroup");
     var headRow = table.querySelector("thead tr");
@@ -1715,8 +1740,10 @@
     options = options || {};
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
-    var compactTable = state.isCompactTable || isCompactTableViewport();
-    var colSpan = isPhoneSearchSheetMode() ? 2 : (compactTable ? 3 : 4);
+    var lock = ensureVoiceRegisterLayoutLock();
+    var compactTable = lock ? !!lock.compact : (state.isCompactTable || isCompactTableViewport());
+    var phoneSheetMode = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
+    var colSpan = phoneSheetMode ? 2 : (compactTable ? 3 : 4);
     var allowPhotoButton = !!options.allowPhotoButton;
     var saveLabel = options.saveLabel || "登録";
     var deleteLabel = options.deleteLabel || "削除";
@@ -1906,9 +1933,10 @@
       var body = $("#entries-body");
       var tableEl = document.querySelector("table.entries-table");
       var wrapEl = document.querySelector(".table-wrap");
-      var phoneSheetMode = isPhoneSearchSheetMode();
-      var phoneVoiceRegisterMode = state.voiceRegisterMode && isPhoneViewport();
-      var desktopVoiceRegisterMode = state.voiceRegisterMode && !isPhoneViewport();
+      var lock = ensureVoiceRegisterLayoutLock();
+      var phoneSheetMode = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
+      var phoneVoiceRegisterMode = state.voiceRegisterMode && (lock ? !!lock.phone : isPhoneViewport());
+      var desktopVoiceRegisterMode = state.voiceRegisterMode && !phoneVoiceRegisterMode;
       body.innerHTML = "";
 
       if (tableEl) {
@@ -1923,7 +1951,7 @@
       }
 
       if (state.voiceRegisterMode) {
-        var phoneVoiceEditorMode = isPhoneSearchSheetMode();
+        var phoneVoiceEditorMode = phoneVoiceRegisterMode;
         if (state.draft) {
           var dv = state.draft;
           body.insertAdjacentHTML(
@@ -2432,6 +2460,7 @@
 
   function runSearch() {
     state.voiceRegisterMode = false;
+    state.voiceRegisterLayoutLock = null;
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
@@ -2458,6 +2487,7 @@
     if (!voice.isSpeechSupported()) {
       trace.mark("speech_support_checked", { code: "unsupported" });
       state.voiceRegisterMode = false;
+      state.voiceRegisterLayoutLock = null;
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2476,6 +2506,7 @@
         empty: !String(text || "").trim(),
       });
       state.voiceRegisterMode = false;
+      state.voiceRegisterLayoutLock = null;
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2547,6 +2578,7 @@
     ) {
       trace.mark("register_limit_reached");
       state.voiceRegisterMode = false;
+      state.voiceRegisterLayoutLock = null;
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2617,6 +2649,7 @@
       displayedCount >= Number(state.license.itemLimit)
     ) {
       state.voiceRegisterMode = false;
+      state.voiceRegisterLayoutLock = null;
       state.voicePreviewEntry = null;
       state.draft = null;
       state.voiceRegisterMetaMsg = "";
@@ -2961,6 +2994,7 @@
         }
         return chain.then(function () {
           state.voiceRegisterMode = false;
+          state.voiceRegisterLayoutLock = null;
           state.voicePreviewEntry = null;
           state.draft = null;
           state.openMemoIds = new Set();
@@ -3262,6 +3296,9 @@
 
     var layoutResizeTimer = null;
     function onViewportLayoutChange() {
+      if (state.voiceRegisterMode) {
+        return;
+      }
       updatePlanSummaryLine();
       if (!isPhoneViewport()) {
         closeMobileEditSheet();
