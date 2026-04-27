@@ -333,11 +333,13 @@
               <input type="text" id="mobile-edit-page" inputmode="numeric" maxlength="3" />
             </label>
           </div>
-          <label class="mobile-edit-field">
-            <span>メモ</span>
-            <textarea id="mobile-edit-memo" rows="5" maxlength="500" placeholder="メモを入力（登録ボタンで確定）..."></textarea>
-          </label>
-          <div id="mobile-edit-photo-slot" hidden></div>
+          <div class="memo-photo-layout">
+            <label class="mobile-edit-field">
+              <span>メモ</span>
+              <textarea id="mobile-edit-memo" rows="5" maxlength="500" placeholder="メモを入力（登録ボタンで確定）..."></textarea>
+            </label>
+            <div id="mobile-edit-photo-slot" hidden></div>
+          </div>
         </div>
         <div class="mobile-edit-sheet-actions">
           <button type="button" id="mobile-edit-cancel" class="app-dialog-btn app-dialog-btn-secondary">キャンセル</button>

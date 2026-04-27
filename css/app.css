@@ -778,6 +778,29 @@ tr.memo-row td.memo-cell {
   border-top: none;
 }
 
+.memo-photo-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.memo-photo-layout > .memo-textarea,
+.memo-photo-layout > .mobile-edit-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.memo-photo-layout > .mobile-edit-field {
+  margin-bottom: 0;
+}
+
+.memo-photo-layout > .photo-thumb-wrap,
+.memo-photo-layout > #mobile-edit-photo-slot {
+  flex: 0 0 7rem;
+  width: 7rem;
+  min-width: 7rem;
+}
+
 .memo-textarea {
   width: 100%;
   min-width: 0;
@@ -797,6 +820,10 @@ tr.memo-row td.memo-cell {
   margin: 0 0 0.6rem;
 }
 
+.memo-photo-layout .photo-thumb-wrap {
+  margin: 0;
+}
+
 .photo-thumb-button {
   display: inline-flex;
   align-items: center;
@@ -813,6 +840,15 @@ tr.memo-row td.memo-cell {
   max-width: 100%;
   max-height: 10rem;
   border-radius: 6px;
+}
+
+.memo-photo-layout .photo-thumb-button {
+  width: 100%;
+  min-width: 0;
+}
+
+.memo-photo-layout #mobile-edit-photo-slot[hidden] {
+  display: none !important;
 }
 
 .photo-thumb-placeholder {

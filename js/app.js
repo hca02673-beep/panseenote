@@ -1795,10 +1795,12 @@
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       (memoInitiallyOpen ? ">" : " hidden>") +
       '<td colspan="' + (compactTable ? "3" : "4") + '" class="memo-cell">' +
-      buildPhotoThumbButtonHtml(entry) +
+      '<div class="memo-photo-layout">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（登録ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
+      buildPhotoThumbButtonHtml(entry) +
+      "</div>" +
       "</td>" +
       "</tr>";
 
@@ -1849,6 +1851,7 @@
       '" />' +
       "</label>" +
       "</div>" +
+      '<div class="memo-photo-layout">' +
       '<label class="mobile-edit-field">' +
       "<span>メモ</span>" +
       '<textarea rows="5" maxlength="500" data-field="memo" placeholder="メモを入力（登録ボタンで確定）...">' +
@@ -1856,6 +1859,7 @@
       "</textarea>" +
       "</label>" +
       buildPhotoThumbButtonHtml(entry) +
+      "</div>" +
       '<div class="mobile-edit-sheet-actions mobile-inline-editor-actions">' +
       '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-exit">' +
       escapeHtml(exitLabel) +
