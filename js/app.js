@@ -629,7 +629,12 @@
       photoPending: null,
       photoThumbDataUrl: "",
       photoFullDataUrl: "",
+      photoMarkedForRemoval: false,
     };
+  }
+
+  function hasPersistedPhoto(entry) {
+    return !!(entry && (entry.photoId || entry.photoThumbId));
   }
 
   function hasPhotoAttached(entry) {
@@ -667,7 +672,24 @@
       photoPending: null,
       photoThumbDataUrl: "",
       photoFullDataUrl: "",
+      photoMarkedForRemoval: false,
     };
+  }
+
+  function buildPendingPhotoRemovalState() {
+    var next = buildClearedPhotoState();
+    next.photoMarkedForRemoval = true;
+    return next;
+  }
+
+  function normalizeVoiceEditorEntry(entry) {
+    return entry ? Object.assign(buildEmptyVoiceRegisterDraft(), entry) : null;
+  }
+
+  function hasPendingPhotoChange(prev, entry) {
+    if (!entry) return false;
+    if (entry.photoPending) return true;
+    return !!(entry.photoMarkedForRemoval && hasPersistedPhoto(prev));
   }
 
   function getVoiceRegisterEditorPaneTitle() {
@@ -864,25 +886,18 @@
     });
   }
 
-  function attachProcessedPhotoToPreviewEntry(processed, currentValues) {
+  function applyPreviewPhoto(processed, currentValues) {
     if (!state.voicePreviewEntry || !state.voicePreviewEntry.id) return Promise.resolve();
-    var current = state.voicePreviewEntry;
-    var bundle = buildPhotoAssetsForEntry(current.id, processed);
-    var next = db.patchEntry(current, {
+    state.voicePreviewEntry = Object.assign({}, state.voicePreviewEntry, currentValues || {}, {
       photoAttached: true,
-      photoId: bundle.photoId,
-      photoThumbId: bundle.thumbId,
+      photoId: "",
+      photoThumbId: "",
+      photoPending: processed,
+      photoThumbDataUrl: processed.thumbDataUrl,
+      photoFullDataUrl: processed.fullDataUrl,
     });
-    next.photoThumbDataUrl = processed.thumbDataUrl;
-    next.photoFullDataUrl = processed.fullDataUrl;
-    return db.putEntryWithPhotoAssets(state.idb, next, bundle.assets).then(function () {
-      return incrementUnsavedChangeCount().then(function () {
-        state.voicePreviewEntry = Object.assign({}, next, currentValues || {});
-        updateEntryInSearchSnapshot(next);
-        toast("写真を登録しました。");
-        return renderTable();
-      });
-    });
+    toast("登録ボタンで写真が保存されます");
+    return renderTable();
   }
 
   function applyDraftPhoto(processed, currentValues) {
@@ -893,9 +908,10 @@
         photoPending: processed,
         photoThumbDataUrl: processed.thumbDataUrl,
         photoFullDataUrl: processed.fullDataUrl,
+        photoMarkedForRemoval: false,
       })
     );
-    toast("写真を選択しました。");
+    toast("登録ボタンで写真が保存されます");
     return renderTable();
   }
 
@@ -916,24 +932,50 @@
     syncVoiceEditorValuesFromRow(tr);
     if (tr.getAttribute("data-draft") === "1") {
       state.draft = cloneDraftWithPhotoMeta(state.draft, buildClearedPhotoState());
-      toast("写真を削除しました。");
+      toast("登録ボタンで写真の変更が保存されます。");
       return renderTable();
     }
     if (!state.voicePreviewEntry || !state.voicePreviewEntry.id) return Promise.resolve();
     var currentValues = readRowFromTr(tr);
-    var next = db.patchEntry(state.voicePreviewEntry, {
-      photoAttached: false,
-      photoId: "",
-      photoThumbId: "",
-    });
-    return db.deleteEntryPhoto(state.idb, next).then(function (saved) {
-      return incrementUnsavedChangeCount().then(function () {
-        state.voicePreviewEntry = Object.assign({}, saved, currentValues, buildClearedPhotoState());
-        updateEntryInSearchSnapshot(saved);
-        toast("写真を削除しました。");
-        return renderTable();
-      });
-    });
+    var current = state.voicePreviewEntry;
+    var nextPhotoState =
+      current && (current.photoMarkedForRemoval || hasPersistedPhoto(current))
+        ? buildPendingPhotoRemovalState()
+        : buildClearedPhotoState();
+    state.voicePreviewEntry = Object.assign({}, current, currentValues, nextPhotoState);
+    toast("登録ボタンで写真の変更が保存されます。");
+    return renderTable();
+  }
+
+  function saveEntryWithPendingPhotoChanges(prev, next, editorEntry) {
+    var pendingPhoto = editorEntry && editorEntry.photoPending ? editorEntry.photoPending : null;
+    var markedForRemoval = !!(editorEntry && editorEntry.photoMarkedForRemoval);
+    if (pendingPhoto) {
+      var persistPhoto = function () {
+        var bundle = buildPhotoAssetsForEntry(prev.id, pendingPhoto);
+        var withPhoto = db.patchEntry(next, {
+          photoAttached: true,
+          photoId: bundle.photoId,
+          photoThumbId: bundle.thumbId,
+        });
+        if (hasPersistedPhoto(prev)) {
+          return db.replaceEntryPhoto(state.idb, withPhoto, bundle.assets);
+        }
+        return db.putEntryWithPhotoAssets(state.idb, withPhoto, bundle.assets);
+      };
+      if (hasPersistedPhoto(prev)) {
+        return persistPhoto();
+      }
+      return ensurePhotoLimitAvailable().then(persistPhoto);
+    }
+    if (markedForRemoval && hasPersistedPhoto(prev)) {
+      return db.deleteEntryPhoto(state.idb, db.patchEntry(next, {
+        photoAttached: false,
+        photoId: "",
+        photoThumbId: "",
+      }));
+    }
+    return db.putEntry(state.idb, next);
   }
 
   function onPhotoFileSelected(file) {
@@ -943,20 +985,16 @@
     if (!imageUtil || typeof imageUtil.processPhotoFile !== "function") {
       return showAppAlert("写真処理を開始できませんでした。");
     }
-    return ensurePhotoLimitAvailable()
-      .then(function () {
-        return imageUtil.processPhotoFile(file);
-      })
+    return imageUtil.processPhotoFile(file)
       .then(function (processed) {
         if (ctx.kind === "draft") {
           return applyDraftPhoto(processed, ctx.currentValues);
         }
         if (ctx.kind === "preview") {
-          return attachProcessedPhotoToPreviewEntry(processed, ctx.currentValues);
+          return applyPreviewPhoto(processed, ctx.currentValues);
         }
       })
       .catch(function (err) {
-        if (!err || err.message === "photo_limit_reached") return;
         console.error("Photo processing failed:", err);
         return showAppAlert("写真の取り込みに失敗しました。");
       });
@@ -1054,8 +1092,8 @@
     if (options.editorMode !== undefined) {
       state.voiceRegisterEditorMode = String(options.editorMode || "");
     }
-    state.voicePreviewEntry = options.previewEntry || null;
-    state.draft = options.draft || null;
+    state.voicePreviewEntry = normalizeVoiceEditorEntry(options.previewEntry || null);
+    state.draft = normalizeVoiceEditorEntry(options.draft || null);
     state.voiceRegisterMetaMsg = options.metaMsg || "";
     state.voiceSearchMsg = "";
     state.openMemoIds = new Set();
@@ -2443,20 +2481,23 @@
       }
       if (!prev) return;
       var next = db.patchEntry(prev, vals);
-      var changed = hasEntryContentChanged(prev, next);
-      return db.putEntry(state.idb, next).then(function () {
+      var changed = hasEntryContentChanged(prev, next) || hasPendingPhotoChange(prev, state.voicePreviewEntry);
+      return saveEntryWithPendingPhotoChanges(prev, next, state.voicePreviewEntry).then(function (saved) {
         return (changed ? incrementUnsavedChangeCount() : Promise.resolve()).then(function () {
-          updateEntryInSearchSnapshot(next);
+          updateEntryInSearchSnapshot(saved || next);
           toast("保存しました。重要情報がある場合は、重要情報は手動で削除してください。");
           if (state.voiceRegisterMode) {
             return continueManualVoiceRegister();
           }
           if (isDirtyTrackedDesktopListRow(tr)) {
-            syncDesktopListRowAfterSave(tr, next);
+            syncDesktopListRowAfterSave(tr, saved || next);
             return;
           }
           return renderTable();
         });
+      }).catch(function (err) {
+        if (err && err.message === "photo_limit_reached") return;
+        throw err;
       });
     });
   }

@@ -380,6 +380,37 @@
     });
   }
 
+  function replaceEntryPhoto(db, entry, photoAssets) {
+    return new Promise(function (resolve, reject) {
+      var normalized = normalizeEntryDoc(entry);
+      var tx = db.transaction([C.STORES.ENTRIES, C.STORES.PHOTO_ASSETS], "readwrite");
+      tx.objectStore(C.STORES.ENTRIES).put(normalized);
+      var store = tx.objectStore(C.STORES.PHOTO_ASSETS);
+      var req = store.index("entryId").openCursor(IDBKeyRange.only(normalized.id));
+      req.onsuccess = function (ev) {
+        var cursor = ev.target.result;
+        if (!cursor) {
+          var assets = Array.isArray(photoAssets) ? photoAssets : [];
+          for (var i = 0; i < assets.length; i++) {
+            store.put(normalizePhotoAsset(assets[i]));
+          }
+          return;
+        }
+        cursor.delete();
+        cursor.continue();
+      };
+      req.onerror = function () {
+        reject(req.error);
+      };
+      tx.oncomplete = function () {
+        resolve(normalizeEntryDoc(entry));
+      };
+      tx.onerror = function () {
+        reject(tx.error);
+      };
+    });
+  }
+
   function deleteEntryPhoto(db, entry) {
     return new Promise(function (resolve, reject) {
       var normalized = normalizeEntryDoc(entry);
@@ -553,6 +584,7 @@
     clearPhotoAssets: clearPhotoAssets,
     putEntry: putEntry,
     putEntryWithPhotoAssets: putEntryWithPhotoAssets,
+    replaceEntryPhoto: replaceEntryPhoto,
     deleteEntryPhoto: deleteEntryPhoto,
     deleteEntry: deleteEntry,
     buildNewEntry: buildNewEntry,
