@@ -1851,14 +1851,14 @@
       '" />' +
       "</label>" +
       "</div>" +
-      '<div class="memo-photo-layout">' +
-      '<label class="mobile-edit-field">' +
+      '<div class="mobile-edit-field memo-photo-field">' +
       "<span>メモ</span>" +
-      '<textarea rows="5" maxlength="500" data-field="memo" placeholder="メモを入力（登録ボタンで確定）...">' +
+      '<div class="memo-photo-layout">' +
+      '<textarea class="memo-photo-textarea" rows="5" maxlength="500" data-field="memo" placeholder="メモを入力（登録ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
       "</textarea>" +
-      "</label>" +
       buildPhotoThumbButtonHtml(entry) +
+      "</div>" +
       "</div>" +
       '<div class="mobile-edit-sheet-actions mobile-inline-editor-actions">' +
       '<button type="button" class="app-dialog-btn app-dialog-btn-secondary row-exit">' +

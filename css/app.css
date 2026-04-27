@@ -785,6 +785,7 @@ tr.memo-row td.memo-cell {
 }
 
 .memo-photo-layout > .memo-textarea,
+.memo-photo-layout > .memo-photo-textarea,
 .memo-photo-layout > .mobile-edit-field {
   flex: 1 1 auto;
   min-width: 0;
