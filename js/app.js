@@ -1743,7 +1743,7 @@
     var dateLabel = formatEntryCreatedAtDisplay(entry.createdAt);
     var hasMemo = hasMemoLikeContent(entry);
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
-    var saveLabel = options.saveLabel || "登録";
+    var saveLabel = options.saveLabel || "保存";
     var deleteLabel = options.deleteLabel || "削除";
     var exitLabel = options.exitLabel || "終了";
     var rowClass = phoneSheetRow ? ' class="row-tappable"' : "";
@@ -1854,9 +1854,9 @@
     var phoneSheetMode = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
     var colSpan = phoneSheetMode ? 2 : (compactTable ? 3 : 4);
     var allowPhotoButton = !!options.allowPhotoButton;
-    var saveLabel = options.saveLabel || "登録";
+    var saveLabel = options.saveLabel || "保存";
     var deleteLabel = options.deleteLabel || "削除";
-    var exitLabel = options.exitLabel || "終了";
+    var exitLabel = options.exitLabel || "閉じる";
     var photoActionLabel = hasPhotoAttached(entry) ? "写真削除" : "写真選択";
 
     return (
@@ -2086,16 +2086,16 @@
                 createdAt: "（未保存）",
               },
               true,
-              { saveLabel: "登録", deleteLabel: "削除", exitLabel: "終了", allowPhotoButton: true }
+              { saveLabel: "保存", deleteLabel: "削除", exitLabel: "閉じる", allowPhotoButton: true }
             )
           );
         } else if (state.voicePreviewEntry) {
           body.insertAdjacentHTML(
             "afterbegin",
             mobileVoiceEditorRowHtml(state.voicePreviewEntry, false, {
-              saveLabel: "登録",
+              saveLabel: "保存",
               deleteLabel: "削除",
-              exitLabel: "終了",
+              exitLabel: "閉じる",
               allowPhotoButton: true,
             })
           );
