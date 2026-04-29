@@ -156,6 +156,7 @@
         return;
       }
 
+      updateFloatingUiTop();
       overlay.removeAttribute("hidden");
 
       check.addEventListener("change", function () {
@@ -190,6 +191,7 @@
   function toast(msg) {
     var el = $("#toast");
     if (!el) return;
+    updateFloatingUiTop();
     el.textContent = msg;
     el.classList.add("show");
     window.clearTimeout(toast._t);
@@ -200,6 +202,40 @@
 
   function isAbortError(err) {
     return !!(err && (err.name === "AbortError" || err.code === 20));
+  }
+
+  function isVisibleForFloatingUi(el) {
+    if (!el || el.hidden) return false;
+    if (typeof window === "undefined" || !window.getComputedStyle) return true;
+    var style = window.getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden";
+  }
+
+  function updateFloatingUiTop() {
+    if (typeof document === "undefined") return 0;
+    var docEl = document.documentElement;
+    if (!docEl) return 0;
+
+    var anchorBottom = 0;
+    var candidates = [
+      $(".app-header"),
+      $("#license-warning-banner"),
+      $("#entry-limit-warning-inline"),
+      $("#search-meta"),
+    ];
+
+    candidates.forEach(function (el) {
+      if (!isVisibleForFloatingUi(el)) return;
+      var rect = el.getBoundingClientRect();
+      if (rect.bottom > anchorBottom) {
+        anchorBottom = rect.bottom;
+      }
+    });
+
+    var gap = window.matchMedia && window.matchMedia("(max-width: 639px)").matches ? 8 : 10;
+    var top = Math.max(16, Math.round(anchorBottom + gap));
+    docEl.style.setProperty("--floating-ui-top", top + "px");
+    return top;
   }
 
   function setDataTransferBusyUi(mode, isBusy) {
@@ -554,6 +590,7 @@
       okBtn.addEventListener("click", onOk);
       cancelBtn.addEventListener("click", onCancel);
       document.addEventListener("keydown", onKeyDown, true);
+      updateFloatingUiTop();
       overlay.removeAttribute("hidden");
 
       window.setTimeout(function () {
@@ -587,6 +624,7 @@
     var text = String(msg || "").trim();
     el.textContent = text;
     el.hidden = text === "";
+    updateFloatingUiTop();
   }
 
   function updateEntryLimitInlineWarning(entryCount) {
@@ -1410,10 +1448,12 @@
     if (!msg) {
       ban.hidden = true;
       ban.textContent = "";
+      updateFloatingUiTop();
       return;
     }
     ban.hidden = false;
     ban.textContent = msg;
+    updateFloatingUiTop();
   }
 
   function updateLicenseDetailsPanel() {
@@ -1706,6 +1746,7 @@
       } else {
         el.textContent = "登録はまだありません。";
       }
+      updateFloatingUiTop();
       return;
     }
     var parts = [];
@@ -1723,6 +1764,7 @@
     }
     el.textContent = parts.join(" ");
     el.classList.add("has-result");
+    updateFloatingUiTop();
   }
 
   function rowHtml(entry, isDraft, options) {
@@ -3389,6 +3431,7 @@
         return;
       }
       updatePlanSummaryLine();
+      updateFloatingUiTop();
       if (!isPhoneViewport()) {
         closeMobileEditSheet();
       } else {
@@ -3456,6 +3499,7 @@
         }
         ensureMobileBackGuard();
         updatePlanBar();
+        updateFloatingUiTop();
         syncTableStructure();
         return checkTerms().then(function () {
           return startUsageSession();

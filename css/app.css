@@ -21,6 +21,7 @@
   --btn-delete-red: #f44336;
   --btn-delete-red-hover: #e53935;
   --form-input-large: 1.05rem;
+  --floating-ui-top: 8.5rem;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans",
     "Noto Sans JP", sans-serif;
   line-height: 1.5;
@@ -1212,9 +1213,9 @@ button.sm {
   background: rgba(0, 0, 0, 0.72);
   z-index: 2000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--floating-ui-top) 1rem 1rem;
 }
 
 .terms-overlay[hidden] {
@@ -1228,7 +1229,7 @@ button.sm {
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
   width: 100%;
   max-width: 680px;
-  max-height: 90vh;
+  max-height: min(90vh, calc(100vh - var(--floating-ui-top) - 1rem));
   display: flex;
   flex-direction: column;
   padding: 1.75rem 1.75rem 1.5rem;
@@ -1344,9 +1345,9 @@ button.sm {
   background: rgba(0, 0, 0, 0.38);
   z-index: 2100;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--floating-ui-top) 1rem 1rem;
 }
 
 .app-dialog-overlay[hidden] {
@@ -1361,6 +1362,8 @@ button.sm {
   border-radius: 14px;
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.28);
   padding: 1.15rem 1rem 1rem;
+  max-height: calc(100vh - var(--floating-ui-top) - 1rem);
+  overflow-y: auto;
 }
 
 .app-dialog-message {
@@ -1714,8 +1717,9 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
 #toast {
   position: fixed;
   left: 50%;
-  bottom: 1.25rem;
+  top: var(--floating-ui-top);
   transform: translateX(-50%);
+  bottom: auto;
   max-width: min(520px, calc(100% - 2rem));
   padding: 0.65rem 1rem;
   border-radius: 10px;
