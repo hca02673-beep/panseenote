@@ -1824,7 +1824,7 @@
     parts.push("— 該当 " + result.total + " 件");
     if (result.capped) {
       parts.push(
-        "（検索結果が多いため先頭50件のみ表示。検索語を追加して絞り込んでください）"
+        "（検索結果が多いため先頭50件のみ表示。検索語を長くしてください）"
       );
     } else if (result.total === 0) {
       parts.push("（ヒットなし）");
