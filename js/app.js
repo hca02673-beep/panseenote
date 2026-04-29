@@ -865,18 +865,31 @@
   function openPhotoViewerFromSources(fullSrc, fullId) {
     var overlay = $("#photo-viewer-overlay");
     var img = $("#photo-viewer-image");
+    var closeBtn = $("#photo-viewer-close");
     if (!overlay || !img) return Promise.resolve();
     if (fullSrc) {
+      updateFloatingUiTop();
       img.src = fullSrc;
       overlay.removeAttribute("hidden");
+      if (closeBtn) {
+        window.setTimeout(function () {
+          closeBtn.focus();
+        }, 0);
+      }
       return Promise.resolve();
     }
     if (!fullId) return Promise.resolve();
     return db.getPhotoAsset(state.idb, fullId).then(function (asset) {
       if (!asset || !asset.blob || !imageUtil || typeof imageUtil.blobToDataUrl !== "function") return;
       return imageUtil.blobToDataUrl(asset.blob).then(function (src) {
+        updateFloatingUiTop();
         img.src = src;
         overlay.removeAttribute("hidden");
+        if (closeBtn) {
+          window.setTimeout(function () {
+            closeBtn.focus();
+          }, 0);
+        }
       });
     });
   }
