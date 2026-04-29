@@ -157,7 +157,6 @@
         return;
       }
 
-      updateFloatingUiTop();
       overlay.removeAttribute("hidden");
 
       check.addEventListener("change", function () {
@@ -588,10 +587,14 @@
         close(cancelable ? false : true);
       }
 
+      var alignToMeta = !!(options && options.alignToMeta);
+      overlay.classList.toggle("app-dialog-overlay-flow", alignToMeta);
       okBtn.addEventListener("click", onOk);
       cancelBtn.addEventListener("click", onCancel);
       document.addEventListener("keydown", onKeyDown, true);
-      updateFloatingUiTop();
+      if (alignToMeta) {
+        updateFloatingUiTop();
+      }
       overlay.removeAttribute("hidden");
 
       window.setTimeout(function () {
@@ -831,7 +834,9 @@
   function ensurePhotoLimitAvailable() {
     return db.countPhotoAttachments(state.idb).then(function (count) {
       if (count >= C.PHOTO_LIMIT) {
-        return showAppAlert("写真登録上限（" + C.PHOTO_LIMIT + "枚）に達しています。").then(function () {
+        return showAppAlert("写真登録上限（" + C.PHOTO_LIMIT + "枚）に達しています。", {
+          alignToMeta: true,
+        }).then(function () {
           return Promise.reject(new Error("photo_limit_reached"));
         });
       }
@@ -1035,7 +1040,9 @@
     state.photoPickerContext = null;
     if (!file || !ctx) return Promise.resolve();
     if (!imageUtil || typeof imageUtil.processPhotoFile !== "function") {
-      return showAppAlert("写真処理を開始できませんでした。");
+      return showAppAlert("写真処理を開始できませんでした。", {
+        alignToMeta: true,
+      });
     }
     return imageUtil.processPhotoFile(file)
       .then(function (processed) {
@@ -1048,7 +1055,9 @@
       })
       .catch(function (err) {
         console.error("Photo processing failed:", err);
-        return showAppAlert("写真の取り込みに失敗しました。");
+        return showAppAlert("写真の取り込みに失敗しました。", {
+          alignToMeta: true,
+        });
       });
   }
 
@@ -2427,6 +2436,7 @@
       detailAsChip: true,
       okLabel: "削除する",
       danger: true,
+      alignToMeta: true,
     }).then(function (ok) {
       if (!ok) return;
       return db.deleteEntry(state.idb, id).then(function () {
@@ -2559,7 +2569,8 @@
       return refreshCount().then(function (n) {
         if (n >= Number(state.license.itemLimit)) {
           return showAppAlert(
-            "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。"
+            "登録上限（" + state.license.itemLimit + "件）に達しています。保存できません。",
+            { alignToMeta: true }
           ).then(function () {
             setEntryLimitInlineWarning(
               "登録上限（" + state.license.itemLimit + "件）に達しているため保存できません。"
@@ -2642,6 +2653,7 @@
         detailAsChip: true,
         okLabel: "破棄する",
         danger: true,
+        alignToMeta: true,
       }).then(function (ok) {
         if (!ok) return;
         state.draft = null;
@@ -2655,6 +2667,7 @@
       detailAsChip: true,
       okLabel: "削除する",
       danger: true,
+      alignToMeta: true,
     }).then(function (ok) {
       if (!ok) return;
       return db.deleteEntry(state.idb, id).then(function () {

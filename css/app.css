@@ -1216,9 +1216,9 @@ button.sm {
   background: rgba(0, 0, 0, 0.72);
   z-index: 2000;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: var(--floating-ui-top) 1rem 1rem;
+  padding: 1rem;
 }
 
 .terms-overlay[hidden] {
@@ -1232,7 +1232,7 @@ button.sm {
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
   width: 100%;
   max-width: 680px;
-  max-height: min(90vh, calc(100vh - var(--floating-ui-top) - 1rem));
+  max-height: min(90vh, calc(100vh - 2rem));
   display: flex;
   flex-direction: column;
   padding: 1.75rem 1.75rem 1.5rem;
@@ -1348,8 +1348,13 @@ button.sm {
   background: rgba(0, 0, 0, 0.38);
   z-index: 2100;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
+  padding: 1rem;
+}
+
+.app-dialog-overlay.app-dialog-overlay-flow {
+  align-items: flex-start;
   padding: var(--floating-ui-top) 1rem 1rem;
 }
 
@@ -1365,8 +1370,12 @@ button.sm {
   border-radius: 14px;
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.28);
   padding: 1.15rem 1rem 1rem;
-  max-height: calc(100vh - var(--floating-ui-top) - 1rem);
+  max-height: calc(100vh - 2rem);
   overflow-y: auto;
+}
+
+.app-dialog-overlay.app-dialog-overlay-flow .app-dialog-box {
+  max-height: calc(100vh - var(--floating-ui-top) - 1rem);
 }
 
 .app-dialog-message {
@@ -1656,7 +1665,7 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
     border-radius: 10px;
-    max-height: 95vh;
+    max-height: calc(100vh - 2rem);
   }
 
   .terms-title {
@@ -1664,7 +1673,8 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   }
 
   .terms-scroll {
-    max-height: 45vh;
+    min-height: 0;
+    max-height: none;
     padding: 0.75rem 0.85rem;
   }
 
