@@ -25,6 +25,7 @@
     /** 音声登録データ編集ペインのタイトル種別 */
     voiceRegisterEditorMode: "",
     voicePreviewEntry: null,
+    voicePreviewBaseEntry: null,
     /** 音声登録モード中に #search-meta へ表示するメッセージ（空なら既定文言） */
     voiceRegisterMetaMsg: "",
     /** 音声検索フローで #search-meta へ表示するカスタムメッセージ（空なら通常表示） */
@@ -1143,6 +1144,7 @@
     if (options.editorMode !== undefined) {
       state.voiceRegisterEditorMode = String(options.editorMode || "");
     }
+    state.voicePreviewBaseEntry = normalizeVoiceEditorEntry(options.previewEntry || null);
     state.voicePreviewEntry = normalizeVoiceEditorEntry(options.previewEntry || null);
     state.draft = normalizeVoiceEditorEntry(options.draft || null);
     state.voiceRegisterMetaMsg = options.metaMsg || "";
@@ -1162,6 +1164,7 @@
     state.voiceRegisterMode = false;
     state.voiceRegisterLayoutLock = null;
     state.voiceRegisterEditorMode = "";
+    state.voicePreviewBaseEntry = null;
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
@@ -1381,6 +1384,51 @@
       String(prev.page || "") !== String(next.page || "") ||
       String(prev.memo || "") !== String(next.memo || "")
     );
+  }
+
+  function hasSearchableEntryText(entry) {
+    if (!entry) return false;
+    return (
+      String(entry.title || "").trim() !== "" ||
+      String(entry.memo || "").trim() !== ""
+    );
+  }
+
+  function isVoiceRegisterEditorRow(tr) {
+    return !!(
+      tr &&
+      tr.tagName === "TR" &&
+      tr.classList.contains("mobile-inline-editor-row")
+    );
+  }
+
+  function getVoiceRegisterEditorBaseEntry(tr) {
+    if (!isVoiceRegisterEditorRow(tr)) return null;
+    if (tr.getAttribute("data-draft") === "1") {
+      return buildEmptyVoiceRegisterDraft();
+    }
+    return normalizeVoiceEditorEntry(state.voicePreviewBaseEntry || null);
+  }
+
+  function getVoiceRegisterEditorCurrentEntry(tr) {
+    if (!isVoiceRegisterEditorRow(tr)) return null;
+    var vals = readRowFromTr(tr);
+    if (tr.getAttribute("data-draft") === "1") {
+      return cloneDraftWithPhotoMeta(state.draft, vals);
+    }
+    return Object.assign({}, normalizeVoiceEditorEntry(state.voicePreviewEntry || null) || {}, vals);
+  }
+
+  function isVoiceRegisterEditorDirty(tr) {
+    var base = getVoiceRegisterEditorBaseEntry(tr);
+    var current = getVoiceRegisterEditorCurrentEntry(tr);
+    if (!base || !current) return false;
+    return hasEntryContentChanged(base, current) || hasPendingPhotoChange(base, current);
+  }
+
+  function canSubmitVoiceRegisterEditor(tr) {
+    var current = getVoiceRegisterEditorCurrentEntry(tr);
+    return !!(current && isVoiceRegisterEditorDirty(tr) && hasSearchableEntryText(current));
   }
 
   function isUnauthenticatedTrial() {
@@ -1909,6 +1957,7 @@
     var phoneSheetMode = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
     var colSpan = phoneSheetMode ? 2 : (compactTable ? 3 : 4);
     var allowPhotoButton = !!options.allowPhotoButton;
+    var saveDisabled = !!options.saveDisabled;
     var saveLabel = options.saveLabel || "登録";
     var deleteLabel = options.deleteLabel || "削除";
     var exitLabel = options.exitLabel || "閉じる";
@@ -1962,7 +2011,7 @@
           (hasPhotoAttached(entry) ? "remove" : "select") +
           '">' + photoActionLabel + "</button>"
         : "") +
-      '<button type="button" class="app-dialog-btn btn-action-green row-save">' +
+      '<button type="button" class="app-dialog-btn btn-action-green row-save"' + (saveDisabled ? " disabled" : "") + ">" +
       escapeHtml(saveLabel) +
       "</button>" +
       '<button type="button" class="app-dialog-btn app-dialog-btn-danger row-delete"' +
@@ -2037,9 +2086,13 @@
   }
 
   function updateSaveButtonStateForRow(tr) {
-    if (!isDirtyTrackedDesktopListRow(tr)) return;
     var saveBtn = tr.querySelector("button.row-save");
     if (!saveBtn) return;
+    if (isVoiceRegisterEditorRow(tr)) {
+      saveBtn.disabled = !canSubmitVoiceRegisterEditor(tr);
+      return;
+    }
+    if (!isDirtyTrackedDesktopListRow(tr)) return;
     saveBtn.disabled = !isRowDirty(tr);
   }
 
@@ -2141,7 +2194,13 @@
                 createdAt: "（未保存）",
               },
               true,
-              { saveLabel: "登録", deleteLabel: "削除", exitLabel: "閉じる", allowPhotoButton: true }
+              {
+                saveLabel: "登録",
+                deleteLabel: "削除",
+                exitLabel: "閉じる",
+                allowPhotoButton: true,
+                saveDisabled: !hasSearchableEntryText(dv),
+              }
             )
           );
         } else if (state.voicePreviewEntry) {
@@ -2152,6 +2211,19 @@
               deleteLabel: "削除",
               exitLabel: "閉じる",
               allowPhotoButton: true,
+              saveDisabled:
+                !(
+                  state.voicePreviewBaseEntry &&
+                  (hasEntryContentChanged(
+                    state.voicePreviewBaseEntry,
+                    state.voicePreviewEntry
+                  ) ||
+                    hasPendingPhotoChange(
+                      state.voicePreviewBaseEntry,
+                      state.voicePreviewEntry
+                    )) &&
+                  hasSearchableEntryText(state.voicePreviewEntry)
+                ),
             })
           );
         }
@@ -2476,6 +2548,9 @@
 
   function onSaveRow(tr) {
     var draft = tr.getAttribute("data-draft") === "1";
+    if (isVoiceRegisterEditorRow(tr) && !canSubmitVoiceRegisterEditor(tr)) {
+      return Promise.resolve();
+    }
     if (!isRowDirty(tr) && isDirtyTrackedDesktopListRow(tr)) {
       return Promise.resolve();
     }
