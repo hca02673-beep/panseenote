@@ -1876,7 +1876,7 @@
       : '<div class="title-cell">' +
           '<textarea class="inline desktop-title-textarea" rows="1" maxlength="' +
           C.MAX_TITLE_LENGTH +
-          '" data-field="title" title="' + titleEsc + '">' +
+          '" data-field="title" title="' + titleEsc + '" placeholder="情報を入力（サービス名空欄のデータ登録はできません）...">' +
           escapeHtml(entry.title || "") +
           "</textarea>" +
           (showMemoButton
@@ -1984,7 +1984,7 @@
       "<span>サービス名</span>" +
       '<textarea class="mobile-inline-title" rows="2" maxlength="' +
       C.MAX_TITLE_LENGTH +
-      '" data-field="title">' +
+      '" data-field="title" placeholder="情報を入力（サービス名空欄のデータ登録はできません）...">' +
       escapeHtml(entry.title || "") +
       "</textarea>" +
       "</label>" +
