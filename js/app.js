@@ -1168,8 +1168,7 @@
     });
   }
 
-  function goHomeScreen() {
-    closeSettingsIfOpen();
+  function resetVoiceRegisterState() {
     state.voiceRegisterMode = false;
     state.voiceRegisterLayoutLock = null;
     state.voiceRegisterEditorMode = "";
@@ -1177,8 +1176,13 @@
     state.voicePreviewEntry = null;
     state.draft = null;
     state.voiceRegisterMetaMsg = "";
-    state.voiceSearchMsg = "";
     state.openMemoIds = new Set();
+  }
+
+  function goHomeScreen() {
+    closeSettingsIfOpen();
+    resetVoiceRegisterState();
+    state.voiceSearchMsg = "";
     state.searchQuery = String(state.homeSearchQuery || "");
     if ($("#manual-search")) {
       $("#manual-search").value = state.searchQuery;
@@ -2656,8 +2660,7 @@
         alignToMeta: true,
       }).then(function (ok) {
         if (!ok) return;
-        state.draft = null;
-        return renderTable();
+        return continueManualVoiceRegister();
       });
     }
     var id = tr.getAttribute("data-id");
@@ -2673,6 +2676,9 @@
       return db.deleteEntry(state.idb, id).then(function () {
         removeEntryFromSearchSnapshot(id);
         toast("削除しました。");
+        if (state.voiceRegisterMode) {
+          return continueManualVoiceRegister();
+        }
         if (isDirtyTrackedDesktopListRow(tr)) {
           removeDesktopListRowFromDom(tr);
           renderSearchMeta(state.searchSnapshot || { total: 0, capped: false });
@@ -2684,14 +2690,8 @@
   }
 
   function runSearch() {
-    state.voiceRegisterMode = false;
-    state.voiceRegisterLayoutLock = null;
-    state.voiceRegisterEditorMode = "";
-    state.voicePreviewEntry = null;
-    state.draft = null;
-    state.voiceRegisterMetaMsg = "";
+    resetVoiceRegisterState();
     state.voiceSearchMsg = "";
-    state.openMemoIds = new Set();
     state.searchQuery = $("#manual-search").value || "";
     state.homeSearchQuery = state.searchQuery;
     var countPromise = String(state.searchQuery || "").trim()
@@ -2712,15 +2712,9 @@
     trace.mark("closeSettingsIfOpen_done");
     if (!voice.isSpeechSupported()) {
       trace.mark("speech_support_checked", { code: "unsupported" });
-      state.voiceRegisterMode = false;
-      state.voiceRegisterLayoutLock = null;
-      state.voiceRegisterEditorMode = "";
-      state.voicePreviewEntry = null;
-      state.draft = null;
-      state.voiceRegisterMetaMsg = "";
+      resetVoiceRegisterState();
       state.voiceSearchMsg = "このブラウザでは音声認識を利用できません。手動検索をご利用ください。";
       state.searchQuery = "";
-      state.openMemoIds = new Set();
       if ($("#manual-search")) $("#manual-search").value = "";
       return saveSearchQueryToSettings("").then(function () {
         return renderTable({ refreshSearchResults: true });
@@ -2732,14 +2726,8 @@
       trace.mark("onVoiceSearch_recognize_resolved", {
         empty: !String(text || "").trim(),
       });
-      state.voiceRegisterMode = false;
-      state.voiceRegisterLayoutLock = null;
-      state.voiceRegisterEditorMode = "";
-      state.voicePreviewEntry = null;
-      state.draft = null;
-      state.voiceRegisterMetaMsg = "";
+      resetVoiceRegisterState();
       state.voiceSearchMsg = "";
-      state.openMemoIds = new Set();
         if (!text.trim()) {
           pushVoiceRecentLog("", null, "無音/タイムアウト", appendVoiceTimingNote(buildSpeechTimeoutMessage(""), trace), {
             kind: "search",
@@ -2805,12 +2793,7 @@
       displayedCount >= Number(state.license.itemLimit)
     ) {
       trace.mark("register_limit_reached");
-      state.voiceRegisterMode = false;
-      state.voiceRegisterLayoutLock = null;
-      state.voiceRegisterEditorMode = "";
-      state.voicePreviewEntry = null;
-      state.draft = null;
-      state.voiceRegisterMetaMsg = "";
+      resetVoiceRegisterState();
       state.searchQuery = "";
       if ($("#manual-search")) $("#manual-search").value = "";
       setEntryLimitInlineWarning(
@@ -2878,12 +2861,7 @@
       displayedCount != null &&
       displayedCount >= Number(state.license.itemLimit)
     ) {
-      state.voiceRegisterMode = false;
-      state.voiceRegisterLayoutLock = null;
-      state.voiceRegisterEditorMode = "";
-      state.voicePreviewEntry = null;
-      state.draft = null;
-      state.voiceRegisterMetaMsg = "";
+      resetVoiceRegisterState();
       state.searchQuery = "";
       if ($("#manual-search")) $("#manual-search").value = "";
       setEntryLimitInlineWarning(
@@ -3224,12 +3202,7 @@
           })(slice[i]);
         }
         return chain.then(function () {
-          state.voiceRegisterMode = false;
-          state.voiceRegisterLayoutLock = null;
-          state.voiceRegisterEditorMode = "";
-          state.voicePreviewEntry = null;
-          state.draft = null;
-          state.openMemoIds = new Set();
+          resetVoiceRegisterState();
           state.searchQuery = ($("#manual-search") && $("#manual-search").value) || "";
           return persistBackupImportInfo(fileLabel).then(function () {
             return saveSearchQueryToSettings(state.searchQuery);
