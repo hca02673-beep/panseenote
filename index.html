@@ -8,6 +8,14 @@
       name="description"
       content="紙ノートに書いた情報の索引を、音声と手入力で登録・検索します。"
     />
+    <meta name="theme-color" content="#115e59" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="パンセノート" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./img/icons/icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="./img/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>
@@ -191,6 +199,17 @@
             </select>
           </div>
 
+          <div class="user-settings-section install-guide-section">
+            <p class="user-settings-title">ホーム画面・アプリとして使う方法</p>
+            <p class="settings-lead">インストール後は、スタートメニューやホーム画面から直接起動できます。</p>
+            <ul class="install-guide-list">
+              <li>Windows: Edge / Chrome のメニューから「アプリとしてインストール」を選択します。</li>
+              <li>iPhone / iPad: Safari の共有メニューから「ホーム画面に追加」を選択します。</li>
+              <li>Android: Chrome のメニューから「ホーム画面に追加」または「インストール」を選択します。</li>
+            </ul>
+            <p class="install-guide-note">基本の検索・登録・一覧表示はオフラインでも継続しやすい構成です。初回ライセンス認証と音声認識は、通信状況やブラウザ仕様の影響を受ける場合があります。</p>
+          </div>
+
           <hr class="settings-divider" />
           <button type="button" class="voice-log-toggle-btn" id="internal-settings-toggle-btn">▶ 内部情報・診断</button>
           <div class="voice-log-body" id="internal-settings-body" hidden>
@@ -352,12 +371,28 @@
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script src="js/config.js"></script>
+    <script src="vendor/jszip.min.js"></script>
     <script src="js/license.js"></script>
     <script src="js/usage.js"></script>
     <script src="js/normalize.js"></script>
     <script src="js/db.js"></script>
     <script src="js/image.js"></script>
     <script src="js/voice.js"></script>
+    <script>
+      (function () {
+        "use strict";
+        if (!("serviceWorker" in navigator)) return;
+        var C = window.PANSEE_CONFIG;
+        if (!C || typeof C.getServiceWorkerUrl !== "function") return;
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register(C.getServiceWorkerUrl(), { scope: C.getBasePath() })
+            .catch(function (err) {
+              console.warn("Service worker registration failed:", err);
+            });
+        });
+      })();
+    </script>
     <script src="js/app.js"></script>
   </body>
 </html>

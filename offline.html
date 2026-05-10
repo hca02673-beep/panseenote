@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#115e59" />
+    <title>パンセノート - オフライン</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6fbfa;
+        --fg: #123531;
+        --card: #ffffff;
+        --border: #cfe6e1;
+        --accent: #115e59;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1f1d;
+          --fg: #edf7f4;
+          --card: #123531;
+          --border: #2f5d58;
+          --accent: #6dd1c5;
+        }
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        box-sizing: border-box;
+      }
+
+      main {
+        width: min(100%, 36rem);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.25rem 1.35rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      h1 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        font-size: 1.35rem;
+      }
+
+      p,
+      li {
+        line-height: 1.7;
+      }
+
+      ul {
+        padding-left: 1.2rem;
+      }
+
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>パンセノートはオフラインです</h1>
+      <p>保存済みアセットが使える場合は、通常画面に戻ってそのまま利用できます。通信が必要な一部機能だけ利用しにくくなる場合があります。</p>
+      <ul>
+        <li>ノートの検索、登録、一覧表示はローカル保存ベースで継続できます。</li>
+        <li>初回ライセンス認証はオンライン環境で実施してください。</li>
+        <li>音声認識はブラウザ仕様により、オフラインでは利用できない場合があります。</li>
+      </ul>
+      <p><a href="./">パンセノートを開き直す</a></p>
+    </main>
+  </body>
+</html>

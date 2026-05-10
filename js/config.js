@@ -11,9 +11,14 @@
   var CONFIG = {
     APP_ID: "PenseeNote",
     APP_VERSION: "1.0.9",
-    BUILD_TIMESTAMP: "2026-05-05T21:14:17Z",
+    BUILD_TIMESTAMP: "2026-04-19T03:30:00Z",
     EXPORT_JSON_VERSION: "2.0",
     TERMS_VERSION: "1.1",
+    APP_NAME: "パンセノート",
+    APP_SHORT_NAME: "パンセノート",
+    APP_DESCRIPTION: "紙ノートに書いた情報の索引を、音声と手入力で登録・検索します。",
+    THEME_COLOR: "#115e59",
+    BACKGROUND_COLOR: "#f6fbfa",
 
     DB_NAME: "panseenote-db",
     DB_VERSION: 2,
@@ -60,7 +65,28 @@
   };
 
   CONFIG.getBasePath = function () {
-    return BASE_PATH;
+    var base = String(BASE_PATH || "/");
+    if (base.charAt(0) !== "/") base = "/" + base;
+    if (!/\/$/.test(base)) base += "/";
+    return base;
+  };
+
+  CONFIG.getAssetUrl = function (relativePath) {
+    var base = CONFIG.getBasePath();
+    var rel = String(relativePath || "").replace(/^\/+/, "");
+    return base + rel;
+  };
+
+  CONFIG.getManifestUrl = function () {
+    return CONFIG.getAssetUrl("manifest.webmanifest");
+  };
+
+  CONFIG.getServiceWorkerUrl = function () {
+    return CONFIG.getAssetUrl("service-worker.js");
+  };
+
+  CONFIG.getOfflineFallbackUrl = function () {
+    return CONFIG.getAssetUrl("offline.html");
   };
 
   /**

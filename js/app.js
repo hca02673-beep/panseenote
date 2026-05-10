@@ -200,6 +200,21 @@
     }, 3200);
   }
 
+  function warnOfflineVoiceUsage() {
+    if (navigator.onLine) return;
+    var now = Date.now();
+    if (
+      warnOfflineVoiceUsage._lastAt &&
+      now - warnOfflineVoiceUsage._lastAt < 4000
+    ) {
+      return;
+    }
+    warnOfflineVoiceUsage._lastAt = now;
+    toast(
+      "オフライン時は音声認識が利用できない場合があります。必要に応じて手動入力をご利用ください。"
+    );
+  }
+
   function isAbortError(err) {
     return !!(err && (err.name === "AbortError" || err.code === 20));
   }
@@ -752,35 +767,16 @@
     if (getZipLib()) return Promise.resolve(getZipLib());
     if (ensureZipLibReady._pending) return ensureZipLibReady._pending;
     ensureZipLibReady._pending = new Promise(function (resolve, reject) {
-      var script = document.createElement("script");
-      var settled = false;
-      var timeoutId = window.setTimeout(function () {
-        if (settled) return;
-        settled = true;
-        reject(new Error("zip_library_timeout"));
-      }, 8000);
-      script.src = "https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js";
-      script.async = true;
-      script.onload = function () {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeoutId);
-        var ZipLib = getZipLib();
-        if (ZipLib) {
-          resolve(ZipLib);
-          return;
-        }
-        reject(new Error("zip_library_unavailable"));
-      };
-      script.onerror = function () {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeoutId);
-        reject(new Error("zip_library_unavailable"));
-      };
-      document.head.appendChild(script);
+      var ZipLib = getZipLib();
+      if (ZipLib) {
+        resolve(ZipLib);
+        return;
+      }
+      reject(new Error("zip_library_unavailable"));
     }).catch(function (err) {
-      return showAppAlert("ZIP処理ライブラリを読み込めませんでした。通信環境を確認して再度お試しください。").then(function () {
+      return showAppAlert(
+        "ZIP処理ライブラリを読み込めませんでした。アプリを再読み込みしてから再度お試しください。"
+      ).then(function () {
         return Promise.reject(err);
       });
     }).finally(function () {
@@ -2721,6 +2717,7 @@
       });
     }
     trace.mark("speech_support_checked", { code: "supported" });
+    warnOfflineVoiceUsage();
     trace.mark("recognizeOnce_call");
     return voice.recognizeOnce({ trace: trace, timeoutMs: timeoutMs }).then(function (text) {
       trace.mark("onVoiceSearch_recognize_resolved", {
@@ -2786,6 +2783,7 @@
       });
     }
     trace.mark("speech_support_checked", { code: "supported" });
+    warnOfflineVoiceUsage();
     var displayedCount = readDisplayedEntryCount();
     trace.mark("displayed_count_checked", { count: displayedCount });
     if (
@@ -3376,6 +3374,14 @@
   function init() {
     window.addEventListener("popstate", function () {
       handleMobileBackNavigation();
+    });
+    window.addEventListener("offline", function () {
+      toast(
+        "オフラインです。検索・登録は継続できますが、初回ライセンス認証と音声認識は利用できない場合があります。"
+      );
+    });
+    window.addEventListener("online", function () {
+      toast("オンラインに戻りました。");
     });
     ensureMobileBackGuard();
     $("#btn-export").addEventListener("click", function () {

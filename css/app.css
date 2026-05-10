@@ -970,6 +970,25 @@ button.sm {
   padding: 0.5rem 0.65rem;
 }
 
+.install-guide-section {
+  margin-top: 0.75rem;
+}
+
+.install-guide-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--fg);
+}
+
+.install-guide-list li + li {
+  margin-top: 0.45rem;
+}
+
+.install-guide-note {
+  margin: 0.75rem 0 0;
+  color: var(--fg);
+}
+
 /* ======================================================
    直近音声認識ログ（開発者用）
    ====================================================== */
