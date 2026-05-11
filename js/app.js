@@ -32,10 +32,8 @@
     voiceSearchMsg: "",
     /** @type {Set<string>} 展開中のメモ行のエントリID */
     openMemoIds: new Set(),
-    /** スマホ時は登録日付列を DOM から外した 3 列構造にする */
+    /** 画面幅に応じた一覧レイアウト切替用 */
     isCompactTable: false,
-    detachedDateCol: null,
-    detachedDateTh: null,
     detachedActionsCol: null,
     detachedActionsTh: null,
     /** 直近の明示検索で確定した表示中サブセット */
@@ -51,6 +49,76 @@
     usageSendBusy: false,
     photoPickerContext: null,
   };
+
+  var AI_LOOKUP_CATEGORIES = [
+    {
+      value: "appliance",
+      label: "家電・住宅設備",
+      templates: [
+        "使い方",
+        "不具合・故障かも",
+        "ランプ・エラー表示",
+        "掃除・お手入れ",
+        "取扱説明書・公式情報",
+        "その他",
+      ],
+      placeholder: [
+        "例：ランプが点滅するようになった",
+        "例：エラー番号 H51 が出た",
+        "例：ハンバーグの焼き方を知りたい",
+      ].join("\n"),
+    },
+    {
+      value: "food",
+      label: "料理・食品",
+      templates: [
+        "レシピ・作り方",
+        "分量",
+        "保存方法・期限",
+        "代用品",
+        "失敗原因",
+        "その他",
+      ],
+      placeholder: [
+        "例：オイスターソースの代わりを知りたい",
+        "例：レンジの加熱時間を知りたい",
+        "例：冷凍のまま調理出来るか知りたい",
+      ].join("\n"),
+    },
+    {
+      value: "service",
+      label: "契約・ID・サービス",
+      templates: [
+        "ログイン方法",
+        "料金・契約内容",
+        "解約・変更方法",
+        "問い合わせ先",
+        "トラブル対応",
+        "その他",
+      ],
+      placeholder: [
+        "例：ログインできない",
+        "例：解約方法を知りたい",
+        "例：利用履歴を知りたい",
+      ].join("\n"),
+    },
+    {
+      value: "general",
+      label: "その他・一般",
+      templates: [
+        "使い方を知りたい",
+        "困りごとを解決したい",
+        "公式情報を探したい",
+        "比較・判断したい",
+        "その他",
+      ],
+      placeholder: [
+        "例：使い方を知りたい",
+        "例：治し方を知りたい",
+        "例：公式情報を探したい",
+      ].join("\n"),
+    },
+  ];
 
   var $ = function (sel) {
     return document.querySelector(sel);
@@ -1207,6 +1275,11 @@
 
   function handleMobileBackNavigation() {
     if (!isPhoneViewport()) return;
+    if ($("#ai-lookup-overlay") && !$("#ai-lookup-overlay").hasAttribute("hidden")) {
+      closeAiLookupDialog();
+      rearmMobileBackGuard();
+      return;
+    }
     if ($("#mobile-edit-sheet-overlay") && !$("#mobile-edit-sheet-overlay").hasAttribute("hidden")) {
       closeMobileEditSheet();
       rearmMobileBackGuard();
@@ -1375,14 +1448,6 @@
     var n = Number(value || 0);
     if (!isFinite(n) || n < 0) n = 0;
     return String(n);
-  }
-
-  function formatEntryCreatedAtDisplay(value) {
-    if (!value) return "—";
-    var raw = String(value);
-    var m = raw.match(/^\d{4}-\d{2}-\d{2}/);
-    if (m) return m[0];
-    return formatIsoDisplay(raw);
   }
 
   function hasEntryContentChanged(prev, next) {
@@ -1630,7 +1695,7 @@
   }
 
   /**
-   * スマホでは登録日付列を DOM から外し、table 自体を 3 列構造にする。
+   * スマホ検索シート時は操作列を DOM から外し、列構成を合わせる。
    * display:none では Chrome の colspan 再計算に負けるため、列そのものを脱着する。
    * @returns {boolean} 構造が変わった場合 true
    */
@@ -1648,32 +1713,8 @@
       return changed;
     }
 
-    var colDate = colgroup.querySelector("col.col-date");
     var colActions = colgroup.querySelector("col.col-actions");
-    var thDate = headRow.querySelector("th.th-date");
     var thActions = headRow.querySelector("th.th-actions");
-
-    if (compact) {
-      if (colDate) {
-        state.detachedDateCol = colDate;
-        colgroup.removeChild(colDate);
-        changed = true;
-      }
-      if (thDate) {
-        state.detachedDateTh = thDate;
-        headRow.removeChild(thDate);
-        changed = true;
-      }
-    } else {
-      if (!colDate && state.detachedDateCol) {
-        colgroup.insertBefore(state.detachedDateCol, colActions || null);
-        changed = true;
-      }
-      if (!thDate && state.detachedDateTh) {
-        headRow.insertBefore(state.detachedDateTh, thActions || null);
-        changed = true;
-      }
-    }
 
     colActions = colgroup.querySelector("col.col-actions");
     thActions = headRow.querySelector("th.th-actions");
@@ -1839,7 +1880,6 @@
 
   function rowHtml(entry, isDraft, options) {
     options = options || {};
-    var compactTable = state.isCompactTable || isCompactTableViewport();
     var phoneSheetRow = !!options.phoneSheetRow;
     var showMemoButton = options.showMemoButton !== false;
     var showExitButton = !!options.showExitButton;
@@ -1852,7 +1892,6 @@
     var bookEsc = escapeAttr(entry.book || "");
     var pageEsc = escapeAttr(entry.page || "");
     var memoEsc = escapeAttr(entry.memo || "");
-    var dateLabel = formatEntryCreatedAtDisplay(entry.createdAt);
     var hasMemo = hasMemoLikeContent(entry);
     var memoInitiallyOpen = !!options.memoInitiallyOpen;
     var saveLabel = options.saveLabel || "登録";
@@ -1917,11 +1956,6 @@
       '<td class="col-booknum">' +
       bookPageInner +
       '</td>' +
-      (compactTable
-        ? ""
-        : '<td class="readonly col-date">' +
-          escapeHtml(dateLabel) +
-          "</td>") +
       (phoneSheetRow
         ? ""
         : '<td class="actions col-actions' + (showExitButton ? " voice-register-actions" : "") + '">' +
@@ -1929,6 +1963,7 @@
             ? '<button type="button" class="sm row-exit">' + escapeHtml(exitLabel) + "</button>"
             : "") +
           photoButtonHtml +
+          '<button type="button" class="sm row-ai-search btn-action-ai">ＡＩで調べる</button>' +
           '<button type="button" class="sm row-save btn-action-green"' + (saveDisabled ? " disabled" : "") + ">" + escapeHtml(saveLabel) + "</button>" +
           (isDraft
             ? '<button type="button" class="sm row-delete btn-action-delete" disabled>' + escapeHtml(deleteLabel) + "</button>"
@@ -1944,7 +1979,7 @@
       '<tr class="memo-row"' +
       (id ? ' data-for="' + escapeAttr(id) + '"' : "") +
       (memoInitiallyOpen ? ">" : " hidden>") +
-      '<td colspan="' + (compactTable ? "3" : "4") + '" class="memo-cell">' +
+      '<td colspan="3" class="memo-cell">' +
       '<div class="memo-photo-layout">' +
       '<textarea class="memo-textarea" rows="2" maxlength="500" placeholder="メモを入力（登録ボタンで確定）...">' +
       escapeHtml(entry.memo || "") +
@@ -1962,9 +1997,8 @@
     var id = entry.id ? String(entry.id) : "";
     var dr = isDraft ? ' data-draft="1"' : "";
     var lock = ensureVoiceRegisterLayoutLock();
-    var compactTable = lock ? !!lock.compact : (state.isCompactTable || isCompactTableViewport());
     var phoneSheetMode = lock ? !!lock.phoneSheet : isPhoneSearchSheetMode();
-    var colSpan = phoneSheetMode ? 2 : (compactTable ? 3 : 4);
+    var colSpan = phoneSheetMode ? 2 : 3;
     var allowPhotoButton = !!options.allowPhotoButton;
     var saveDisabled = !!options.saveDisabled;
     var saveLabel = options.saveLabel || "登録";
@@ -2045,6 +2079,122 @@
 
   function escapeAttr(s) {
     return escapeHtml(s).replace(/`/g, "&#96;");
+  }
+
+  function getAiLookupCategoryDef(categoryValue) {
+    var value = String(categoryValue || "");
+    for (var i = 0; i < AI_LOOKUP_CATEGORIES.length; i++) {
+      if (AI_LOOKUP_CATEGORIES[i].value === value) {
+        return AI_LOOKUP_CATEGORIES[i];
+      }
+    }
+    return AI_LOOKUP_CATEGORIES[0];
+  }
+
+  function fillAiLookupCategoryOptions() {
+    var categoryEl = $("#ai-lookup-category");
+    if (!categoryEl || categoryEl.options.length > 0) return;
+    for (var i = 0; i < AI_LOOKUP_CATEGORIES.length; i++) {
+      var def = AI_LOOKUP_CATEGORIES[i];
+      categoryEl.insertAdjacentHTML(
+        "beforeend",
+        '<option value="' + escapeAttr(def.value) + '">' + escapeHtml(def.label) + "</option>"
+      );
+    }
+  }
+
+  function updateAiLookupTemplateOptions() {
+    var categoryEl = $("#ai-lookup-category");
+    var templateEl = $("#ai-lookup-template");
+    var userTextEl = $("#ai-lookup-user-text");
+    if (!categoryEl || !templateEl) return;
+    var def = getAiLookupCategoryDef(categoryEl.value);
+    var prev = templateEl.value;
+    templateEl.innerHTML = "";
+    for (var i = 0; i < def.templates.length; i++) {
+      var label = def.templates[i];
+      templateEl.insertAdjacentHTML(
+        "beforeend",
+        '<option value="' + escapeAttr(label) + '">' + escapeHtml(label) + "</option>"
+      );
+    }
+    if (prev) {
+      templateEl.value = prev;
+    }
+    if (!templateEl.value && def.templates.length) {
+      templateEl.value = def.templates[0];
+    }
+    if (userTextEl) {
+      userTextEl.placeholder = def.placeholder || "";
+    }
+  }
+
+  function buildAiLookupBaseText(values) {
+    if (!values) return "";
+    var parts = [];
+    var title = String(values.title || "").trim();
+    var memo = String(values.memo || "").trim();
+    if (title) parts.push(title);
+    if (memo) parts.push(memo);
+    return parts.join("。");
+  }
+
+  function normalizeAiLookupText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function openAiLookupDialog(values) {
+    var overlay = $("#ai-lookup-overlay");
+    var baseTextEl = $("#ai-lookup-base-text");
+    var categoryEl = $("#ai-lookup-category");
+    var userTextEl = $("#ai-lookup-user-text");
+    if (!overlay || !baseTextEl || !categoryEl || !userTextEl) return;
+    fillAiLookupCategoryOptions();
+    baseTextEl.value = buildAiLookupBaseText(values);
+    userTextEl.value = "";
+    if (!categoryEl.value) {
+      categoryEl.value = AI_LOOKUP_CATEGORIES[0].value;
+    }
+    updateAiLookupTemplateOptions();
+    overlay.removeAttribute("hidden");
+  }
+
+  function closeAiLookupDialog() {
+    var overlay = $("#ai-lookup-overlay");
+    if (overlay) overlay.setAttribute("hidden", "");
+  }
+
+  function buildAiLookupQueryText() {
+    var baseText = normalizeAiLookupText($("#ai-lookup-base-text") && $("#ai-lookup-base-text").value);
+    var userText = normalizeAiLookupText($("#ai-lookup-user-text") && $("#ai-lookup-user-text").value);
+    var template = normalizeAiLookupText($("#ai-lookup-template") && $("#ai-lookup-template").value);
+    if (!baseText) {
+      return "";
+    }
+    if (userText) {
+      return baseText + " について、" + userText + "。" + template;
+    }
+    return baseText + " について。" + template;
+  }
+
+  function openAiLookupSearch() {
+    var queryText = buildAiLookupQueryText();
+    if (!queryText) {
+      return showAppAlert("検索結果を入力してください。", {
+        okLabel: "閉じる",
+      });
+    }
+    var url = "https://www.google.com/search?q=" + encodeURIComponent(queryText);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function openAiLookupDialogForRow(tr) {
+    if (!tr) return;
+    openAiLookupDialog(readRowFromTr(tr));
+  }
+
+  function openAiLookupDialogForMobileEditSheet() {
+    openAiLookupDialog(getMobileEditSheetValues());
   }
 
   function readRowFromTr(tr) {
@@ -2517,6 +2667,8 @@
 
       if (t.classList.contains("row-save")) {
         onSaveRow(tr);
+      } else if (t.classList.contains("row-ai-search")) {
+        openAiLookupDialogForRow(tr);
       } else if (t.classList.contains("row-photo")) {
         if (t.getAttribute("data-photo-action") === "remove") {
           deletePhotoFromVoiceEditorRow(tr);
@@ -3469,9 +3621,14 @@
         }
       });
     }
-    if ($("#mobile-edit-cancel")) {
-      $("#mobile-edit-cancel").addEventListener("click", function () {
+    if ($("#mobile-edit-close")) {
+      $("#mobile-edit-close").addEventListener("click", function () {
         closeMobileEditSheet();
+      });
+    }
+    if ($("#mobile-edit-ai")) {
+      $("#mobile-edit-ai").addEventListener("click", function () {
+        openAiLookupDialogForMobileEditSheet();
       });
     }
     if ($("#mobile-edit-save")) {
@@ -3482,6 +3639,31 @@
     if ($("#mobile-edit-delete")) {
       $("#mobile-edit-delete").addEventListener("click", function () {
         deleteMobileEditSheet();
+      });
+    }
+    fillAiLookupCategoryOptions();
+    updateAiLookupTemplateOptions();
+    var aiLookupOverlay = $("#ai-lookup-overlay");
+    if (aiLookupOverlay) {
+      aiLookupOverlay.addEventListener("click", function (ev) {
+        if (ev.target === aiLookupOverlay) {
+          closeAiLookupDialog();
+        }
+      });
+    }
+    if ($("#ai-lookup-category")) {
+      $("#ai-lookup-category").addEventListener("change", function () {
+        updateAiLookupTemplateOptions();
+      });
+    }
+    if ($("#ai-lookup-close")) {
+      $("#ai-lookup-close").addEventListener("click", function () {
+        closeAiLookupDialog();
+      });
+    }
+    if ($("#ai-lookup-search")) {
+      $("#ai-lookup-search").addEventListener("click", function () {
+        openAiLookupSearch();
       });
     }
     var settingsToggle = $("#btn-settings-toggle");

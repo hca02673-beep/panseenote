@@ -137,14 +137,12 @@
             <colgroup>
               <col class="col-title" />
               <col class="col-booknum" />
-              <col class="col-date" />
               <col class="col-actions" />
             </colgroup>
             <thead>
               <tr>
                 <th scope="col" class="th-title">サービス名</th>
                 <th scope="col" class="th-booknum">冊目・頁</th>
-                <th scope="col" class="th-date">登録日付</th>
                 <th scope="col" class="th-actions">操作</th>
               </tr>
             </thead>
@@ -336,7 +334,10 @@
 
     <div id="mobile-edit-sheet-overlay" class="mobile-edit-sheet-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="mobile-edit-sheet-title">
       <div id="mobile-edit-sheet" class="mobile-edit-sheet" role="document">
-        <h2 id="mobile-edit-sheet-title" class="mobile-edit-sheet-title">データ編集</h2>
+        <div class="mobile-edit-sheet-header">
+          <h2 id="mobile-edit-sheet-title" class="mobile-edit-sheet-title">データ編集</h2>
+          <button type="button" id="mobile-edit-close" class="mobile-edit-close-btn" aria-label="閉じる">✕</button>
+        </div>
         <div class="mobile-edit-sheet-body">
           <label class="mobile-edit-field">
             <span>サービス名</span>
@@ -361,12 +362,42 @@
           </div>
         </div>
         <div class="mobile-edit-sheet-actions">
-          <button type="button" id="mobile-edit-cancel" class="app-dialog-btn app-dialog-btn-secondary">閉じる</button>
+          <button type="button" id="mobile-edit-ai" class="app-dialog-btn app-dialog-btn-secondary">ＡＩで調べる</button>
           <button type="button" id="mobile-edit-save" class="app-dialog-btn app-dialog-btn-primary">登録</button>
           <button type="button" id="mobile-edit-delete" class="app-dialog-btn app-dialog-btn-danger">削除</button>
         </div>
       </div>
     </div><!-- /#mobile-edit-sheet -->
+
+    <div id="ai-lookup-overlay" class="ai-lookup-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="ai-lookup-title">
+      <div class="ai-lookup-dialog" role="document">
+        <div class="ai-lookup-header">
+          <h2 id="ai-lookup-title" class="ai-lookup-title">ＡＩで調べる</h2>
+        </div>
+        <div class="ai-lookup-body">
+          <label class="ai-lookup-field">
+            <span>検索結果</span>
+            <textarea id="ai-lookup-base-text" rows="3" maxlength="1000" placeholder="検索結果を入力"></textarea>
+          </label>
+          <label class="ai-lookup-field">
+            <span>調べたい内容の種類</span>
+            <select id="ai-lookup-category"></select>
+          </label>
+          <label class="ai-lookup-field">
+            <span>定型文</span>
+            <select id="ai-lookup-template"></select>
+          </label>
+          <label class="ai-lookup-field">
+            <span>知りたいこと</span>
+            <textarea id="ai-lookup-user-text" rows="3" maxlength="500" placeholder=""></textarea>
+          </label>
+        </div>
+        <div class="ai-lookup-actions">
+          <button type="button" id="ai-lookup-search" class="app-dialog-btn app-dialog-btn-primary">ＡＩで調べる</button>
+          <button type="button" id="ai-lookup-close" class="app-dialog-btn app-dialog-btn-secondary">閉じる</button>
+        </div>
+      </div>
+    </div><!-- /#ai-lookup-overlay -->
 
     <div id="toast" role="status" aria-live="polite"></div>
 
