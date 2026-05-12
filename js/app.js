@@ -43,6 +43,7 @@
     mobileBackGuardReady: false,
     exportBusy: false,
     importBusy: false,
+    forceRefreshBusy: false,
     backupRecommendBusy: false,
     usageSessionStarted: false,
     usageSentThisSession: false,
@@ -3551,6 +3552,104 @@
     });
   }
 
+  function refreshAppToLatest() {
+    if (state.forceRefreshBusy) return Promise.resolve();
+    if (typeof window === "undefined") return Promise.resolve();
+    if (!navigator.onLine) {
+      return showAppAlert("オンライン時のみ実行できます。");
+    }
+    if (!("serviceWorker" in navigator) || typeof caches === "undefined") {
+      window.location.replace(C.getBasePath() + "?refresh=" + Date.now());
+      return Promise.resolve();
+    }
+
+    return showAppConfirm(
+      "最新版を読み込み直しますか？",
+      {
+        detail:
+          "保存していない変更がある場合は、先にデータ保存を行ってください。キャッシュを更新してから再読み込みします。",
+        okLabel: "更新する",
+        cancelLabel: "キャンセル",
+        alignToMeta: true,
+      }
+    ).then(function (ok) {
+      if (!ok) return;
+      state.forceRefreshBusy = true;
+      toast("最新版を確認しています...");
+
+      var scope = (C && typeof C.getBasePath === "function")
+        ? C.getBasePath()
+        : "/";
+      var reloaded = false;
+      function reloadOnce() {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.replace(scope + "?refresh=" + Date.now());
+      }
+
+      var controllerChangeHandler = function () {
+        reloadOnce();
+      };
+      navigator.serviceWorker.addEventListener("controllerchange", controllerChangeHandler, { once: true });
+
+      function cleanupControllerListener() {
+        try {
+          navigator.serviceWorker.removeEventListener("controllerchange", controllerChangeHandler);
+        } catch (e) {}
+      }
+
+      return navigator.serviceWorker.getRegistration(scope)
+        .then(function (reg) {
+          if (!reg) return null;
+          return reg.update().catch(function () {
+            return reg;
+          }).then(function () {
+            return navigator.serviceWorker.getRegistration(scope).catch(function () {
+              return reg;
+            });
+          });
+        })
+        .then(function (reg) {
+          return caches.keys().then(function (keys) {
+            return Promise.all(
+              keys.map(function (key) {
+                if (String(key).indexOf("panseenote-") !== 0) return Promise.resolve();
+                return caches.delete(key);
+              })
+            ).then(function () {
+              return reg;
+            });
+          });
+        })
+        .then(function (reg) {
+          if (reg && reg.waiting) {
+            reg.waiting.postMessage("skip-waiting");
+            window.setTimeout(reloadOnce, 1500);
+            return;
+          }
+          if (reg && reg.installing) {
+            reg.installing.addEventListener("statechange", function () {
+              if (reg.waiting) {
+                reg.waiting.postMessage("skip-waiting");
+              }
+            });
+            window.setTimeout(reloadOnce, 1800);
+            return;
+          }
+          reloadOnce();
+        })
+        .catch(function (err) {
+          cleanupControllerListener();
+          console.error("Force refresh failed:", err);
+          state.forceRefreshBusy = false;
+          return showAppAlert(
+            "最新版の読み込み直しに失敗しました。通信状況をご確認ください。",
+            { alignToMeta: true }
+          );
+        });
+    });
+  }
+
   function init() {
     window.addEventListener("popstate", function () {
       handleMobileBackNavigation();
@@ -3592,6 +3691,11 @@
     $("#btn-license-activate").addEventListener("click", function () {
       onActivateLicense();
     });
+    if ($("#btn-force-refresh")) {
+      bindPress($("#btn-force-refresh"), function () {
+        refreshAppToLatest();
+      });
+    }
     if ($("#setting-prefer-manual-register")) {
       $("#setting-prefer-manual-register").addEventListener("change", function () {
         persistSettingsPatch({
