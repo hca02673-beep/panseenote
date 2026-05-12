@@ -125,6 +125,16 @@
     return document.querySelector(sel);
   };
 
+  var MOBILE_LAYOUT_MAX_WIDTH = 1024;
+
+  function matchesMaxWidth(px) {
+    return (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(max-width: " + String(px) + "px)").matches
+    );
+  }
+
   function bindPress(el, handler) {
     if (!el || typeof handler !== "function") return;
     var lastPointerUpAt = 0;
@@ -344,7 +354,7 @@
       }
     });
 
-    var gap = window.matchMedia && window.matchMedia("(max-width: 639px)").matches ? 8 : 10;
+    var gap = matchesMaxWidth(MOBILE_LAYOUT_MAX_WIDTH) ? 8 : 10;
     var top = Math.max(16, Math.round(anchorBottom + gap));
     docEl.style.setProperty("--floating-ui-top", top + "px");
     return top;
@@ -1678,20 +1688,12 @@
   }
 
   function isNarrowLayoutViewport() {
-    return (
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(max-width: 640px)").matches
-    );
+    return matchesMaxWidth(MOBILE_LAYOUT_MAX_WIDTH);
   }
 
-  /** スマホ幅（479px 以下）: 件数情報の超コンパクト表示判定 */
+  /** スマホ寄りレイアウト幅（1024px 以下） */
   function isPhoneViewport() {
-    return (
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(max-width: 479px)").matches
-    );
+    return matchesMaxWidth(MOBILE_LAYOUT_MAX_WIDTH);
   }
 
   function isPhoneSearchSheetMode() {
@@ -1716,11 +1718,7 @@
   }
 
   function isCompactTableViewport() {
-    return (
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(max-width: 639px)").matches
-    );
+    return matchesMaxWidth(MOBILE_LAYOUT_MAX_WIDTH);
   }
 
   /**
@@ -1992,7 +1990,7 @@
             ? '<button type="button" class="sm row-exit">' + escapeHtml(exitLabel) + "</button>"
             : "") +
           photoButtonHtml +
-          '<button type="button" class="sm row-ai-search btn-action-ai">ＡＩで調べる</button>' +
+          '<button type="button" class="sm row-ai-search btn-action-ai">AIで調べる</button>' +
           '<button type="button" class="sm row-save btn-action-green"' + (saveDisabled ? " disabled" : "") + ">" + escapeHtml(saveLabel) + "</button>" +
           (isDraft
             ? '<button type="button" class="sm row-delete btn-action-delete" disabled>' + escapeHtml(deleteLabel) + "</button>"
@@ -3840,14 +3838,14 @@
       layoutResizeTimer = window.setTimeout(onViewportLayoutChange, 120);
     });
     if (typeof window !== "undefined" && window.matchMedia) {
-      var narrowMq = window.matchMedia("(max-width: 640px)");
+      var narrowMq = window.matchMedia("(max-width: " + String(MOBILE_LAYOUT_MAX_WIDTH) + "px)");
       if (narrowMq.addEventListener) {
         narrowMq.addEventListener("change", onViewportLayoutChange);
       } else if (narrowMq.addListener) {
         narrowMq.addListener(onViewportLayoutChange);
       }
-      // スマホ幅変化でコンパクト表示切替
-      var phoneMq = window.matchMedia("(max-width: 479px)");
+      // スマホ寄り幅変化でコンパクト表示切替
+      var phoneMq = window.matchMedia("(max-width: " + String(MOBILE_LAYOUT_MAX_WIDTH) + "px)");
       if (phoneMq.addEventListener) {
         phoneMq.addEventListener("change", onViewportLayoutChange);
       } else if (phoneMq.addListener) {

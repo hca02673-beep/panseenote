@@ -194,9 +194,9 @@ button.btn-header-import {
 }
 
 /* ======================================================
-   タブレット・スマホ（768px 未満）
+   タブレット・スマホ寄り（1024px 以下）
    ====================================================== */
-@media (max-width: 767px) {
+@media (max-width: 1024px) {
   /* 副題を sub-row へ切替 */
   .subtitle-desktop { display: none; }
   .subtitle-sp      { display: block; }
@@ -486,8 +486,8 @@ table.entries-table {
 }
 
 .entries-table col.col-actions {
-  width: 16rem;
-  min-width: 16rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
 }
 
 table.entries-table.voice-register-mode col.col-actions {
@@ -721,9 +721,9 @@ td.readonly {
 
 .entries-table td.col-actions {
   white-space: nowrap;
-  width: 16rem;
-  min-width: 16rem;
-  max-width: 16rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
+  max-width: 13.5rem;
   box-sizing: border-box;
   vertical-align: middle;
 }
@@ -758,6 +758,12 @@ button.btn-action-ai {
   background: #dbeafe;
   border-color: #93c5fd;
   color: #1d4ed8;
+}
+
+.entries-table td.col-actions .row-ai-search {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.45rem;
 }
 
 button.btn-action-ai:hover {
@@ -1625,6 +1631,21 @@ button.sm {
 .mobile-edit-sheet-actions .app-dialog-btn {
   flex: 1 1 0;
   min-width: 0;
+  padding: 0.32rem 0.62rem;
+  line-height: 1.05;
+}
+
+#mobile-edit-ai {
+  flex: 1.2 1 0;
+  white-space: nowrap;
+  word-break: keep-all;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+#mobile-edit-save,
+#mobile-edit-delete {
+  flex: 0.8 1 0;
 }
 
 #mobile-edit-save {
@@ -1813,7 +1834,7 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   padding: 0;
 }
 
-@media (max-width: 639px) {
+@media (max-width: 1024px) {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
     border-radius: 10px;
@@ -1916,9 +1937,9 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
 }
 
 /* ======================================================
-   スマホ（640px 未満）
+   スマホ寄りレイアウト（1024px 以下）
    ====================================================== */
-@media (max-width: 639px) {
+@media (max-width: 1024px) {
   /* ロゴ・副題 */
   .app-logo { height: 72px; }
   .subtitle  { font-size: 0.78rem; }
@@ -1985,8 +2006,8 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   /* スマホでは横スクロール前提で表示する */
   .table-wrap                      { overflow-x: scroll; }
 
-  /* スマホの最小レイアウト幅 */
-  table.entries-table:not(.voice-register-mobile-mode) { width: 26rem; min-width: 26rem; }
+  /* スマホ寄りでもタブレット幅は活用する */
+  table.entries-table:not(.voice-register-mobile-mode) { width: 100%; min-width: 26rem; }
 
   .entries-table:not(.voice-register-mobile-mode) col.col-title,
   table.entries-table:not(.voice-register-mobile-mode) td.col-title { min-width: 15rem; }
@@ -1994,13 +2015,13 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   .table-wrap.phone-sheet-mode:not(.voice-register-mobile-mode) { overflow-x: auto; }
 
   table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) {
-    width: 21.5rem;
+    width: 100%;
     min-width: 21.5rem;
   }
 
   table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) col.col-title,
   table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) td.col-title {
-    min-width: 10.5rem;
+    min-width: 14rem;
   }
 
   table.entries-table.phone-sheet-mode:not(.voice-register-mobile-mode) .title-display-readonly {
@@ -2019,6 +2040,11 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
     font-size: 0.72rem;
     font-weight: 600;
     padding: 0.2rem 0.3rem;
+  }
+
+  #mobile-edit-ai {
+    font-size: 0.88rem;
+    letter-spacing: -0.02em;
   }
 
   .title-cell {
