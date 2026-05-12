@@ -124,6 +124,34 @@
     return document.querySelector(sel);
   };
 
+  function bindPress(el, handler) {
+    if (!el || typeof handler !== "function") return;
+    var lastPointerUpAt = 0;
+
+    function invoke(ev) {
+      if (ev) {
+        if (typeof ev.preventDefault === "function") ev.preventDefault();
+        if (typeof ev.stopPropagation === "function") ev.stopPropagation();
+      }
+      return handler(ev);
+    }
+
+    if (typeof window !== "undefined" && window.PointerEvent) {
+      el.addEventListener("pointerup", function (ev) {
+        if (ev.pointerType === "mouse" && ev.button !== 0) return;
+        lastPointerUpAt = Date.now();
+        invoke(ev);
+      });
+      el.addEventListener("click", function (ev) {
+        if (Date.now() - lastPointerUpAt < 450) return;
+        invoke(ev);
+      });
+      return;
+    }
+
+    el.addEventListener("click", invoke);
+  }
+
   function nowMs() {
     if (typeof performance !== "undefined" && typeof performance.now === "function") {
       return performance.now();
@@ -3622,22 +3650,22 @@
       });
     }
     if ($("#mobile-edit-close")) {
-      $("#mobile-edit-close").addEventListener("click", function () {
+      bindPress($("#mobile-edit-close"), function () {
         closeMobileEditSheet();
       });
     }
     if ($("#mobile-edit-ai")) {
-      $("#mobile-edit-ai").addEventListener("click", function () {
+      bindPress($("#mobile-edit-ai"), function () {
         openAiLookupDialogForMobileEditSheet();
       });
     }
     if ($("#mobile-edit-save")) {
-      $("#mobile-edit-save").addEventListener("click", function () {
+      bindPress($("#mobile-edit-save"), function () {
         saveMobileEditSheet();
       });
     }
     if ($("#mobile-edit-delete")) {
-      $("#mobile-edit-delete").addEventListener("click", function () {
+      bindPress($("#mobile-edit-delete"), function () {
         deleteMobileEditSheet();
       });
     }
@@ -3657,12 +3685,12 @@
       });
     }
     if ($("#ai-lookup-close")) {
-      $("#ai-lookup-close").addEventListener("click", function () {
+      bindPress($("#ai-lookup-close"), function () {
         closeAiLookupDialog();
       });
     }
     if ($("#ai-lookup-search")) {
-      $("#ai-lookup-search").addEventListener("click", function () {
+      bindPress($("#ai-lookup-search"), function () {
         openAiLookupSearch();
       });
     }
