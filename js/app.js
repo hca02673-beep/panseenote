@@ -3648,6 +3648,10 @@
     });
   }
 
+  if (typeof window !== "undefined") {
+    window.PANSEE_forceRefreshApp = refreshAppToLatest;
+  }
+
   function init() {
     window.addEventListener("popstate", function () {
       handleMobileBackNavigation();

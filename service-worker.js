@@ -37,6 +37,29 @@ function isNavigationRequest(request) {
   return request.mode === "navigate";
 }
 
+function isAppShellAssetRequest(url) {
+  var path = url.pathname;
+  if (path === scopePath || path === scopePath + "index.html" || path === scopePath + "offline.html") {
+    return true;
+  }
+  if (path === scopePath + SW_FILE_NAME) return false;
+  return /\.(?:css|js|html|webmanifest|svg|png)$/i.test(path);
+}
+
+function cacheResponse(cacheKey, response) {
+  if (!response || response.status !== 200 || response.type !== "basic") {
+    return response;
+  }
+  var responseClone = response.clone();
+  return caches.open(SW_VERSION).then(function (cache) {
+    return cache.put(cacheKey, responseClone);
+  }).then(function () {
+    return response;
+  }).catch(function () {
+    return response;
+  });
+}
+
 self.addEventListener("install", function (event) {
   event.waitUntil(
     caches.open(SW_VERSION).then(function (cache) {
@@ -73,15 +96,29 @@ self.addEventListener("fetch", function (event) {
   if (isNavigationRequest(request)) {
     event.respondWith(
       fetch(request).then(function (response) {
-        var responseClone = response.clone();
-        caches.open(SW_VERSION).then(function (cache) {
-          cache.put(scopePath, responseClone);
-          cache.put(scopePath + "index.html", response.clone());
+        return cacheResponse(scopePath, response.clone()).then(function () {
+          return cacheResponse(scopePath + "index.html", response);
         });
-        return response;
       }).catch(function () {
         return caches.match(request).then(function (cached) {
           return cached || caches.match(scopePath) || caches.match(scopePath + "offline.html");
+        });
+      })
+    );
+    return;
+  }
+
+  if (isAppShellAssetRequest(requestUrl)) {
+    event.respondWith(
+      fetch(request).then(function (response) {
+        return cacheResponse(request, response);
+      }).catch(function () {
+        return caches.match(request).then(function (cached) {
+          if (cached) return cached;
+          if (request.destination === "document") {
+            return caches.match(scopePath + "offline.html");
+          }
+          return Promise.reject(new Error("offline_asset_unavailable"));
         });
       })
     );
@@ -92,14 +129,7 @@ self.addEventListener("fetch", function (event) {
     caches.match(request).then(function (cached) {
       if (cached) return cached;
       return fetch(request).then(function (response) {
-        if (!response || response.status !== 200 || response.type !== "basic") {
-          return response;
-        }
-        var responseClone = response.clone();
-        caches.open(SW_VERSION).then(function (cache) {
-          cache.put(request, responseClone);
-        });
-        return response;
+        return cacheResponse(request, response);
       });
     }).catch(function () {
       if (request.destination === "document") {

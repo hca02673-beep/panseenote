@@ -431,5 +431,95 @@
       })();
     </script>
     <script src="js/app.js"></script>
+    <script>
+      (function () {
+        "use strict";
+
+        function getBasePath() {
+          var C = window.PANSEE_CONFIG;
+          if (C && typeof C.getBasePath === "function") {
+            return C.getBasePath();
+          }
+          return "/";
+        }
+
+        function fallbackForceRefresh() {
+          if (!navigator.onLine) {
+            window.alert("オンライン時のみ実行できます。");
+            return;
+          }
+          if (!window.confirm("最新版を読み込み直しますか？\n保存していない変更がある場合は、先にデータ保存を行ってください。")) {
+            return;
+          }
+
+          var scope = getBasePath();
+          var reloaded = false;
+          function reloadOnce() {
+            if (reloaded) return;
+            reloaded = true;
+            window.location.replace(scope + "?refresh=" + Date.now());
+          }
+
+          if (!("serviceWorker" in navigator) || typeof caches === "undefined") {
+            reloadOnce();
+            return;
+          }
+
+          navigator.serviceWorker.getRegistration(scope).then(function (reg) {
+            if (!reg) return null;
+            return reg.update().catch(function () {
+              return reg;
+            }).then(function () {
+              return navigator.serviceWorker.getRegistration(scope).catch(function () {
+                return reg;
+              });
+            });
+          }).then(function (reg) {
+            return caches.keys().then(function (keys) {
+              return Promise.all(
+                keys.map(function (key) {
+                  if (String(key).indexOf("panseenote-") !== 0) return Promise.resolve();
+                  return caches.delete(key);
+                })
+              ).then(function () {
+                return reg;
+              });
+            });
+          }).then(function (reg) {
+            navigator.serviceWorker.addEventListener("controllerchange", reloadOnce, { once: true });
+            if (reg && reg.waiting) {
+              reg.waiting.postMessage("skip-waiting");
+              window.setTimeout(reloadOnce, 1500);
+              return;
+            }
+            if (reg && reg.installing) {
+              reg.installing.addEventListener("statechange", function () {
+                if (reg.waiting) {
+                  reg.waiting.postMessage("skip-waiting");
+                }
+              });
+              window.setTimeout(reloadOnce, 1800);
+              return;
+            }
+            reloadOnce();
+          }).catch(function (err) {
+            console.error("Fallback force refresh failed:", err);
+            window.alert("最新版の読み込み直しに失敗しました。通信状況をご確認ください。");
+          });
+        }
+
+        document.addEventListener("click", function (ev) {
+          var target = ev.target;
+          if (!(target instanceof Element)) return;
+          var btn = target.closest("#btn-force-refresh");
+          if (!btn || ev.defaultPrevented) return;
+          if (typeof window.PANSEE_forceRefreshApp === "function") {
+            return;
+          }
+          ev.preventDefault();
+          fallbackForceRefresh();
+        });
+      })();
+    </script>
   </body>
 </html>
