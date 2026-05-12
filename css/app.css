@@ -1492,6 +1492,83 @@ button.sm {
   color: var(--fg);
 }
 
+.import-confirm-box {
+  width: min(100%, 32rem);
+}
+
+.import-confirm-title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.import-confirm-meta {
+  margin: 1rem 0 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.import-confirm-meta-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.import-confirm-meta-row + .import-confirm-meta-row {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.import-confirm-meta dt,
+.import-confirm-meta dd {
+  margin: 0;
+}
+
+.import-confirm-meta dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.import-confirm-meta dd {
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.import-confirm-mode-wrap {
+  margin-top: 0.9rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.import-confirm-mode-title {
+  margin: 0 0 0.7rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.import-confirm-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.import-confirm-option + .import-confirm-option {
+  margin-top: 0.65rem;
+}
+
+.import-confirm-option input {
+  margin-top: 0.2rem;
+}
+
 .mobile-edit-sheet-overlay {
   position: fixed;
   inset: 0;

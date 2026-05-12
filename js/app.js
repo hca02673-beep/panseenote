@@ -487,6 +487,104 @@
     });
   }
 
+  function parseBackupJsonText(text) {
+    var data;
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      return null;
+    }
+    if (!data || data.app !== C.APP_ID || !Array.isArray(data.items)) {
+      return null;
+    }
+    return data;
+  }
+
+  function prepareJsonBackupImport(file) {
+    return readFileAsText(file, "utf-8").then(function (text) {
+      var data = parseBackupJsonText(text);
+      if (!data) {
+        return showAppAlert("バックアップファイルの形式が正しくありません。").then(function () {
+          return null;
+        });
+      }
+      var fileLabel = normalizeFileLabel(file && file.name, "ブラウザ管理");
+      return {
+        fileName: fileLabel,
+        itemCount: data.items.length,
+        execute: function (options) {
+          return importBackupPayload(data, fileLabel, null, options);
+        },
+      };
+    });
+  }
+
+  function prepareZipBackupImport(file) {
+    return ensureZipLibReady().then(function (ZipLib) {
+      return readFileAsArrayBuffer(file).then(function (buffer) {
+        return ZipLib.loadAsync(buffer).then(function (zip) {
+          var jsonFile = zip.file(C.BACKUP_JSON_NAME);
+          if (!jsonFile) {
+            return showAppAlert("バックアップファイルの形式が正しくありません。").then(function () {
+              return null;
+            });
+          }
+          return jsonFile.async("string").then(function (text) {
+            var data = parseBackupJsonText(text);
+            if (!data) {
+              return showAppAlert("バックアップファイルの形式が正しくありません。").then(function () {
+                return null;
+              });
+            }
+            var fileLabel = normalizeFileLabel(file && file.name, "ブラウザ管理");
+            return {
+              fileName: fileLabel,
+              itemCount: data.items.length,
+              execute: function (options) {
+                return importBackupPayload(data, fileLabel, function (photoMeta) {
+                  if (!photoMeta || !photoMeta.fullFileName || !photoMeta.thumbFileName) {
+                    return Promise.resolve(null);
+                  }
+                  var fullFile = zip.file(String(photoMeta.fullFileName));
+                  var thumbFile = zip.file(String(photoMeta.thumbFileName));
+                  if (!fullFile || !thumbFile) return Promise.resolve(null);
+                  return Promise.all([
+                    fullFile.async("blob"),
+                    thumbFile.async("blob"),
+                  ]).then(function (pair) {
+                    return {
+                      full: {
+                        blob: pair[0],
+                        mimeType: photoMeta.mimeType || C.PHOTO_MIME_TYPE,
+                        width: Number(photoMeta.width || 0),
+                        height: Number(photoMeta.height || 0),
+                        sizeBytes: pair[0].size,
+                      },
+                      thumb: {
+                        blob: pair[1],
+                        mimeType: photoMeta.thumbMimeType || C.PHOTO_MIME_TYPE,
+                        width: Number(photoMeta.thumbWidth || 0),
+                        height: Number(photoMeta.thumbHeight || 0),
+                        sizeBytes: pair[1].size,
+                      },
+                    };
+                  });
+                }, options);
+              },
+            };
+          });
+        });
+      });
+    });
+  }
+
+  function prepareImportJob(file) {
+    if (!file) return Promise.resolve(null);
+    return /\.zip$/i.test(String(file.name || ""))
+      ? prepareZipBackupImport(file)
+      : prepareJsonBackupImport(file);
+  }
+
   function requestSaveFileHandle(name) {
     return window.showSaveFilePicker({
       suggestedName: name,
@@ -741,6 +839,106 @@
     });
     return showAppDialog(opts).then(function (ok) {
       return !!ok;
+    });
+  }
+
+  function showImportConfirmDialog(options) {
+    return new Promise(function (resolve) {
+      var overlay = $("#import-confirm-dialog");
+      var fileNameEl = $("#import-confirm-file-name");
+      var itemCountEl = $("#import-confirm-item-count");
+      var modeWrap = $("#import-confirm-mode-wrap");
+      var noteEl = $("#import-confirm-note");
+      var okBtn = $("#import-confirm-ok");
+      var cancelBtn = $("#import-confirm-cancel");
+      if (
+        !overlay ||
+        !fileNameEl ||
+        !itemCountEl ||
+        !modeWrap ||
+        !noteEl ||
+        !okBtn ||
+        !cancelBtn
+      ) {
+        resolve(null);
+        return;
+      }
+
+      var existingCount = Number((options && options.existingCount) || 0);
+      if (!isFinite(existingCount) || existingCount < 0) existingCount = 0;
+      var hasExisting = existingCount > 0;
+      var prevActive = document.activeElement;
+      var done = false;
+      var modeEls = overlay.querySelectorAll('input[name="import-confirm-mode"]');
+
+      fileNameEl.textContent = formatTextDisplay(options && options.fileName);
+      itemCountEl.textContent = formatCountDisplay(options && options.itemCount) + "件";
+      modeWrap.hidden = !hasExisting;
+      noteEl.textContent = hasExisting
+        ? "現在の登録データは" + formatCountDisplay(existingCount) + "件です。"
+        : "";
+      noteEl.hidden = !hasExisting;
+
+      for (var i = 0; i < modeEls.length; i++) {
+        modeEls[i].checked = modeEls[i].value === "append";
+      }
+
+      function cleanup() {
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        document.removeEventListener("keydown", onKeyDown, true);
+      }
+
+      function close(result) {
+        if (done) return;
+        done = true;
+        cleanup();
+        overlay.setAttribute("hidden", "");
+        if (prevActive && typeof prevActive.focus === "function") {
+          window.setTimeout(function () {
+            try {
+              prevActive.focus();
+            } catch (_) {}
+          }, 0);
+        }
+        resolve(result);
+      }
+
+      function selectedMode() {
+        for (var i = 0; i < modeEls.length; i++) {
+          if (modeEls[i].checked) {
+            return modeEls[i].value === "replace" ? "replace" : "append";
+          }
+        }
+        return "append";
+      }
+
+      function onOk(ev) {
+        if (ev) ev.preventDefault();
+        close({
+          mode: hasExisting ? selectedMode() : "append",
+        });
+      }
+
+      function onCancel(ev) {
+        if (ev) ev.preventDefault();
+        close(null);
+      }
+
+      function onKeyDown(ev) {
+        if (ev.key !== "Escape") return;
+        ev.preventDefault();
+        close(null);
+      }
+
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      document.addEventListener("keydown", onKeyDown, true);
+      overlay.removeAttribute("hidden");
+
+      window.setTimeout(function () {
+        okBtn.focus();
+      }, 0);
     });
   }
 
@@ -3333,128 +3531,96 @@
     });
   }
 
-  function importBackupPayload(data, fileLabel, photoResolver) {
+  function importBackupPayload(data, fileLabel, photoResolver, options) {
     if (!data || data.app !== C.APP_ID || !Array.isArray(data.items)) {
       return showAppAlert("バックアップファイルの形式が正しくありません。");
     }
+    var replaceExisting = !options || options.replaceExisting !== false;
     return db.getLicense(state.idb).then(function (lic) {
       var items = data.items;
       var effectiveLicense = state.license || lic || {};
       var limit = Number(effectiveLicense.itemLimit);
       if (isNaN(limit) || limit < 0) limit = C.DEFAULT_ITEM_LIMIT;
-      var truncated = items.length > limit;
-      var slice = items.slice(0, limit);
-      var importedPhotoCount = 0;
-      var photoOverflow = false;
-      return db.clearPhotoAssets(state.idb).then(function () {
-        return db.clearEntries(state.idb);
-      }).then(function () {
-        var chain = Promise.resolve();
-        for (var i = 0; i < slice.length; i++) {
-          (function (item) {
-            chain = chain.then(function () {
-              var e = db.buildNewEntry(item.title, item.book, item.page, item.memo || "");
-              if (item.createdAt) e.createdAt = String(item.createdAt);
-              if (item.updatedAt) e.updatedAt = String(item.updatedAt);
-              if (!item.photo || typeof photoResolver !== "function" || importedPhotoCount >= C.PHOTO_LIMIT) {
-                if (item.photo && importedPhotoCount >= C.PHOTO_LIMIT) {
-                  photoOverflow = true;
-                }
-                return db.putEntry(state.idb, e);
-              }
-              return photoResolver(item.photo).then(function (resolved) {
-                if (!resolved || !resolved.full || !resolved.thumb) {
+      return Promise.all([
+        replaceExisting ? Promise.resolve(0) : db.countEntries(state.idb),
+        replaceExisting ? Promise.resolve(0) : db.countPhotoAttachments(state.idb),
+      ]).then(function (counts) {
+        var existingEntryCount = Number(counts[0] || 0);
+        var existingPhotoCount = Number(counts[1] || 0);
+        if (!isFinite(existingEntryCount) || existingEntryCount < 0) existingEntryCount = 0;
+        if (!isFinite(existingPhotoCount) || existingPhotoCount < 0) existingPhotoCount = 0;
+
+        var remainingEntryCapacity = replaceExisting
+          ? limit
+          : Math.max(0, limit - existingEntryCount);
+        var remainingPhotoCapacity = replaceExisting
+          ? C.PHOTO_LIMIT
+          : Math.max(0, C.PHOTO_LIMIT - existingPhotoCount);
+        var truncated = items.length > remainingEntryCapacity;
+        var slice = items.slice(0, remainingEntryCapacity);
+        var importedCount = slice.length;
+        var importedPhotoCount = 0;
+        var photoOverflow = false;
+        var beforeImport = replaceExisting
+          ? db.clearPhotoAssets(state.idb).then(function () {
+              return db.clearEntries(state.idb);
+            })
+          : Promise.resolve();
+
+        return beforeImport.then(function () {
+          var chain = Promise.resolve();
+          for (var i = 0; i < slice.length; i++) {
+            (function (item) {
+              chain = chain.then(function () {
+                var e = db.buildNewEntry(item.title, item.book, item.page, item.memo || "");
+                if (item.createdAt) e.createdAt = String(item.createdAt);
+                if (item.updatedAt) e.updatedAt = String(item.updatedAt);
+                if (
+                  !item.photo ||
+                  typeof photoResolver !== "function" ||
+                  importedPhotoCount >= remainingPhotoCapacity
+                ) {
+                  if (item.photo && importedPhotoCount >= remainingPhotoCapacity) {
+                    photoOverflow = true;
+                  }
                   return db.putEntry(state.idb, e);
                 }
-                var bundle = buildPhotoAssetsForEntry(e.id, resolved);
-                e = db.patchEntry(e, {
-                  photoAttached: true,
-                  photoId: bundle.photoId,
-                  photoThumbId: bundle.thumbId,
+                return photoResolver(item.photo).then(function (resolved) {
+                  if (!resolved || !resolved.full || !resolved.thumb) {
+                    return db.putEntry(state.idb, e);
+                  }
+                  var bundle = buildPhotoAssetsForEntry(e.id, resolved);
+                  e = db.patchEntry(e, {
+                    photoAttached: true,
+                    photoId: bundle.photoId,
+                    photoThumbId: bundle.thumbId,
+                  });
+                  importedPhotoCount += 1;
+                  return db.putEntryWithPhotoAssets(state.idb, e, bundle.assets);
                 });
-                importedPhotoCount += 1;
-                return db.putEntryWithPhotoAssets(state.idb, e, bundle.assets);
               });
-            });
-          })(slice[i]);
-        }
-        return chain.then(function () {
-          resetVoiceRegisterState();
-          state.searchQuery = ($("#manual-search") && $("#manual-search").value) || "";
-          return persistBackupImportInfo(fileLabel).then(function () {
-            return saveSearchQueryToSettings(state.searchQuery);
-          }).then(function () {
-            return renderTable({ refreshSearchResults: true }).then(function () {
-              if (truncated) {
-                toast("バックアップファイルの先頭から、登録上限件数まで読み込みました。");
-                return;
-              }
-              if (photoOverflow) {
-                toast("バックアップファイルを読み込みました。写真は上限2000枚まで復元しました。");
-                return;
-              }
-              toast("バックアップファイルを読み込みました。");
-            });
-          });
-        });
-      });
-    });
-  }
-
-  function importJsonBackupFile(file) {
-    return readFileAsText(file, "utf-8").then(function (text) {
-      var data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        return showAppAlert("バックアップファイルの形式が正しくありません。");
-      }
-      return importBackupPayload(data, file && file.name);
-    });
-  }
-
-  function importZipBackupFile(file) {
-    return ensureZipLibReady().then(function (ZipLib) {
-      return readFileAsArrayBuffer(file).then(function (buffer) {
-        return ZipLib.loadAsync(buffer).then(function (zip) {
-          var jsonFile = zip.file(C.BACKUP_JSON_NAME);
-          if (!jsonFile) {
-            return showAppAlert("バックアップファイルの形式が正しくありません。");
+            })(slice[i]);
           }
-          return jsonFile.async("string").then(function (text) {
-            var data;
-            try {
-              data = JSON.parse(text);
-            } catch (e) {
-              return showAppAlert("バックアップファイルの形式が正しくありません。");
-            }
-            return importBackupPayload(data, file && file.name, function (photoMeta) {
-              if (!photoMeta || !photoMeta.fullFileName || !photoMeta.thumbFileName) {
-                return Promise.resolve(null);
-              }
-              var fullFile = zip.file(String(photoMeta.fullFileName));
-              var thumbFile = zip.file(String(photoMeta.thumbFileName));
-              if (!fullFile || !thumbFile) return Promise.resolve(null);
-              return Promise.all([
-                fullFile.async("blob"),
-                thumbFile.async("blob"),
-              ]).then(function (pair) {
-                return {
-                  full: {
-                    blob: pair[0],
-                    mimeType: photoMeta.mimeType || C.PHOTO_MIME_TYPE,
-                    width: Number(photoMeta.width || 0),
-                    height: Number(photoMeta.height || 0),
-                    sizeBytes: pair[0].size,
-                  },
-                  thumb: {
-                    blob: pair[1],
-                    mimeType: photoMeta.thumbMimeType || C.PHOTO_MIME_TYPE,
-                    width: Number(photoMeta.thumbWidth || 0),
-                    height: Number(photoMeta.thumbHeight || 0),
-                    sizeBytes: pair[1].size,
-                  },
-                };
+          return chain.then(function () {
+            resetVoiceRegisterState();
+            state.searchQuery = ($("#manual-search") && $("#manual-search").value) || "";
+            return persistBackupImportInfo(fileLabel).then(function () {
+              return saveSearchQueryToSettings(state.searchQuery);
+            }).then(function () {
+              return renderTable({ refreshSearchResults: true }).then(function () {
+                if (truncated && !replaceExisting && importedCount === 0) {
+                  toast("登録上限件数に達しているため、追加読み込みは行われませんでした。");
+                  return;
+                }
+                if (truncated) {
+                  toast("バックアップファイルの先頭から、登録上限件数まで読み込みました。");
+                  return;
+                }
+                if (photoOverflow) {
+                  toast("バックアップファイルを読み込みました。写真は上限2000枚まで復元しました。");
+                  return;
+                }
+                toast("バックアップファイルを読み込みました。");
               });
             });
           });
@@ -3510,11 +3676,11 @@
       });
   }
 
-  function onImportFile(file) {
-    if (!file) return Promise.resolve();
+  function runPreparedImport(job, options) {
+    if (!job || typeof job.execute !== "function") return Promise.resolve();
     if (state.importBusy || state.exportBusy) return Promise.resolve();
     setDataTransferBusyUi("import", true);
-    return (/\.zip$/i.test(String(file.name || "")) ? importZipBackupFile(file) : importJsonBackupFile(file))
+    return job.execute(options)
       .catch(function () {
         return showAppAlert("バックアップファイルの読み込みに失敗しました。");
       })
@@ -3525,29 +3691,30 @@
 
   function onImportRequest() {
     if (state.importBusy || state.exportBusy) return Promise.resolve();
-    var startImport = function () {
-      return requestImportFile()
-        .then(function (file) {
-          if (!file) return;
-          return onImportFile(file);
-        })
-        .finally(function () {
-          var input = $("#import-file");
-          if (input) input.value = "";
+    return requestImportFile()
+      .then(function (file) {
+        if (!file) return null;
+        return prepareImportJob(file);
+      })
+      .then(function (job) {
+        if (!job) return;
+        return db.countEntries(state.idb).then(function (existingCount) {
+          return showImportConfirmDialog({
+            fileName: job.fileName,
+            itemCount: job.itemCount,
+            existingCount: existingCount,
+          }).then(function (result) {
+            if (!result) return;
+            return runPreparedImport(job, {
+              replaceExisting: result.mode === "replace",
+            });
+          });
         });
-    };
-    if (!isPhoneViewport()) {
-      return startImport();
-    }
-    return showAppConfirm("バックアップファイルを読み出します。", {
-      detail:
-        "このあとファイル選択画面が開きます。キャンセルする場合は、この画面でキャンセルしてください。",
-      okLabel: "ファイルを選ぶ",
-      cancelLabel: "キャンセル",
-    }).then(function (ok) {
-      if (!ok) return;
-      return startImport();
-    });
+      })
+      .finally(function () {
+        var input = $("#import-file");
+        if (input) input.value = "";
+      });
   }
 
   function refreshAppToLatest() {

@@ -326,6 +326,38 @@
       </div>
     </div><!-- /#app-dialog -->
 
+    <div id="import-confirm-dialog" class="app-dialog-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="import-confirm-title">
+      <div class="app-dialog-box import-confirm-box" role="document">
+        <h2 id="import-confirm-title" class="import-confirm-title">バックアップファイルを読み込みますか？</h2>
+        <dl class="import-confirm-meta">
+          <div class="import-confirm-meta-row">
+            <dt>ファイル名</dt>
+            <dd id="import-confirm-file-name">-</dd>
+          </div>
+          <div class="import-confirm-meta-row">
+            <dt>登録データ件数</dt>
+            <dd id="import-confirm-item-count">0件</dd>
+          </div>
+        </dl>
+        <div id="import-confirm-mode-wrap" class="import-confirm-mode-wrap" hidden>
+          <p class="import-confirm-mode-title">現在のパンセノートに登録データがあります。読み込み方法を選択してください。</p>
+          <label class="import-confirm-option">
+            <input type="radio" name="import-confirm-mode" value="append" checked />
+            <span>追加して読み込む</span>
+          </label>
+          <label class="import-confirm-option">
+            <input type="radio" name="import-confirm-mode" value="replace" />
+            <span>既存データを破棄して上書きする</span>
+          </label>
+        </div>
+        <p id="import-confirm-note" class="app-dialog-detail" hidden></p>
+        <div class="app-dialog-actions">
+          <button type="button" id="import-confirm-cancel" class="app-dialog-btn app-dialog-btn-secondary">キャンセル</button>
+          <button type="button" id="import-confirm-ok" class="app-dialog-btn app-dialog-btn-primary">読み込む</button>
+        </div>
+      </div>
+    </div><!-- /#import-confirm-dialog -->
+
     <div id="photo-viewer-overlay" class="photo-viewer-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="photo-viewer-title">
       <div class="photo-viewer-box" role="document">
         <div class="photo-viewer-header">
