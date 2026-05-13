@@ -169,6 +169,55 @@
     el.textContent = text;
   }
 
+  function isCoarsePointerDevice() {
+    return !!(
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(pointer: coarse)").matches
+    );
+  }
+
+  function isLandscapeViewport() {
+    var size = getViewportSizeInfo();
+    return size.width > 0 && size.height > 0 && size.width > size.height;
+  }
+
+  function shouldEnforcePortraitLock() {
+    return isCoarsePointerDevice();
+  }
+
+  function updatePortraitLockOverlay() {
+    if (typeof document === "undefined" || !document.body) return;
+    var overlay = $("#orientation-lock-overlay");
+    if (!overlay) return;
+    var locked = shouldEnforcePortraitLock() && isLandscapeViewport();
+    document.body.classList.toggle("orientation-locked", locked);
+    if (locked) {
+      overlay.removeAttribute("hidden");
+    } else {
+      overlay.setAttribute("hidden", "");
+    }
+  }
+
+  function tryLockPortraitOrientation() {
+    if (!shouldEnforcePortraitLock()) return Promise.resolve(false);
+    if (
+      typeof screen === "undefined" ||
+      !screen.orientation ||
+      typeof screen.orientation.lock !== "function"
+    ) {
+      return Promise.resolve(false);
+    }
+    return screen.orientation.lock("portrait-primary").then(
+      function () {
+        return true;
+      },
+      function () {
+        return false;
+      }
+    );
+  }
+
   function matchesMaxWidth(px) {
     return (
       typeof window !== "undefined" &&
@@ -2139,7 +2188,7 @@
       parts.push("（ヒットなし）");
     }
     if (isPhoneSearchSheetMode() && result.total > 0) {
-      parts.push("（行タップで詳細画面（メモ欄）が開きます）");
+      parts.push("（行タップで詳細画面が開きます）");
     }
     el.textContent = parts.join(" ");
     el.classList.add("has-result");
@@ -3863,6 +3912,8 @@
   }
 
   function init() {
+    updatePortraitLockOverlay();
+    tryLockPortraitOrientation().catch(function () {});
     window.addEventListener("popstate", function () {
       handleMobileBackNavigation();
     });
@@ -4034,6 +4085,7 @@
     var layoutResizeTimer = null;
     function onViewportLayoutChange() {
       updateViewportSizeLabel();
+      updatePortraitLockOverlay();
       if (state.voiceRegisterMode) {
         return;
       }
@@ -4051,6 +4103,15 @@
     window.addEventListener("resize", function () {
       window.clearTimeout(layoutResizeTimer);
       layoutResizeTimer = window.setTimeout(onViewportLayoutChange, 120);
+    });
+    window.addEventListener("orientationchange", function () {
+      window.clearTimeout(layoutResizeTimer);
+      layoutResizeTimer = window.setTimeout(onViewportLayoutChange, 120);
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible") return;
+      updatePortraitLockOverlay();
+      tryLockPortraitOrientation().catch(function () {});
     });
     if (typeof window !== "undefined" && window.visualViewport) {
       window.visualViewport.addEventListener("resize", updateViewportSizeLabel);

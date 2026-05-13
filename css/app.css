@@ -56,6 +56,47 @@ body {
   color: var(--fg);
 }
 
+body.orientation-locked {
+  overflow: hidden;
+}
+
+.orientation-lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+body.orientation-locked .orientation-lock-overlay {
+  display: flex;
+}
+
+.orientation-lock-box {
+  width: min(100%, 24rem);
+  padding: 1.25rem 1rem;
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--fg);
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.orientation-lock-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.orientation-lock-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
 .app-wrap {
   max-width: 960px;
   margin: 0 auto;
