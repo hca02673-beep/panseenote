@@ -125,7 +125,7 @@
     return document.querySelector(sel);
   };
 
-  var MOBILE_LAYOUT_MAX_WIDTH = 1024;
+  var MOBILE_LAYOUT_MAX_WIDTH = 880;
 
   function getViewportSizeInfo() {
     var vv =
@@ -1980,7 +1980,7 @@
     return matchesMaxWidth(MOBILE_LAYOUT_MAX_WIDTH);
   }
 
-  /** スマホ寄りレイアウト幅（1024px 以下） */
+  /** スマホ寄りレイアウト幅（880px 以下） */
   function isPhoneViewport() {
     return matchesMaxWidth(MOBILE_LAYOUT_MAX_WIDTH);
   }

@@ -235,9 +235,9 @@ button.btn-header-import {
 }
 
 /* ======================================================
-   タブレット・スマホ寄り（1024px 以下）
+   タブレット・スマホ寄り（880px 以下）
    ====================================================== */
-@media (max-width: 1024px) {
+@media (max-width: 880px) {
   /* 副題を sub-row へ切替 */
   .subtitle-desktop { display: none; }
   .subtitle-sp      { display: block; }
@@ -1951,7 +1951,7 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
   padding: 0;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 880px) {
   .terms-box {
     padding: 1.25rem 1rem 1rem;
     border-radius: 10px;
@@ -2054,9 +2054,9 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
 }
 
 /* ======================================================
-   スマホ寄りレイアウト（1024px 以下）
+   スマホ寄りレイアウト（880px 以下）
    ====================================================== */
-@media (max-width: 1024px) {
+@media (max-width: 880px) {
   /* ロゴ・副題 */
   .app-logo { height: 72px; }
   .subtitle  { font-size: 0.78rem; }
