@@ -127,6 +127,48 @@
 
   var MOBILE_LAYOUT_MAX_WIDTH = 1024;
 
+  function getViewportSizeInfo() {
+    var vv =
+      typeof window !== "undefined" && window.visualViewport
+        ? window.visualViewport
+        : null;
+    var docEl =
+      typeof document !== "undefined" ? document.documentElement : null;
+    var width = vv && vv.width > 0 ? vv.width : 0;
+    var height = vv && vv.height > 0 ? vv.height : 0;
+    if (!(width > 0)) {
+      width =
+        (typeof window !== "undefined" && window.innerWidth) ||
+        (docEl && docEl.clientWidth) ||
+        0;
+    }
+    if (!(height > 0)) {
+      height =
+        (typeof window !== "undefined" && window.innerHeight) ||
+        (docEl && docEl.clientHeight) ||
+        0;
+    }
+    return {
+      width: Math.round(Number(width) || 0),
+      height: Math.round(Number(height) || 0),
+    };
+  }
+
+  function updateViewportSizeLabel() {
+    var el = $("#viewport-size-label");
+    if (!el) return;
+    var size = getViewportSizeInfo();
+    if (!(size.width > 0)) {
+      el.textContent = "—";
+      return;
+    }
+    var text = "横幅 " + String(size.width) + "px";
+    if (size.height > 0) {
+      text += " / 縦幅 " + String(size.height) + "px";
+    }
+    el.textContent = text;
+  }
+
   function matchesMaxWidth(px) {
     return (
       typeof window !== "undefined" &&
@@ -2054,6 +2096,7 @@
         bb.textContent = "(build: " + jst.getUTCFullYear() + "-" + pad(jst.getUTCMonth()+1) + "-" + pad(jst.getUTCDate()) + " " + pad(jst.getUTCHours()) + ":" + pad(jst.getUTCMinutes()) + " JST)";
       } catch(_) { bb.textContent = "(" + C.BUILD_TIMESTAMP + ")"; }
     }
+    updateViewportSizeLabel();
     updateClientSettingsUi();
     updatePlanSummaryLine();
     updateLicenseDetailsPanel();
@@ -3990,6 +4033,7 @@
 
     var layoutResizeTimer = null;
     function onViewportLayoutChange() {
+      updateViewportSizeLabel();
       if (state.voiceRegisterMode) {
         return;
       }
@@ -4008,6 +4052,9 @@
       window.clearTimeout(layoutResizeTimer);
       layoutResizeTimer = window.setTimeout(onViewportLayoutChange, 120);
     });
+    if (typeof window !== "undefined" && window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateViewportSizeLabel);
+    }
     if (typeof window !== "undefined" && window.matchMedia) {
       var narrowMq = window.matchMedia("(max-width: " + String(MOBILE_LAYOUT_MAX_WIDTH) + "px)");
       if (narrowMq.addEventListener) {
@@ -4207,6 +4254,9 @@
     var body = $("#internal-settings-body");
     if (!toggleBtn || !body) return;
     toggleBtn.addEventListener("click", function () {
+      if (body.hasAttribute("hidden")) {
+        updateViewportSizeLabel();
+      }
       setAccordionExpanded(
         toggleBtn,
         body,
