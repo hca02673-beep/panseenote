@@ -98,7 +98,7 @@ body.orientation-locked .orientation-lock-overlay {
 }
 
 .app-wrap {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 1rem 1rem 3rem;
 }
@@ -500,7 +500,7 @@ button.danger {
 }
 
 .table-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--card);
@@ -509,17 +509,16 @@ button.danger {
 
 table.entries-table {
   width: 100%;
-  min-width: 32rem;
+  min-width: 0;
   border-collapse: collapse;
   font-size: 0.9rem;
   table-layout: fixed;
   border: 1px solid var(--border);
 }
 
-/* サービス名は最小幅を確保（狭い画面では横スクロールで閲覧） */
 .entries-table col.col-title {
   width: auto;
-  min-width: 16.8rem;
+  min-width: 0;
 }
 
 .entries-table col.col-booknum {
