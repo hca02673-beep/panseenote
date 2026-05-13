@@ -178,6 +178,17 @@
   }
 
   function isLandscapeViewport() {
+    if (
+      typeof screen !== "undefined" &&
+      screen.orientation &&
+      typeof screen.orientation.type === "string" &&
+      screen.orientation.type
+    ) {
+      return /^landscape/.test(screen.orientation.type);
+    }
+    if (typeof window !== "undefined" && typeof window.orientation === "number") {
+      return Math.abs(Number(window.orientation)) === 90;
+    }
     var size = getViewportSizeInfo();
     return size.width > 0 && size.height > 0 && size.width > size.height;
   }
@@ -242,31 +253,17 @@
       el.addEventListener("pointerup", function (ev) {
         if (ev.pointerType === "mouse" && ev.button !== 0) return;
         lastPointerUpAt = Date.now();
-        // #region agent log
-        debugUiLog("H1", "app.js:242", "bindPress pointerup", {
-          controlId: el.id || "",
-          controlClass: el.className || "",
-          targetId: ev && ev.target && ev.target.id ? ev.target.id : "",
-          targetClass: ev && ev.target && ev.target.className ? String(ev.target.className) : "",
-          pointerType: ev && ev.pointerType ? ev.pointerType : "",
-          button: ev && typeof ev.button === "number" ? ev.button : null,
-          clientX: ev && typeof ev.clientX === "number" ? ev.clientX : null,
-          clientY: ev && typeof ev.clientY === "number" ? ev.clientY : null
-        });
-        // #endregion
+        if (ev.pointerType !== "mouse") {
+          window.__PANSEE_LAST_TOUCH_POINTERUP_AT__ = lastPointerUpAt;
+        }
         invoke(ev);
       });
       el.addEventListener("click", function (ev) {
-        // #region agent log
-        debugUiLog("H1", "app.js:247", "bindPress click", {
-          controlId: el.id || "",
-          controlClass: el.className || "",
-          targetId: ev && ev.target && ev.target.id ? ev.target.id : "",
-          targetClass: ev && ev.target && ev.target.className ? String(ev.target.className) : "",
-          detail: ev && typeof ev.detail === "number" ? ev.detail : null,
-          deltaFromPointerUpMs: Date.now() - lastPointerUpAt
-        });
-        // #endregion
+        var globalTouchDelta =
+          Date.now() - Number(window.__PANSEE_LAST_TOUCH_POINTERUP_AT__ || 0);
+        if (globalTouchDelta < 450) {
+          return;
+        }
         if (Date.now() - lastPointerUpAt < 450) return;
         invoke(ev);
       });
@@ -275,34 +272,6 @@
 
     el.addEventListener("click", invoke);
   }
-
-  // #region agent log
-  function debugUiLog(hypothesisId, location, message, data) {
-    try {
-      var runId = window.__PANSEE_DEBUG_RUN_ID__;
-      if (!runId) {
-        runId = "pre-fix-" + Date.now();
-        window.__PANSEE_DEBUG_RUN_ID__ = runId;
-      }
-      fetch("http://127.0.0.1:7869/ingest/b3162443-6e22-4cc1-8fb8-b1a75a654c30", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "e7552a"
-        },
-        body: JSON.stringify({
-          sessionId: "e7552a",
-          runId: runId,
-          hypothesisId: hypothesisId,
-          location: location,
-          message: message,
-          data: data || {},
-          timestamp: Date.now()
-        })
-      }).catch(function () {});
-    } catch (_) {}
-  }
-  // #endregion
 
   function nowMs() {
     if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -2528,13 +2497,6 @@
 
   function closeAiLookupDialog() {
     var overlay = $("#ai-lookup-overlay");
-    // #region agent log
-    debugUiLog("H4", "app.js:2479", "closeAiLookupDialog", {
-      hiddenBefore: !!(overlay && overlay.hasAttribute("hidden")),
-      activeElementId: document.activeElement && document.activeElement.id ? document.activeElement.id : "",
-      activeElementClass: document.activeElement && document.activeElement.className ? String(document.activeElement.className) : ""
-    });
-    // #endregion
     if (overlay) overlay.setAttribute("hidden", "");
   }
 
@@ -2553,15 +2515,6 @@
 
   function openAiLookupSearch() {
     var queryText = buildAiLookupQueryText();
-    // #region agent log
-    debugUiLog("H3", "app.js:2497", "openAiLookupSearch", {
-      queryLength: String(queryText || "").length,
-      aiOverlayHidden: !!($("#ai-lookup-overlay") && $("#ai-lookup-overlay").hasAttribute("hidden")),
-      mobileOverlayHidden: !!($("#mobile-edit-sheet-overlay") && $("#mobile-edit-sheet-overlay").hasAttribute("hidden")),
-      activeElementId: document.activeElement && document.activeElement.id ? document.activeElement.id : "",
-      activeElementClass: document.activeElement && document.activeElement.className ? String(document.activeElement.className) : ""
-    });
-    // #endregion
     if (!queryText) {
       return showAppAlert("検索結果を入力してください。", {
         okLabel: "閉じる",
@@ -2577,20 +2530,6 @@
   }
 
   function openAiLookupDialogForMobileEditSheet() {
-    // #region agent log
-    debugUiLog("H3", "app.js:2513", "openAiLookupDialogForMobileEditSheet", {
-      mobileEditEntryId: state.mobileEditEntryId || "",
-      values: (function () {
-        var vals = getMobileEditSheetValues();
-        return {
-          titleLength: String(vals.title || "").length,
-          book: String(vals.book || ""),
-          page: String(vals.page || ""),
-          memoLength: String(vals.memo || "").length
-        };
-      })()
-    });
-    // #endregion
     openAiLookupDialog(getMobileEditSheetValues());
   }
 
@@ -2889,15 +2828,8 @@
 
   function closeMobileEditSheet() {
     var overlay = $("#mobile-edit-sheet-overlay");
-    // #region agent log
-    debugUiLog("H2", "app.js:2810", "closeMobileEditSheet", {
-      hiddenBefore: !!(overlay && overlay.hasAttribute("hidden")),
-      mobileEditEntryId: state.mobileEditEntryId || "",
-      activeElementId: document.activeElement && document.activeElement.id ? document.activeElement.id : "",
-      activeElementClass: document.activeElement && document.activeElement.className ? String(document.activeElement.className) : ""
-    });
-    // #endregion
     if (overlay) overlay.setAttribute("hidden", "");
+    state.mobileEditDismissedAt = Date.now();
     var photoSlot = $("#mobile-edit-photo-slot");
     if (photoSlot) {
       photoSlot.setAttribute("hidden", "");
@@ -3095,6 +3027,10 @@
         !tr.getAttribute("data-draft") &&
         !tr.classList.contains("mobile-inline-editor-row")
       ) {
+        var dismissDelta = Date.now() - Number(state.mobileEditDismissedAt || 0);
+        if (dismissDelta >= 0 && dismissDelta < 500) {
+          return;
+        }
         openMobileEditSheetForRow(tr);
       }
     };
@@ -4099,16 +4035,9 @@
     var mobileEditOverlay = $("#mobile-edit-sheet-overlay");
     if (mobileEditOverlay) {
       mobileEditOverlay.addEventListener("click", function (ev) {
-        // #region agent log
-        debugUiLog("H2", "app.js:4013", "mobileEditOverlay click", {
-          targetId: ev && ev.target && ev.target.id ? ev.target.id : "",
-          targetClass: ev && ev.target && ev.target.className ? String(ev.target.className) : "",
-          currentTargetId: ev && ev.currentTarget && ev.currentTarget.id ? ev.currentTarget.id : "",
-          closesOverlay: ev.target === mobileEditOverlay
-        });
-        // #endregion
         if (ev.target === mobileEditOverlay) {
-          closeMobileEditSheet();
+          if (typeof ev.preventDefault === "function") ev.preventDefault();
+          if (typeof ev.stopPropagation === "function") ev.stopPropagation();
         }
       });
     }
@@ -4137,14 +4066,6 @@
     var aiLookupOverlay = $("#ai-lookup-overlay");
     if (aiLookupOverlay) {
       aiLookupOverlay.addEventListener("click", function (ev) {
-        // #region agent log
-        debugUiLog("H4", "app.js:4043", "aiLookupOverlay click", {
-          targetId: ev && ev.target && ev.target.id ? ev.target.id : "",
-          targetClass: ev && ev.target && ev.target.className ? String(ev.target.className) : "",
-          currentTargetId: ev && ev.currentTarget && ev.currentTarget.id ? ev.currentTarget.id : "",
-          closesOverlay: ev.target === aiLookupOverlay
-        });
-        // #endregion
         if (ev.target === aiLookupOverlay) {
           closeAiLookupDialog();
         }
