@@ -526,8 +526,8 @@ table.entries-table {
 }
 
 .entries-table col.col-actions {
-  width: 13.5rem;
-  min-width: 13.5rem;
+  width: 14.5rem;
+  min-width: 14.5rem;
 }
 
 table.entries-table.voice-register-mode col.col-actions {
@@ -761,9 +761,9 @@ td.readonly {
 
 .entries-table td.col-actions {
   white-space: nowrap;
-  width: 13.5rem;
-  min-width: 13.5rem;
-  max-width: 13.5rem;
+  width: 14.5rem;
+  min-width: 14.5rem;
+  max-width: 14.5rem;
   box-sizing: border-box;
   vertical-align: middle;
 }
