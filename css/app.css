@@ -1824,12 +1824,18 @@ button.sm {
 }
 
 .ai-lookup-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 0.5rem;
   padding: 1rem 1rem 0.8rem;
   border-bottom: 1px solid var(--border);
 }
 
 .ai-lookup-title {
   margin: 0;
+  grid-column: 2;
+  justify-self: center;
   text-align: center;
   font-size: 1.02rem;
 }
@@ -1876,19 +1882,23 @@ button.sm {
 
 .ai-lookup-actions {
   display: flex;
+  justify-content: center;
   gap: 0.6rem;
   padding: 0 1rem 1rem;
 }
 
 .ai-lookup-actions .app-dialog-btn {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 0;
+  width: min(100%, 26rem);
 }
 
 #ai-lookup-search {
   background: var(--voice-pastel-search-bg);
   border-color: var(--voice-pastel-search-border);
   color: var(--voice-pastel-search-fg);
+  text-align: center;
+  white-space: normal;
 }
 
 #mobile-edit-ai:hover,
