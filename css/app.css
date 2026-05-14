@@ -2107,7 +2107,13 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
 
   /* 設定ライセンスボタンを次行へ押し出し（右寄せ） */
   .hdr-break         { display: block; }
-  #btn-settings-toggle { margin-left: auto; }
+  #btn-settings-toggle {
+    margin-left: auto;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.82rem;
+  }
 
   /* 件数情報フォントサイズ */
   .header-sub-row .plan-summary-sp { font-size: 0.78rem; }
