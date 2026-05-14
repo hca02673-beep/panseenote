@@ -1508,7 +1508,7 @@
     var manual = isManualRegisterPreferred();
     if (titleEl) titleEl.textContent = manual ? "データ登録" : "音声登録";
     if (subPrimaryEl) {
-      subPrimaryEl.textContent = manual ? "（手動入力）" : "（サービス名）";
+      subPrimaryEl.textContent = manual ? "（手動登録）" : "（サービス名）";
     }
     if (subSecondaryEl) {
       subSecondaryEl.hidden = false;
