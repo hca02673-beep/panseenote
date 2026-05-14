@@ -16,10 +16,14 @@
   --voice-pastel-register-bg: #fff3bf;
   --voice-pastel-register-border: #e8d48b;
   --voice-pastel-register-fg: #5c4a1a;
-  --btn-save-green: #4caf50;
-  --btn-save-green-hover: #43a047;
-  --btn-delete-red: #f44336;
-  --btn-delete-red-hover: #e53935;
+  --btn-save-green: #e1ffe1;
+  --btn-save-green-hover: #d4f6d4;
+  --btn-save-green-border: #4caf50;
+  --btn-save-green-fg: #000000;
+  --btn-delete-red: #ffcdcd;
+  --btn-delete-red-hover: #ffc1c1;
+  --btn-delete-red-border: #ff5050;
+  --btn-delete-red-fg: #000000;
   --form-input-large: 1.05rem;
   --floating-ui-top: 8.5rem;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans",
@@ -314,18 +318,19 @@ a.primary:hover {
 
 button.btn-action-green {
   background: var(--btn-save-green);
-  border-color: var(--btn-save-green);
-  color: #fff;
+  border-color: var(--btn-save-green-border);
+  color: var(--btn-save-green-fg);
+  font-weight: 700;
 }
 
 button.btn-action-green:hover:not(:disabled) {
   background: var(--btn-save-green-hover);
-  border-color: var(--btn-save-green-hover);
-  color: #fff;
+  border-color: var(--btn-save-green-border);
+  color: var(--btn-save-green-fg);
 }
 
 button.btn-action-green:focus-visible {
-  outline: 2px solid var(--btn-save-green-hover);
+  outline: 2px solid var(--btn-save-green-border);
   outline-offset: 2px;
 }
 
@@ -339,18 +344,18 @@ button.btn-action-green:disabled {
 
 button.btn-action-delete {
   background: var(--btn-delete-red);
-  border-color: var(--btn-delete-red);
-  color: #fff;
+  border-color: var(--btn-delete-red-border);
+  color: var(--btn-delete-red-fg);
 }
 
 button.btn-action-delete:hover {
   background: var(--btn-delete-red-hover);
-  border-color: var(--btn-delete-red-hover);
-  color: #fff;
+  border-color: var(--btn-delete-red-border);
+  color: var(--btn-delete-red-fg);
 }
 
 button.btn-action-delete:focus-visible {
-  outline: 2px solid var(--btn-delete-red-hover);
+  outline: 2px solid var(--btn-delete-red-border);
   outline-offset: 2px;
 }
 button.btn-action-delete:disabled {
@@ -1551,13 +1556,13 @@ button.sm {
 
 .app-dialog-btn-danger {
   background: var(--btn-delete-red);
-  border-color: var(--btn-delete-red);
-  color: #fff;
+  border-color: var(--btn-delete-red-border);
+  color: var(--btn-delete-red-fg);
 }
 
 .app-dialog-btn-danger:hover {
   background: var(--btn-delete-red-hover);
-  border-color: var(--btn-delete-red-hover);
+  border-color: var(--btn-delete-red-border);
 }
 
 .app-dialog-btn-danger:disabled {
@@ -1808,13 +1813,14 @@ button.sm {
 
 #mobile-edit-save {
   background: var(--btn-save-green);
-  border-color: var(--btn-save-green);
-  color: #fff;
+  border-color: var(--btn-save-green-border);
+  color: var(--btn-save-green-fg);
+  font-weight: 700;
 }
 
 #mobile-edit-save:hover {
   background: var(--btn-save-green-hover);
-  border-color: var(--btn-save-green-hover);
+  border-color: var(--btn-save-green-border);
 }
 
 .ai-lookup-overlay {
