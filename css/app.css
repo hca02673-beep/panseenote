@@ -164,6 +164,12 @@ body.orientation-locked .orientation-lock-overlay {
   align-items: center;
 }
 
+.header-secondary-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 /* flex break: デフォルト非表示（スマホで設定ボタンを次行に押し出す） */
 .hdr-break {
   display: none;
@@ -2107,8 +2113,11 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
 
   /* 設定ライセンスボタンを次行へ押し出し（右寄せ） */
   .hdr-break         { display: block; }
+  .header-secondary-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
   #btn-settings-toggle {
-    margin-left: auto;
     white-space: nowrap;
     letter-spacing: -0.02em;
     padding: 0.3rem 0.5rem;
