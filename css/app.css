@@ -1767,16 +1767,16 @@ button.sm {
 .mobile-edit-sheet-actions .app-dialog-btn {
   flex: 1 1 0;
   min-width: 0;
-  padding: 0.32rem 0.62rem;
-  line-height: 1.05;
 }
 
 #mobile-edit-ai {
   flex: 1.2 1 0;
   white-space: nowrap;
   word-break: keep-all;
-  font-size: 0.95rem;
   letter-spacing: -0.01em;
+  background: var(--voice-pastel-search-bg);
+  border-color: var(--voice-pastel-search-border);
+  color: var(--voice-pastel-search-fg);
 }
 
 #mobile-edit-save,
@@ -1883,6 +1883,17 @@ button.sm {
 .ai-lookup-actions .app-dialog-btn {
   flex: 1 1 0;
   min-width: 0;
+}
+
+#ai-lookup-search {
+  background: var(--voice-pastel-search-bg);
+  border-color: var(--voice-pastel-search-border);
+  color: var(--voice-pastel-search-fg);
+}
+
+#mobile-edit-ai:hover,
+#ai-lookup-search:hover {
+  filter: brightness(0.97);
 }
 
 .mobile-inline-editor-cell {
@@ -2178,10 +2189,7 @@ table.entries-table.voice-register-mobile-mode .mobile-inline-editor-cell {
     padding: 0.2rem 0.3rem;
   }
 
-  #mobile-edit-ai {
-    font-size: 0.88rem;
-    letter-spacing: -0.02em;
-  }
+  #mobile-edit-ai { letter-spacing: -0.02em; }
 
   .title-cell {
     gap: 0.2rem;
