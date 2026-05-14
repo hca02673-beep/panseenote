@@ -1511,7 +1511,8 @@
       subPrimaryEl.textContent = manual ? "（手動入力）" : "（サービス名）";
     }
     if (subSecondaryEl) {
-      subSecondaryEl.hidden = manual;
+      subSecondaryEl.hidden = false;
+      subSecondaryEl.textContent = manual ? "\u00a0" : "又は（●冊●頁・名前）";
     }
   }
 

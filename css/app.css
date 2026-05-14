@@ -423,6 +423,16 @@ button.voice-btn-search .voice-btn-title {
   white-space: nowrap;
 }
 
+#voice-register-sub-primary,
+#voice-register-sub-secondary {
+  width: 100%;
+  text-align: center;
+}
+
+#voice-register-sub-secondary {
+  min-height: 1.3em;
+}
+
 button.voice-btn-search {
   background: var(--voice-pastel-search-bg);
   border-color: var(--voice-pastel-search-border);
@@ -526,8 +536,8 @@ table.entries-table {
 }
 
 .entries-table col.col-actions {
-  width: 14.5rem;
-  min-width: 14.5rem;
+  width: 14rem;
+  min-width: 14rem;
 }
 
 table.entries-table.voice-register-mode col.col-actions {
@@ -689,7 +699,9 @@ td textarea.inline {
 }
 
 .title-cell .btn-memo {
-  min-width: 4.4rem;
+  width: 3.2rem;
+  min-width: 3.2rem;
+  max-width: 3.2rem;
 }
 
 /* 冊目・頁 統合セル */
@@ -761,9 +773,9 @@ td.readonly {
 
 .entries-table td.col-actions {
   white-space: nowrap;
-  width: 14.5rem;
-  min-width: 14.5rem;
-  max-width: 14.5rem;
+  width: 14rem;
+  min-width: 14rem;
+  max-width: 14rem;
   box-sizing: border-box;
   vertical-align: middle;
 }
@@ -801,9 +813,9 @@ button.btn-action-ai {
 }
 
 .entries-table td.col-actions .row-ai-search {
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.25rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 0.25rem 0.35rem;
 }
 
 button.btn-action-ai:hover {
