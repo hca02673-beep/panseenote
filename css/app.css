@@ -1000,6 +1000,22 @@ button.sm {
   font-weight: 600;
 }
 
+#btn-plan-up,
+#btn-license-activate,
+#btn-force-refresh {
+  background: #cfe7ff;
+  border-color: #9ec5f0;
+  color: #000000;
+  font-weight: 700;
+}
+
+#btn-plan-up:hover,
+#btn-license-activate:hover,
+#btn-force-refresh:hover {
+  background: #b8d9f7;
+  border-color: var(--accent);
+}
+
 .settings-link-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -1013,10 +1029,25 @@ button.sm {
   background: var(--bg);
 }
 
+.plan-up-section {
+  margin-top: 0;
+}
+
 .user-settings-title {
   margin: 0 0 0.75rem;
   color: var(--fg);
   font-weight: 600;
+}
+
+.plan-up-action-row {
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.plan-up-note {
+  margin: 0;
+  color: var(--fg);
+  font-size: 0.88rem;
 }
 
 .settings-check-row {
@@ -1047,25 +1078,6 @@ button.sm {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem 0.65rem;
-}
-
-.install-guide-section {
-  margin-top: 0.75rem;
-}
-
-.install-guide-list {
-  margin: 0.5rem 0 0;
-  padding-left: 1.2rem;
-  color: var(--fg);
-}
-
-.install-guide-list li + li {
-  margin-top: 0.45rem;
-}
-
-.install-guide-note {
-  margin: 0.75rem 0 0;
-  color: var(--fg);
 }
 
 /* ======================================================
@@ -1234,6 +1246,10 @@ button.sm {
 
 .license-meta li {
   margin: 0.25rem 0;
+}
+
+.license-meta-action-row {
+  margin-top: 0.75rem;
 }
 
 .license-warning-banner {
