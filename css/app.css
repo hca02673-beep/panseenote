@@ -2019,6 +2019,15 @@ button.sm {
   width: 100%;
 }
 
+.device-transfer-actions .app-dialog-btn:disabled {
+  background: #e3e3e3;
+  border-color: #d0d0d0;
+  color: #8a8a8a;
+  cursor: not-allowed;
+  opacity: 1;
+  filter: none;
+}
+
 .device-transfer-main-btn {
   background: #cfe7ff;
   border-color: #9ec5f0;

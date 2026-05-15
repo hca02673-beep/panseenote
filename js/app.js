@@ -50,6 +50,8 @@
     usageSendBusy: false,
     photoPickerContext: null,
     selectedTransferCase: "",
+    transferPreparedPackage: null,
+    transferPrepareBusy: false,
   };
 
   var DEVICE_TRANSFER_CASES = [
@@ -534,18 +536,9 @@
     var disabled = !!(state.exportBusy || state.importBusy);
     var exportBtn = $("#btn-export");
     var importBtn = $("#btn-import-trigger");
-    var transferSendBtn = $("#device-transfer-send");
-    var transferImportBtn = $("#device-transfer-import");
     if (exportBtn) exportBtn.disabled = disabled;
     if (importBtn) importBtn.disabled = disabled;
-    if (transferSendBtn) {
-      transferSendBtn.disabled =
-        disabled || !String(state.selectedTransferCase || "").trim();
-    }
-    if (transferImportBtn) {
-      transferImportBtn.disabled =
-        disabled || !String(state.selectedTransferCase || "").trim();
-    }
+    updateDeviceTransferActionUi();
   }
 
   function buildBackupFileName() {
@@ -850,6 +843,52 @@
 
   function canAttemptTransferShare(file) {
     return !!(navigator.share && file);
+  }
+
+  function updateDeviceTransferActionUi() {
+    var hasSelection = !!String(state.selectedTransferCase || "").trim();
+    var sendBtn = $("#device-transfer-send");
+    var importBtn = $("#device-transfer-import");
+    var aiBtn = $("#device-transfer-ai");
+    var busy = !!(state.exportBusy || state.importBusy);
+    if (sendBtn) {
+      sendBtn.disabled =
+        !hasSelection || busy || state.transferPrepareBusy || !state.transferPreparedPackage;
+    }
+    if (importBtn) {
+      importBtn.disabled = !hasSelection || busy;
+    }
+    if (aiBtn) {
+      aiBtn.disabled = !hasSelection;
+    }
+  }
+
+  function prepareDeviceTransferPackage() {
+    state.transferPrepareBusy = true;
+    state.transferPreparedPackage = null;
+    updateDeviceTransferActionUi();
+    return buildBackupFilePayload()
+      .then(function (pkg) {
+        var file = null;
+        try {
+          file = new File([pkg.blob], pkg.name, { type: "application/zip" });
+        } catch (_) {
+          file = null;
+        }
+        state.transferPreparedPackage = {
+          blob: pkg.blob,
+          name: pkg.name,
+          file: file,
+        };
+      })
+      .catch(function (err) {
+        console.error("Device transfer package prepare failed:", err);
+        state.transferPreparedPackage = null;
+      })
+      .finally(function () {
+        state.transferPrepareBusy = false;
+        updateDeviceTransferActionUi();
+      });
   }
 
   function triggerBackupDownload(blob, name) {
@@ -2659,9 +2698,6 @@
     var panel = $("#device-transfer-case-panel");
     var titleEl = $("#device-transfer-case-panel-title");
     var textEl = $("#device-transfer-case-panel-text");
-    var sendBtn = $("#device-transfer-send");
-    var importBtn = $("#device-transfer-import");
-    var aiBtn = $("#device-transfer-ai");
     var hasSelection = !!String(state.selectedTransferCase || "").trim();
     for (var i = 0; i < tabs.length; i++) {
       var isActive = hasSelection && tabs[i].getAttribute("data-transfer-case") === selected.id;
@@ -2679,17 +2715,17 @@
     if (textEl) {
       textEl.textContent = hasSelection ? selected.guide : "上の4つから、使う受け渡し方法を選んでください。";
     }
-    if (sendBtn) sendBtn.disabled = !hasSelection;
-    if (importBtn) importBtn.disabled = !hasSelection;
-    if (aiBtn) aiBtn.disabled = !hasSelection;
+    updateDeviceTransferActionUi();
   }
 
   function openDeviceTransferDialog() {
     var overlay = $("#device-transfer-overlay");
     if (!overlay) return;
     state.selectedTransferCase = "";
+    state.transferPreparedPackage = null;
     renderDeviceTransferCasePanel();
     overlay.removeAttribute("hidden");
+    prepareDeviceTransferPackage();
   }
 
   function closeDeviceTransferDialog() {
@@ -2718,19 +2754,20 @@
 
   function onDeviceTransferSend() {
     if (state.exportBusy || state.importBusy) return Promise.resolve();
+    if (!String(state.selectedTransferCase || "").trim()) return Promise.resolve();
+    if (state.transferPrepareBusy || !state.transferPreparedPackage) {
+      return showAppAlert(
+        "データファイルを準備中です。数秒待ってから、もう一度「この端末のデータを送る」を押してください。"
+      );
+    }
     setDataTransferBusyUi("export", true);
-    return buildBackupFilePayload()
-      .then(function (pkg) {
-        var file = null;
-        try {
-          file = new File([pkg.blob], pkg.name, { type: "application/zip" });
-        } catch (_) {
-          file = null;
-        }
-        if (!canAttemptTransferShare(file)) {
+    var pkg = state.transferPreparedPackage;
+    return Promise.resolve()
+      .then(function () {
+        if (!canAttemptTransferShare(pkg.file)) {
           return downloadBackupFileForTransfer(pkg.blob, pkg.name);
         }
-        return shareTransferBackupFile(file)
+        return shareTransferBackupFile(pkg.file)
           .then(function () {
             return {
               mode: "shared",
