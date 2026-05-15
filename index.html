@@ -204,6 +204,9 @@
               <option value="5000">5秒</option>
               <option value="10000">10秒</option>
             </select>
+            <label class="settings-field-label" for="btn-device-transfer">
+              他の端末とデータを受け渡しする
+            </label>
             <div class="settings-action-row transfer-action-row">
               <button type="button" id="btn-device-transfer" class="settings-link-button">
                 ▶ 他の端末とデータを受け渡しする
@@ -469,38 +472,38 @@
             近くの端末へ送る場合は、iPhone・iPad・MacではAirDrop、Android・WindowsではQuick Shareを使います。
           </p>
 
-          <div class="device-transfer-actions">
-            <button type="button" id="device-transfer-send" class="app-dialog-btn device-transfer-main-btn">
-              この端末のデータを送る
-            </button>
-            <button type="button" id="device-transfer-import" class="app-dialog-btn btn-action-green">
-              受け取ったデータを読み込む
-            </button>
-            <button type="button" id="device-transfer-ai" class="app-dialog-btn btn-action-ai">
-              うまくいかない時は AIで調べる
-            </button>
-          </div>
-
           <div class="device-transfer-case-block">
             <p class="device-transfer-case-title">使いたい受け渡し方法を選んでください。</p>
             <div class="device-transfer-case-tabs" role="tablist" aria-label="受け渡しケース">
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-ios-ios" data-transfer-case="ios-ios" role="tab" aria-selected="true">
-                1. iPhone・iPad 同士
-              </button>
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-ios-mac" data-transfer-case="ios-mac" role="tab" aria-selected="false">
-                2. iPhone・iPad と Mac
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-android-windows" data-transfer-case="android-windows" role="tab" aria-selected="false">
+                1. Androidスマホ・タブレット と Windows
               </button>
               <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-android-android" data-transfer-case="android-android" role="tab" aria-selected="false">
-                3. Androidスマホ・タブレット 同士
+                2. Androidスマホ・タブレット 同士
               </button>
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-android-windows" data-transfer-case="android-windows" role="tab" aria-selected="false">
-                4. Androidスマホ・タブレット と Windows
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-ios-mac" data-transfer-case="ios-mac" role="tab" aria-selected="false">
+                3. iPhone・iPad と Mac
+              </button>
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-ios-ios" data-transfer-case="ios-ios" role="tab" aria-selected="false">
+                4. iPhone・iPad 同士
               </button>
             </div>
-            <div class="device-transfer-case-panel" id="device-transfer-case-panel" role="tabpanel" aria-labelledby="device-transfer-case-tab-ios-ios">
-              <h3 id="device-transfer-case-panel-title" class="device-transfer-case-panel-title">1. iPhone・iPad 同士</h3>
+            <div class="device-transfer-case-panel" id="device-transfer-case-panel" role="tabpanel">
+              <h3 id="device-transfer-case-panel-title" class="device-transfer-case-panel-title">受け渡し方法を選んでください</h3>
               <p id="device-transfer-case-panel-text" class="device-transfer-case-panel-text"></p>
             </div>
+          </div>
+
+          <div class="device-transfer-actions">
+            <button type="button" id="device-transfer-send" class="app-dialog-btn device-transfer-main-btn" disabled>
+              この端末のデータを送る
+            </button>
+            <button type="button" id="device-transfer-import" class="app-dialog-btn btn-action-green" disabled>
+              受け取ったデータを読み込む
+            </button>
+            <button type="button" id="device-transfer-ai" class="app-dialog-btn btn-action-ai" disabled>
+              うまくいかない時は AIで調べる
+            </button>
           </div>
 
           <p class="device-transfer-caution">

@@ -49,13 +49,35 @@
     usageSentThisSession: false,
     usageSendBusy: false,
     photoPickerContext: null,
-    selectedTransferCase: "ios-ios",
+    selectedTransferCase: "",
   };
 
   var DEVICE_TRANSFER_CASES = [
     {
+      id: "android-windows",
+      title: "1. Androidスマホ・タブレット と Windows",
+      guide: [
+        "Quick Shareを使います。",
+        "Windows側でQuick Shareを開いてから、「この端末のデータを送る」を押してください。",
+        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+      ].join("\n"),
+      aiPrompt:
+        "AndroidスマホまたはAndroidタブレットとWindowsパソコンの間で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Windows版Quick Shareの準備、Android側のQuick Share設定、Windows側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+    },
+    {
+      id: "android-android",
+      title: "2. Androidスマホ・タブレット 同士",
+      guide: [
+        "Quick Shareを使います。",
+        "「この端末のデータを送る」を押し、共有画面でQuick Shareを選んでください。",
+        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+      ].join("\n"),
+      aiPrompt:
+        "AndroidスマホまたはAndroidタブレット同士で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Quick Shareの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+    },
+    {
       id: "ios-ios",
-      title: "1. iPhone・iPad 同士",
+      title: "4. iPhone・iPad 同士",
       guide: [
         "AirDropを使います。",
         "「この端末のデータを送る」を押し、共有画面でAirDropを選んでください。",
@@ -66,7 +88,7 @@
     },
     {
       id: "ios-mac",
-      title: "2. iPhone・iPad と Mac",
+      title: "3. iPhone・iPad と Mac",
       guide: [
         "AirDropを使います。",
         "「この端末のデータを送る」を押し、共有画面でAirDropを選んでください。",
@@ -74,28 +96,6 @@
       ].join("\n"),
       aiPrompt:
         "iPhone、iPad、Macの間で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、Mac側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
-    },
-    {
-      id: "android-android",
-      title: "3. Androidスマホ・タブレット 同士",
-      guide: [
-        "Quick Shareを使います。",
-        "「この端末のデータを送る」を押し、共有画面でQuick Shareを選んでください。",
-        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
-      ].join("\n"),
-      aiPrompt:
-        "AndroidスマホまたはAndroidタブレット同士で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Quick Shareの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
-    },
-    {
-      id: "android-windows",
-      title: "4. Androidスマホ・タブレット と Windows",
-      guide: [
-        "Quick Shareを使います。",
-        "Windows側でQuick Shareを開いてから、「この端末のデータを送る」を押してください。",
-        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
-      ].join("\n"),
-      aiPrompt:
-        "AndroidスマホまたはAndroidタブレットとWindowsパソコンの間で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Windows版Quick Shareの準備、Android側のQuick Share設定、Windows側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
     },
   ];
 
@@ -528,8 +528,14 @@
     var transferImportBtn = $("#device-transfer-import");
     if (exportBtn) exportBtn.disabled = disabled;
     if (importBtn) importBtn.disabled = disabled;
-    if (transferSendBtn) transferSendBtn.disabled = disabled;
-    if (transferImportBtn) transferImportBtn.disabled = disabled;
+    if (transferSendBtn) {
+      transferSendBtn.disabled =
+        disabled || !String(state.selectedTransferCase || "").trim();
+    }
+    if (transferImportBtn) {
+      transferImportBtn.disabled =
+        disabled || !String(state.selectedTransferCase || "").trim();
+    }
   }
 
   function buildBackupFileName() {
@@ -821,6 +827,15 @@
     var msg = String((err && err.message) || "");
     if (/abort/i.test(name) || /abort/i.test(msg)) return true;
     return /cancel(?:led)?/i.test(msg);
+  }
+
+  function downloadBackupFileForTransfer(blob, name) {
+    return triggerBackupDownload(blob, name).then(function () {
+      return {
+        mode: "download",
+        fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
+      };
+    });
   }
 
   function triggerBackupDownload(blob, name) {
@@ -2630,20 +2645,35 @@
     var panel = $("#device-transfer-case-panel");
     var titleEl = $("#device-transfer-case-panel-title");
     var textEl = $("#device-transfer-case-panel-text");
+    var sendBtn = $("#device-transfer-send");
+    var importBtn = $("#device-transfer-import");
+    var aiBtn = $("#device-transfer-ai");
+    var hasSelection = !!String(state.selectedTransferCase || "").trim();
     for (var i = 0; i < tabs.length; i++) {
-      var isActive = tabs[i].getAttribute("data-transfer-case") === selected.id;
+      var isActive = hasSelection && tabs[i].getAttribute("data-transfer-case") === selected.id;
       tabs[i].setAttribute("aria-selected", isActive ? "true" : "false");
       if (isActive && panel && tabs[i].id) {
         panel.setAttribute("aria-labelledby", tabs[i].id);
       }
     }
-    if (titleEl) titleEl.textContent = selected.title;
-    if (textEl) textEl.textContent = selected.guide;
+    if (!hasSelection && panel) {
+      panel.removeAttribute("aria-labelledby");
+    }
+    if (titleEl) {
+      titleEl.textContent = hasSelection ? selected.title : "受け渡し方法を選んでください";
+    }
+    if (textEl) {
+      textEl.textContent = hasSelection ? selected.guide : "上の4つから、使う受け渡し方法を選んでください。";
+    }
+    if (sendBtn) sendBtn.disabled = !hasSelection;
+    if (importBtn) importBtn.disabled = !hasSelection;
+    if (aiBtn) aiBtn.disabled = !hasSelection;
   }
 
   function openDeviceTransferDialog() {
     var overlay = $("#device-transfer-overlay");
     if (!overlay) return;
+    state.selectedTransferCase = "";
     renderDeviceTransferCasePanel();
     overlay.removeAttribute("hidden");
   }
@@ -2654,6 +2684,7 @@
   }
 
   function openDeviceTransferAiSearch() {
+    if (!String(state.selectedTransferCase || "").trim()) return;
     var selected = getDeviceTransferCaseById(state.selectedTransferCase);
     var url = "https://www.google.com/search?q=" + encodeURIComponent(selected.aiPrompt);
     window.open(url, "_blank", "noopener,noreferrer");
@@ -2683,7 +2714,7 @@
           file = null;
         }
         if (!canShareBackupFile(file)) {
-          return saveBackupFileWithoutShare(pkg.blob, pkg.name);
+          return downloadBackupFileForTransfer(pkg.blob, pkg.name);
         }
         return shareTransferBackupFile(file)
           .then(function () {
@@ -2696,7 +2727,7 @@
             if (isShareCanceledError(err)) {
               return { mode: "cancelled" };
             }
-            return saveBackupFileWithoutShare(pkg.blob, pkg.name);
+            return downloadBackupFileForTransfer(pkg.blob, pkg.name);
           });
       })
       .then(function (result) {
