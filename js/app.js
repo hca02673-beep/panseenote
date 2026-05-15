@@ -290,6 +290,16 @@
     var lastPointerUpAt = 0;
 
     function invoke(ev) {
+      if (
+        (typeof HTMLButtonElement !== "undefined" && el instanceof HTMLButtonElement && el.disabled) ||
+        el.getAttribute("aria-disabled") === "true"
+      ) {
+        if (ev) {
+          if (typeof ev.preventDefault === "function") ev.preventDefault();
+          if (typeof ev.stopPropagation === "function") ev.stopPropagation();
+        }
+        return;
+      }
       if (ev) {
         if (typeof ev.preventDefault === "function") ev.preventDefault();
         if (typeof ev.stopPropagation === "function") ev.stopPropagation();
@@ -836,6 +846,10 @@
         fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
       };
     });
+  }
+
+  function canAttemptTransferShare(file) {
+    return !!(navigator.share && file);
   }
 
   function triggerBackupDownload(blob, name) {
@@ -2713,7 +2727,7 @@
         } catch (_) {
           file = null;
         }
-        if (!canShareBackupFile(file)) {
+        if (!canAttemptTransferShare(file)) {
           return downloadBackupFileForTransfer(pkg.blob, pkg.name);
         }
         return shareTransferBackupFile(file)

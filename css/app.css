@@ -1076,6 +1076,10 @@ button.sm {
   font-weight: 600;
 }
 
+.settings-field-label-transfer {
+  margin-top: 0.8rem;
+}
+
 .settings-select {
   width: 100%;
   max-width: 220px;
@@ -1088,7 +1092,7 @@ button.sm {
 }
 
 .transfer-action-row {
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   margin-bottom: 0;
 }
 
