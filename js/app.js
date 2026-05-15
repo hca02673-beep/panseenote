@@ -49,7 +49,55 @@
     usageSentThisSession: false,
     usageSendBusy: false,
     photoPickerContext: null,
+    selectedTransferCase: "ios-ios",
   };
+
+  var DEVICE_TRANSFER_CASES = [
+    {
+      id: "ios-ios",
+      title: "1. iPhone・iPad 同士",
+      guide: [
+        "AirDropを使います。",
+        "「この端末のデータを送る」を押し、共有画面でAirDropを選んでください。",
+        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+      ].join("\n"),
+      aiPrompt:
+        "iPhoneまたはiPad同士で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+    },
+    {
+      id: "ios-mac",
+      title: "2. iPhone・iPad と Mac",
+      guide: [
+        "AirDropを使います。",
+        "「この端末のデータを送る」を押し、共有画面でAirDropを選んでください。",
+        "Macで受け取ったファイルは「ダウンロード」フォルダに入ることがあります。",
+      ].join("\n"),
+      aiPrompt:
+        "iPhone、iPad、Macの間で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、Mac側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+    },
+    {
+      id: "android-android",
+      title: "3. Androidスマホ・タブレット 同士",
+      guide: [
+        "Quick Shareを使います。",
+        "「この端末のデータを送る」を押し、共有画面でQuick Shareを選んでください。",
+        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+      ].join("\n"),
+      aiPrompt:
+        "AndroidスマホまたはAndroidタブレット同士で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Quick Shareの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+    },
+    {
+      id: "android-windows",
+      title: "4. Androidスマホ・タブレット と Windows",
+      guide: [
+        "Quick Shareを使います。",
+        "Windows側でQuick Shareを開いてから、「この端末のデータを送る」を押してください。",
+        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+      ].join("\n"),
+      aiPrompt:
+        "AndroidスマホまたはAndroidタブレットとWindowsパソコンの間で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Windows版Quick Shareの準備、Android側のQuick Share設定、Windows側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+    },
+  ];
 
   var AI_LOOKUP_CATEGORIES = [
     {
@@ -476,8 +524,12 @@
     var disabled = !!(state.exportBusy || state.importBusy);
     var exportBtn = $("#btn-export");
     var importBtn = $("#btn-import-trigger");
+    var transferSendBtn = $("#device-transfer-send");
+    var transferImportBtn = $("#device-transfer-import");
     if (exportBtn) exportBtn.disabled = disabled;
     if (importBtn) importBtn.disabled = disabled;
+    if (transferSendBtn) transferSendBtn.disabled = disabled;
+    if (transferImportBtn) transferImportBtn.disabled = disabled;
   }
 
   function buildBackupFileName() {
@@ -718,7 +770,8 @@
   }
 
   function canShareBackupFile(file) {
-    if (!navigator.share || !file || !navigator.canShare) return false;
+    if (!navigator.share || !file) return false;
+    if (typeof navigator.canShare !== "function") return true;
     try {
       return navigator.canShare({ files: [file] });
     } catch (_) {
@@ -732,6 +785,42 @@
       text: "パンセノートのバックアップファイルです。",
       files: [file],
     });
+  }
+
+  function shareTransferBackupFile(file) {
+    return navigator.share({
+      title: "パンセノート データファイル",
+      text:
+        "パンセノートのデータファイルです。受け取った端末でパンセノートを開き、「受け取ったデータを読み込む」から読み込んでください。",
+      files: [file],
+    });
+  }
+
+  function saveBackupFileWithoutShare(blob, name) {
+    if (typeof window.showSaveFilePicker === "function") {
+      return requestSaveFileHandle(name).then(function (saveHandle) {
+        return writeBackupToHandle(saveHandle, blob).then(function () {
+          return {
+            mode: "saved",
+            fileLabel: normalizeFileLabel(saveHandle.name || name, "ブラウザ管理"),
+          };
+        });
+      });
+    }
+    return triggerBackupDownload(blob, name).then(function () {
+      return {
+        mode: "download",
+        fileLabel: normalizeFileLabel(name, "ブラウザ管理"),
+      };
+    });
+  }
+
+  function isShareCanceledError(err) {
+    if (isAbortError(err)) return true;
+    var name = String((err && err.name) || "");
+    var msg = String((err && err.message) || "");
+    if (/abort/i.test(name) || /abort/i.test(msg)) return true;
+    return /cancel(?:led)?/i.test(msg);
   }
 
   function triggerBackupDownload(blob, name) {
@@ -2525,6 +2614,121 @@
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
+  function getDeviceTransferCaseById(id) {
+    var normalized = String(id || "").trim();
+    for (var i = 0; i < DEVICE_TRANSFER_CASES.length; i++) {
+      if (DEVICE_TRANSFER_CASES[i].id === normalized) {
+        return DEVICE_TRANSFER_CASES[i];
+      }
+    }
+    return DEVICE_TRANSFER_CASES[0];
+  }
+
+  function renderDeviceTransferCasePanel() {
+    var selected = getDeviceTransferCaseById(state.selectedTransferCase);
+    var tabs = document.querySelectorAll(".device-transfer-case-tab");
+    var panel = $("#device-transfer-case-panel");
+    var titleEl = $("#device-transfer-case-panel-title");
+    var textEl = $("#device-transfer-case-panel-text");
+    for (var i = 0; i < tabs.length; i++) {
+      var isActive = tabs[i].getAttribute("data-transfer-case") === selected.id;
+      tabs[i].setAttribute("aria-selected", isActive ? "true" : "false");
+      if (isActive && panel && tabs[i].id) {
+        panel.setAttribute("aria-labelledby", tabs[i].id);
+      }
+    }
+    if (titleEl) titleEl.textContent = selected.title;
+    if (textEl) textEl.textContent = selected.guide;
+  }
+
+  function openDeviceTransferDialog() {
+    var overlay = $("#device-transfer-overlay");
+    if (!overlay) return;
+    renderDeviceTransferCasePanel();
+    overlay.removeAttribute("hidden");
+  }
+
+  function closeDeviceTransferDialog() {
+    var overlay = $("#device-transfer-overlay");
+    if (overlay) overlay.setAttribute("hidden", "");
+  }
+
+  function openDeviceTransferAiSearch() {
+    var selected = getDeviceTransferCaseById(state.selectedTransferCase);
+    var url = "https://www.google.com/search?q=" + encodeURIComponent(selected.aiPrompt);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function onDeviceTransferImport() {
+    if (state.importBusy || state.exportBusy) return Promise.resolve();
+    return showAppConfirm("受け取ったデータファイルを読み込みます。\n\n続行しますか？", {
+      okLabel: "読み込む",
+      cancelLabel: "キャンセル",
+    }).then(function (ok) {
+      if (!ok) return;
+      closeDeviceTransferDialog();
+      return onImportRequest();
+    });
+  }
+
+  function onDeviceTransferSend() {
+    if (state.exportBusy || state.importBusy) return Promise.resolve();
+    setDataTransferBusyUi("export", true);
+    return buildBackupFilePayload()
+      .then(function (pkg) {
+        var file = null;
+        try {
+          file = new File([pkg.blob], pkg.name, { type: "application/zip" });
+        } catch (_) {
+          file = null;
+        }
+        if (!canShareBackupFile(file)) {
+          return saveBackupFileWithoutShare(pkg.blob, pkg.name);
+        }
+        return shareTransferBackupFile(file)
+          .then(function () {
+            return {
+              mode: "shared",
+              fileLabel: normalizeFileLabel(pkg.name, "ブラウザ管理"),
+            };
+          })
+          .catch(function (err) {
+            if (isShareCanceledError(err)) {
+              return { mode: "cancelled" };
+            }
+            return saveBackupFileWithoutShare(pkg.blob, pkg.name);
+          });
+      })
+      .then(function (result) {
+        if (!result) return;
+        if (result.mode === "cancelled") {
+          return showAppAlert(
+            "共有をキャンセルしました。\n必要な場合は、もう一度「この端末のデータを送る」を押してください。",
+            { okLabel: "閉じる" }
+          );
+        }
+        closeDeviceTransferDialog();
+        return persistBackupExportInfo(result.fileLabel).then(function () {
+          if (result.mode === "shared") {
+            toast("データファイルを共有しました。");
+            return;
+          }
+          return showAppAlert(
+            "共有画面を開けませんでした。\nデータファイルを保存しました。\n\n保存されたファイルを、ファイルアプリまたはエクスプローラーから、AirDropまたはQuick Shareで送ってください。\n\nうまくいかない場合は、「AIで調べる」を押してください。",
+            { okLabel: "閉じる" }
+          );
+        });
+      })
+      .catch(function (err) {
+        if (isAbortError(err)) return;
+        console.error("Device transfer send failed:", err);
+        return showAppAlert("データファイルの作成または保存に失敗しました。");
+      })
+      .finally(function () {
+        setDataTransferBusyUi("export", false);
+      });
+  }
+
   function openAiLookupDialogForRow(tr) {
     if (!tr) return;
     openAiLookupDialog(readRowFromTr(tr));
@@ -2635,6 +2839,7 @@
   function closeSettingsIfOpen() {
     var panel = $("#settings-panel");
     var mainSection = $("#main-section");
+    closeDeviceTransferDialog();
     if (panel && !panel.hasAttribute("hidden")) {
       panel.setAttribute("hidden", "");
       if (mainSection) mainSection.removeAttribute("hidden");
@@ -4086,6 +4291,48 @@
       bindPress($("#ai-lookup-search"), function () {
         openAiLookupSearch();
       });
+    }
+    var deviceTransferOverlay = $("#device-transfer-overlay");
+    if (deviceTransferOverlay) {
+      deviceTransferOverlay.addEventListener("click", function (ev) {
+        if (ev.target === deviceTransferOverlay) {
+          closeDeviceTransferDialog();
+        }
+      });
+    }
+    if ($("#btn-device-transfer")) {
+      bindPress($("#btn-device-transfer"), function () {
+        openDeviceTransferDialog();
+      });
+    }
+    if ($("#device-transfer-close")) {
+      bindPress($("#device-transfer-close"), function () {
+        closeDeviceTransferDialog();
+      });
+    }
+    if ($("#device-transfer-send")) {
+      bindPress($("#device-transfer-send"), function () {
+        onDeviceTransferSend();
+      });
+    }
+    if ($("#device-transfer-import")) {
+      bindPress($("#device-transfer-import"), function () {
+        onDeviceTransferImport();
+      });
+    }
+    if ($("#device-transfer-ai")) {
+      bindPress($("#device-transfer-ai"), function () {
+        openDeviceTransferAiSearch();
+      });
+    }
+    var transferCaseTabs = document.querySelectorAll(".device-transfer-case-tab");
+    for (var transferTabIdx = 0; transferTabIdx < transferCaseTabs.length; transferTabIdx++) {
+      (function (tab) {
+        bindPress(tab, function () {
+          state.selectedTransferCase = tab.getAttribute("data-transfer-case") || DEVICE_TRANSFER_CASES[0].id;
+          renderDeviceTransferCasePanel();
+        });
+      })(transferCaseTabs[transferTabIdx]);
     }
     var settingsToggle = $("#btn-settings-toggle");
     if (settingsToggle) {
