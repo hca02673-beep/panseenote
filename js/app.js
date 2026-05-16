@@ -49,54 +49,100 @@
     usageSentThisSession: false,
     usageSendBusy: false,
     photoPickerContext: null,
-    selectedTransferCase: "",
+    selectedTransferDevice: "",
+    selectedTransferMode: "",
     transferLastCreated: null,
   };
 
-  var DEVICE_TRANSFER_CASES = [
+  var DEVICE_TRANSFER_MODES = [
     {
-      id: "android-windows",
-      title: "1. Androidスマホ・タブレット と Windows",
-      guide: [
-        "Quick Shareを使います。",
-        "送る側では、Android は Files の「ダウンロード」、Windows はダウンロードフォルダを開きます。",
-        "panseenote-backup- から始まる zip を選び、Quick Share で送ります。受け取った側では、パンセノートの「受け取ったデータを読み込む」から、ダウンロードにある zip を選びます。",
-      ].join("\n"),
-      aiPrompt:
-        "AndroidスマホまたはAndroidタブレットとWindowsパソコンの間で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Windows版Quick Shareの準備、Android側のQuick Share設定、Windows側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+      id: "send",
+      label: "データファイルを送る",
+      actionLabel: "送るためのデータファイルを作る",
     },
     {
-      id: "android-android",
-      title: "2. Androidスマホ・タブレット 同士",
-      guide: [
-        "Quick Shareを使います。",
-        "送る側では Files の「ダウンロード」を開き、panseenote-backup- から始まる zip を長押しして、共有 → Quick Share を選びます。",
-        "受け取った側では、パンセノートの「受け取ったデータを読み込む」から、Files の「ダウンロード」にある zip を選びます。",
-      ].join("\n"),
-      aiPrompt:
-        "AndroidスマホまたはAndroidタブレット同士で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Quick Shareの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+      id: "receive",
+      label: "データファイルを受け取る",
+      actionLabel: "受け取ったデータファイルを読み込む",
+    },
+  ];
+
+  var DEVICE_TRANSFER_DEVICES = [
+    {
+      id: "android",
+      label: "Androidスマホ・タブレット",
+      family: "quick-share",
+      transferName: "Quick Share",
+      downloadLabel: "Files の「ダウンロード」",
+      sendSummary:
+        "Androidスマホ・タブレットでは、送るためのデータファイルを作ったあと、Files の「ダウンロード」から zip を選び、Quick Share で送ります。",
+      receiveSummary:
+        "Androidスマホ・タブレットでは、Quick Share などで受け取った zip を Files の「ダウンロード」に保存し、パンセノートから読み込みます。",
+      sendStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. Files を開きます。\n2. 「ダウンロード」を開きます。\n3. panseenote-backup- から始まる zip を長押しします。\n4. 「共有」を押します。\n5. 「Quick Share」を押して、送り先を選びます。",
+      receiveStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面で Files を開きます。\n2. 「ダウンロード」を開きます。\n3. 受け取った panseenote-backup- から始まる zip を選びます。\n4. パンセノートに戻って、読み込み内容を確認します。",
+      sendAiPrompt:
+        "AndroidスマホまたはAndroidタブレットで、パンセノートのデータファイルを他の対応端末へ送りたいです。Files のダウンロードに保存された zip ファイルを Quick Share で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
+      receiveAiPrompt:
+        "AndroidスマホまたはAndroidタブレットで、他の対応端末から受け取ったパンセノートのデータファイルを読み込みたいです。Quick Share などで受け取った zip ファイルを Files のダウンロードから選び、パンセノートで読み込む手順を、初心者向けに順番に教えてください。",
     },
     {
-      id: "ios-ios",
-      title: "4. iPhone・iPad 同士",
-      guide: [
-        "AirDropを使います。",
-        "送る側では ファイル アプリの「ダウンロード」を開き、panseenote-backup- から始まる zip を長押しして、共有 → AirDrop を選びます。",
-        "受け取った側では、パンセノートの「受け取ったデータを読み込む」から、ファイル アプリの「ダウンロード」にある zip を選びます。",
-      ].join("\n"),
-      aiPrompt:
-        "iPhoneまたはiPad同士で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+      id: "windows",
+      label: "Windows 機器",
+      family: "quick-share",
+      transferName: "Quick Share",
+      downloadLabel: "ダウンロードフォルダ",
+      sendSummary:
+        "Windows 機器では、送るためのデータファイルを作ったあと、保存した zip を開いて Quick Share で送ります。",
+      receiveSummary:
+        "Windows 機器では、Quick Share などで受け取った zip を保存したあと、パンセノートから読み込みます。",
+      sendStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 保存ダイアログで保存した場所、またはダウンロードフォルダを開きます。\n2. panseenote-backup- から始まる zip を右クリックします。\n3. 「Quick Share」または「共有」を押します。\n4. 送り先を選びます。",
+      receiveStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面で、保存した場所またはダウンロードフォルダを開きます。\n2. 受け取った panseenote-backup- から始まる zip を選びます。\n3. パンセノートに戻って、読み込み内容を確認します。",
+      sendAiPrompt:
+        "Windows 機器で、パンセノートのデータファイルを他の対応端末へ送りたいです。保存した zip ファイルをダウンロードフォルダまたは保存場所から見つけて Quick Share で送る手順、右クリックメニューに共有が見つからない場合の確認を、初心者向けに順番に教えてください。",
+      receiveAiPrompt:
+        "Windows 機器で、他の対応端末から受け取ったパンセノートのデータファイルを読み込みたいです。受け取った zip ファイルを保存場所またはダウンロードフォルダから選び、パンセノートで読み込む手順を、初心者向けに順番に教えてください。",
     },
     {
-      id: "ios-mac",
-      title: "3. iPhone・iPad と Mac",
-      guide: [
-        "AirDropを使います。",
-        "送る側では、iPhone・iPad はファイル アプリの「ダウンロード」、Mac はダウンロードを開きます。",
-        "panseenote-backup- から始まる zip を選び、共有 → AirDrop で送ります。受け取った側では、パンセノートの「受け取ったデータを読み込む」から、ダウンロードにある zip を選びます。",
-      ].join("\n"),
-      aiPrompt:
-        "iPhone、iPad、Macの間で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、Mac側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
+      id: "iphoneipad",
+      label: "iPhone・iPad",
+      family: "airdrop",
+      transferName: "AirDrop",
+      downloadLabel: "ファイル アプリの「ダウンロード」",
+      sendSummary:
+        "iPhone・iPad では、送るためのデータファイルを作ったあと、ファイル アプリの「ダウンロード」から zip を選び、AirDrop で送ります。",
+      receiveSummary:
+        "iPhone・iPad では、AirDrop などで受け取った zip をファイル アプリの「ダウンロード」に保存し、パンセノートから読み込みます。",
+      sendStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. ファイル アプリを開きます。\n2. 「ダウンロード」を開きます。\n3. panseenote-backup- から始まる zip を長押しします。\n4. 「共有」を押します。\n5. 「AirDrop」を押して、送り先を選びます。",
+      receiveStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面でファイル アプリを開きます。\n2. 「ダウンロード」を開きます。\n3. 受け取った panseenote-backup- から始まる zip を選びます。\n4. パンセノートに戻って、読み込み内容を確認します。",
+      sendAiPrompt:
+        "iPhoneまたはiPadで、パンセノートのデータファイルを他の対応端末へ送りたいです。ファイル アプリのダウンロードに保存された zip ファイルを AirDrop で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
+      receiveAiPrompt:
+        "iPhoneまたはiPadで、他の対応端末から受け取ったパンセノートのデータファイルを読み込みたいです。受け取った zip ファイルをファイル アプリのダウンロードから選び、パンセノートで読み込む手順を、初心者向けに順番に教えてください。",
+    },
+    {
+      id: "mac",
+      label: "Mac",
+      family: "airdrop",
+      transferName: "AirDrop",
+      downloadLabel: "ダウンロード",
+      sendSummary:
+        "Mac では、送るためのデータファイルを作ったあと、ダウンロードから zip を選び、AirDrop で送ります。",
+      receiveSummary:
+        "Mac では、AirDrop などで受け取った zip をダウンロードへ保存し、パンセノートから読み込みます。",
+      sendStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. ダウンロードを開きます。\n2. panseenote-backup- から始まる zip を選びます。\n3. 「共有」を押します。\n4. 「AirDrop」を押して、送り先を選びます。",
+      receiveStep:
+        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面でダウンロードを開きます。\n2. 受け取った panseenote-backup- から始まる zip を選びます。\n3. パンセノートに戻って、読み込み内容を確認します。",
+      sendAiPrompt:
+        "Macで、パンセノートのデータファイルを他の対応端末へ送りたいです。ダウンロードにある zip ファイルを AirDrop で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
+      receiveAiPrompt:
+        "Macで、他の対応端末から受け取ったパンセノートのデータファイルを読み込みたいです。受け取った zip ファイルをダウンロードから選び、パンセノートで読み込む手順を、初心者向けに順番に教えてください。",
     },
   ];
 
@@ -825,94 +871,84 @@
   }
 
   function updateDeviceTransferActionUi() {
-    var hasSelection = !!String(state.selectedTransferCase || "").trim();
-    var sendBtn = $("#device-transfer-send");
-    var importBtn = $("#device-transfer-import");
+    var hasSelection =
+      !!String(state.selectedTransferDevice || "").trim() &&
+      !!String(state.selectedTransferMode || "").trim();
+    var runBtn = $("#device-transfer-run");
     var aiBtn = $("#device-transfer-ai");
     var busy = !!(state.exportBusy || state.importBusy);
-    if (sendBtn) {
-      sendBtn.disabled = !hasSelection || busy;
-    }
-    if (importBtn) {
-      importBtn.disabled = !hasSelection || busy;
+    if (runBtn) {
+      runBtn.disabled = !hasSelection || busy;
+      runBtn.textContent = hasSelection
+        ? getSelectedTransferModeDef().actionLabel
+        : "この内容で進む";
     }
     if (aiBtn) {
       aiBtn.disabled = !hasSelection;
     }
   }
 
-  function detectTransferPlatform() {
-    var ua = String((navigator && navigator.userAgent) || "");
-    var platform = String((navigator && navigator.platform) || "");
-    var maxTouchPoints = Number((navigator && navigator.maxTouchPoints) || 0);
-    if (/android/i.test(ua)) return "android";
-    if (/iphone/i.test(ua)) return "iphone";
-    if (/ipad/i.test(ua)) return "ipad";
-    if (/mac/i.test(platform) && maxTouchPoints > 1) return "ipad";
-    if (/win/i.test(platform)) return "windows";
-    if (/mac/i.test(platform)) return "mac";
-    return "other";
-  }
-
-  function getTransferDownloadLocationLabel() {
-    var platform = detectTransferPlatform();
-    if (platform === "android") return "Files の「ダウンロード」";
-    if (platform === "iphone" || platform === "ipad") {
-      return "ファイル アプリの「ダウンロード」";
+  function getTransferDeviceDef(id) {
+    var normalized = String(id || "").trim();
+    for (var i = 0; i < DEVICE_TRANSFER_DEVICES.length; i++) {
+      if (DEVICE_TRANSFER_DEVICES[i].id === normalized) {
+        return DEVICE_TRANSFER_DEVICES[i];
+      }
     }
-    if (platform === "windows") return "ダウンロードフォルダ";
-    return "ダウンロード";
+    return null;
   }
 
-  function buildTransferSendNextStep(fileName) {
+  function getTransferModeDef(id) {
+    var normalized = String(id || "").trim();
+    for (var i = 0; i < DEVICE_TRANSFER_MODES.length; i++) {
+      if (DEVICE_TRANSFER_MODES[i].id === normalized) {
+        return DEVICE_TRANSFER_MODES[i];
+      }
+    }
+    return null;
+  }
+
+  function getSelectedTransferDeviceDef() {
+    return getTransferDeviceDef(state.selectedTransferDevice);
+  }
+
+  function getSelectedTransferModeDef() {
+    return getTransferModeDef(state.selectedTransferMode);
+  }
+
+  function buildTransferSendNextStep(deviceDef, fileName) {
     var safeName = String(fileName || "panseenote-backup- から始まる zip");
-    var platform = detectTransferPlatform();
-    if (platform === "android") {
-      return (
-        "Files を開き、「ダウンロード」にある " +
-        safeName +
-        " を長押しして、共有 → Quick Share を押してください。"
-      );
+    if (!deviceDef) {
+      return "ダウンロードに保存した zip を開き、共有から送ってください。";
     }
-    if (platform === "windows") {
-      return (
-        "ダウンロードフォルダを開き、" +
-        safeName +
-        " を右クリックして、Quick Share または 共有 を押してください。"
-      );
-    }
-    if (platform === "iphone" || platform === "ipad") {
-      return (
-        "ファイル アプリの「ダウンロード」を開き、" +
-        safeName +
-        " を長押しして、共有 → AirDrop を押してください。"
-      );
-    }
-    if (platform === "mac") {
-      return (
-        "ダウンロードを開き、" +
-        safeName +
-        " を選んで、共有 → AirDrop を押してください。"
-      );
-    }
-    return "ダウンロードに保存した zip を開き、共有から送ってください。";
+    return String(deviceDef.sendStep || "").replace(/panseenote-backup- から始まる zip/g, safeName);
   }
 
-  function buildTransferImportNextStep() {
-    var platform = detectTransferPlatform();
-    if (platform === "android") {
-      return "次の画面で Files の「ダウンロード」を開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+  function buildTransferImportNextStep(deviceDef) {
+    if (!deviceDef) {
+      return "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n次の画面で、受け取った panseenote-backup- から始まる zip を選んでください。";
     }
-    if (platform === "windows") {
-      return "次の画面でダウンロードフォルダを開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+    return deviceDef.receiveStep;
+  }
+
+  function buildTransferSelectionSummary(modeDef, deviceDef) {
+    if (!modeDef || !deviceDef) {
+      return "送受信と端末を選んでください。";
     }
-    if (platform === "iphone" || platform === "ipad") {
-      return "次の画面でファイル アプリの「ダウンロード」を開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+    if (modeDef.id === "send") {
+      return (
+        "選択中: " +
+        deviceDef.label +
+        " でデータファイルを送る\n" +
+        deviceDef.sendSummary
+      );
     }
-    if (platform === "mac") {
-      return "次の画面でダウンロードを開き、受け取った panseenote-backup- から始まる zip を選んでください。";
-    }
-    return "次の画面で、受け取った panseenote-backup- から始まる zip を選んでください。";
+    return (
+      "選択中: " +
+      deviceDef.label +
+      " でデータファイルを受け取る\n" +
+      deviceDef.receiveSummary
+    );
   }
 
   function renderDeviceTransferResult() {
@@ -924,7 +960,7 @@
     var nextStepEl = $("#device-transfer-result-next-step");
     var info = state.transferLastCreated;
     if (!box || !nameEl || !locationEl || !createdAtEl || !itemCountEl || !nextStepEl) return;
-    if (!info) {
+    if (!info || state.selectedTransferMode !== "send") {
       box.setAttribute("hidden", "");
       return;
     }
@@ -2727,38 +2763,34 @@
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  function getDeviceTransferCaseById(id) {
-    var normalized = String(id || "").trim();
-    for (var i = 0; i < DEVICE_TRANSFER_CASES.length; i++) {
-      if (DEVICE_TRANSFER_CASES[i].id === normalized) {
-        return DEVICE_TRANSFER_CASES[i];
-      }
-    }
-    return DEVICE_TRANSFER_CASES[0];
-  }
-
   function renderDeviceTransferCasePanel() {
-    var selected = getDeviceTransferCaseById(state.selectedTransferCase);
-    var tabs = document.querySelectorAll(".device-transfer-case-tab");
+    var modeTabs = document.querySelectorAll(".device-transfer-mode-tabs .device-transfer-case-tab");
+    var deviceTabs = document.querySelectorAll(".device-transfer-device-tabs .device-transfer-case-tab");
     var panel = $("#device-transfer-case-panel");
     var titleEl = $("#device-transfer-case-panel-title");
     var textEl = $("#device-transfer-case-panel-text");
-    var hasSelection = !!String(state.selectedTransferCase || "").trim();
-    for (var i = 0; i < tabs.length; i++) {
-      var isActive = hasSelection && tabs[i].getAttribute("data-transfer-case") === selected.id;
-      tabs[i].setAttribute("aria-selected", isActive ? "true" : "false");
-      if (isActive && panel && tabs[i].id) {
-        panel.setAttribute("aria-labelledby", tabs[i].id);
+    var modeDef = getSelectedTransferModeDef();
+    var deviceDef = getSelectedTransferDeviceDef();
+    var hasMode = !!modeDef;
+    var hasDevice = !!deviceDef;
+    for (var i = 0; i < modeTabs.length; i++) {
+      var isModeActive = hasMode && modeTabs[i].getAttribute("data-transfer-mode") === modeDef.id;
+      modeTabs[i].setAttribute("aria-selected", isModeActive ? "true" : "false");
+      if (isModeActive && panel && modeTabs[i].id) {
+        panel.setAttribute("aria-labelledby", modeTabs[i].id);
       }
     }
-    if (!hasSelection && panel) {
-      panel.removeAttribute("aria-labelledby");
+    for (var j = 0; j < deviceTabs.length; j++) {
+      var isDeviceActive =
+        hasDevice && deviceTabs[j].getAttribute("data-transfer-device") === deviceDef.id;
+      deviceTabs[j].setAttribute("aria-selected", isDeviceActive ? "true" : "false");
     }
+    if ((!hasMode || !hasDevice) && panel) panel.removeAttribute("aria-labelledby");
     if (titleEl) {
-      titleEl.textContent = hasSelection ? selected.title : "受け渡し方法を選んでください";
+      titleEl.textContent = hasMode && hasDevice ? "選択内容" : "送受信と端末を選んでください";
     }
     if (textEl) {
-      textEl.textContent = hasSelection ? selected.guide : "上の4つから、使う受け渡し方法を選んでください。";
+      textEl.textContent = buildTransferSelectionSummary(modeDef, deviceDef);
     }
     renderDeviceTransferResult();
     updateDeviceTransferActionUi();
@@ -2767,7 +2799,9 @@
   function openDeviceTransferDialog() {
     var overlay = $("#device-transfer-overlay");
     if (!overlay) return;
-    state.selectedTransferCase = "";
+    state.selectedTransferMode = "";
+    state.selectedTransferDevice = "";
+    state.transferLastCreated = null;
     renderDeviceTransferCasePanel();
     overlay.removeAttribute("hidden");
   }
@@ -2778,20 +2812,25 @@
   }
 
   function openDeviceTransferAiSearch() {
-    if (!String(state.selectedTransferCase || "").trim()) return;
-    var selected = getDeviceTransferCaseById(state.selectedTransferCase);
-    var url = "https://www.google.com/search?q=" + encodeURIComponent(selected.aiPrompt);
+    var modeDef = getSelectedTransferModeDef();
+    var deviceDef = getSelectedTransferDeviceDef();
+    if (!modeDef || !deviceDef) return;
+    var query =
+      modeDef.id === "send" ? deviceDef.sendAiPrompt : deviceDef.receiveAiPrompt;
+    var url = "https://www.google.com/search?q=" + encodeURIComponent(query);
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function onDeviceTransferImport() {
     if (state.importBusy || state.exportBusy) return Promise.resolve();
+    var deviceDef = getSelectedTransferDeviceDef();
+    if (!deviceDef) return Promise.resolve();
     return showAppConfirm("受け取ったデータファイルを読み込みます。\n\n続行しますか？", {
       okLabel: "読み込む",
       cancelLabel: "キャンセル",
     }).then(function (ok) {
       if (!ok) return;
-      return showAppAlert(buildTransferImportNextStep(), {
+      return showAppAlert(buildTransferImportNextStep(deviceDef), {
         okLabel: "ファイルを選ぶ",
       }).then(function () {
         closeDeviceTransferDialog();
@@ -2802,7 +2841,8 @@
 
   function onDeviceTransferSend() {
     if (state.exportBusy || state.importBusy) return Promise.resolve();
-    if (!String(state.selectedTransferCase || "").trim()) return Promise.resolve();
+    var deviceDef = getSelectedTransferDeviceDef();
+    if (!deviceDef) return Promise.resolve();
     setDataTransferBusyUi("export", true);
     return buildBackupFilePayload()
       .then(function (pkg) {
@@ -2814,8 +2854,8 @@
       })
       .then(function (result) {
         if (!result) return;
-        var nextStep = buildTransferSendNextStep(result.fileLabel);
-        var locationLabel = getTransferDownloadLocationLabel();
+        var nextStep = buildTransferSendNextStep(deviceDef, result.fileLabel);
+        var locationLabel = deviceDef.downloadLabel || "ダウンロード";
         state.transferLastCreated = {
           fileName: result.fileLabel,
           locationLabel: locationLabel,
@@ -4431,14 +4471,15 @@
         closeDeviceTransferDialog();
       });
     }
-    if ($("#device-transfer-send")) {
-      bindPress($("#device-transfer-send"), function () {
-        onDeviceTransferSend();
-      });
-    }
-    if ($("#device-transfer-import")) {
-      bindPress($("#device-transfer-import"), function () {
-        onDeviceTransferImport();
+    if ($("#device-transfer-run")) {
+      bindPress($("#device-transfer-run"), function () {
+        if (state.selectedTransferMode === "send") {
+          onDeviceTransferSend();
+          return;
+        }
+        if (state.selectedTransferMode === "receive") {
+          onDeviceTransferImport();
+        }
       });
     }
     if ($("#device-transfer-ai")) {
@@ -4446,14 +4487,25 @@
         openDeviceTransferAiSearch();
       });
     }
-    var transferCaseTabs = document.querySelectorAll(".device-transfer-case-tab");
-    for (var transferTabIdx = 0; transferTabIdx < transferCaseTabs.length; transferTabIdx++) {
+    var transferModeTabs = document.querySelectorAll(".device-transfer-mode-tabs .device-transfer-case-tab");
+    for (var transferModeIdx = 0; transferModeIdx < transferModeTabs.length; transferModeIdx++) {
       (function (tab) {
         bindPress(tab, function () {
-          state.selectedTransferCase = tab.getAttribute("data-transfer-case") || DEVICE_TRANSFER_CASES[0].id;
+          state.selectedTransferMode = tab.getAttribute("data-transfer-mode") || "";
+          state.transferLastCreated = null;
           renderDeviceTransferCasePanel();
         });
-      })(transferCaseTabs[transferTabIdx]);
+      })(transferModeTabs[transferModeIdx]);
+    }
+    var transferDeviceTabs = document.querySelectorAll(".device-transfer-device-tabs .device-transfer-case-tab");
+    for (var transferDeviceIdx = 0; transferDeviceIdx < transferDeviceTabs.length; transferDeviceIdx++) {
+      (function (tab) {
+        bindPress(tab, function () {
+          state.selectedTransferDevice = tab.getAttribute("data-transfer-device") || "";
+          state.transferLastCreated = null;
+          renderDeviceTransferCasePanel();
+        });
+      })(transferDeviceTabs[transferDeviceIdx]);
     }
     var settingsToggle = $("#btn-settings-toggle");
     if (settingsToggle) {

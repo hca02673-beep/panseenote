@@ -465,41 +465,51 @@
         </div>
         <div class="device-transfer-body">
           <p class="device-transfer-lead">
-            この端末のパンセノートデータを、別の端末へ送ることができます。<br />
-            また、別の端末から受け取ったパンセノートのデータファイルを読み込むこともできます。
+            最上部のボタンを使って保存したデータファイルを、他の端末で読み出せば、他の端末との間で、登録データを共有することが出来ます。<br />
+            他の端末への保存データファイルの受け渡し方が解らない方は、以下の手順に従って、データファイルの送受信を試みてください。
           </p>
           <p class="device-transfer-lead">
-            近くの端末へ送る場合は、iPhone・iPad・MacではAirDrop、Android・WindowsではQuick Shareを使います。
+            Windows・Androidスマホ・タブレット同士、または iPhone・iPad・Mac 同士でのファイル受け渡しを案内します。<br />
+            Android・WindowsではQuick Share、iPhone・iPad・MacではAirDropを使います。
           </p>
 
           <div class="device-transfer-case-block">
-            <p class="device-transfer-case-title">使いたい受け渡し方法を選んでください。</p>
-            <div class="device-transfer-case-tabs" role="tablist" aria-label="受け渡しケース">
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-android-windows" data-transfer-case="android-windows" role="tab" aria-selected="false">
-                1. Androidスマホ・タブレット と Windows
+            <p class="device-transfer-case-title">今から行う作業を選んでください。</p>
+            <div class="device-transfer-case-tabs device-transfer-mode-tabs" role="tablist" aria-label="送受信の選択">
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-mode-send" data-transfer-mode="send" role="tab" aria-selected="false">
+                データファイルを送る
               </button>
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-android-android" data-transfer-case="android-android" role="tab" aria-selected="false">
-                2. Androidスマホ・タブレット 同士
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-mode-receive" data-transfer-mode="receive" role="tab" aria-selected="false">
+                データファイルを受け取る
               </button>
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-ios-mac" data-transfer-case="ios-mac" role="tab" aria-selected="false">
-                3. iPhone・iPad と Mac
+            </div>
+          </div>
+
+          <div class="device-transfer-case-block">
+            <p class="device-transfer-case-title">受け渡しを行う端末を選んでください。</p>
+            <div class="device-transfer-case-tabs device-transfer-device-tabs" role="tablist" aria-label="端末の選択">
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-device-android" data-transfer-device="android" role="tab" aria-selected="false">
+                Androidスマホ・タブレット
               </button>
-              <button type="button" class="device-transfer-case-tab" id="device-transfer-case-tab-ios-ios" data-transfer-case="ios-ios" role="tab" aria-selected="false">
-                4. iPhone・iPad 同士
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-device-windows" data-transfer-device="windows" role="tab" aria-selected="false">
+                Windows 機器
+              </button>
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-device-iphoneipad" data-transfer-device="iphoneipad" role="tab" aria-selected="false">
+                iPhone・iPad
+              </button>
+              <button type="button" class="device-transfer-case-tab" id="device-transfer-device-mac" data-transfer-device="mac" role="tab" aria-selected="false">
+                Mac
               </button>
             </div>
             <div class="device-transfer-case-panel" id="device-transfer-case-panel" role="tabpanel">
-              <h3 id="device-transfer-case-panel-title" class="device-transfer-case-panel-title">受け渡し方法を選んでください</h3>
+              <h3 id="device-transfer-case-panel-title" class="device-transfer-case-panel-title">送受信と端末を選んでください</h3>
               <p id="device-transfer-case-panel-text" class="device-transfer-case-panel-text"></p>
             </div>
           </div>
 
           <div class="device-transfer-actions">
-            <button type="button" id="device-transfer-send" class="app-dialog-btn device-transfer-main-btn" disabled>
-              送るためのファイルを作る
-            </button>
-            <button type="button" id="device-transfer-import" class="app-dialog-btn btn-action-green" disabled>
-              受け取ったデータを読み込む
+            <button type="button" id="device-transfer-run" class="app-dialog-btn device-transfer-main-btn" disabled>
+              この内容で進む
             </button>
             <button type="button" id="device-transfer-ai" class="app-dialog-btn btn-action-ai" disabled>
               うまくいかない時は AIで調べる
