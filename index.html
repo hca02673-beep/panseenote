@@ -496,7 +496,7 @@
 
           <div class="device-transfer-actions">
             <button type="button" id="device-transfer-send" class="app-dialog-btn device-transfer-main-btn" disabled>
-              この端末のデータを送る
+              送るためのファイルを作る
             </button>
             <button type="button" id="device-transfer-import" class="app-dialog-btn btn-action-green" disabled>
               受け取ったデータを読み込む
@@ -504,6 +504,32 @@
             <button type="button" id="device-transfer-ai" class="app-dialog-btn btn-action-ai" disabled>
               うまくいかない時は AIで調べる
             </button>
+          </div>
+
+          <div id="device-transfer-result" class="device-transfer-result" hidden>
+            <p class="device-transfer-result-title">今回送るファイル</p>
+            <dl class="device-transfer-result-meta">
+              <div class="device-transfer-result-row">
+                <dt>ファイル名</dt>
+                <dd id="device-transfer-result-name">—</dd>
+              </div>
+              <div class="device-transfer-result-row">
+                <dt>保存場所</dt>
+                <dd id="device-transfer-result-location">—</dd>
+              </div>
+              <div class="device-transfer-result-row">
+                <dt>作成日時</dt>
+                <dd id="device-transfer-result-created-at">—</dd>
+              </div>
+              <div class="device-transfer-result-row">
+                <dt>登録件数</dt>
+                <dd id="device-transfer-result-item-count">—</dd>
+              </div>
+              <div class="device-transfer-result-row">
+                <dt>次の操作</dt>
+                <dd id="device-transfer-result-next-step">—</dd>
+              </div>
+            </dl>
           </div>
 
           <p class="device-transfer-caution">

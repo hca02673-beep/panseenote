@@ -50,8 +50,7 @@
     usageSendBusy: false,
     photoPickerContext: null,
     selectedTransferCase: "",
-    transferPreparedPackage: null,
-    transferPrepareBusy: false,
+    transferLastCreated: null,
   };
 
   var DEVICE_TRANSFER_CASES = [
@@ -60,8 +59,8 @@
       title: "1. Androidスマホ・タブレット と Windows",
       guide: [
         "Quick Shareを使います。",
-        "Windows側でQuick Shareを開いてから、「この端末のデータを送る」を押してください。",
-        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+        "送る側では、Android は Files の「ダウンロード」、Windows はダウンロードフォルダを開きます。",
+        "panseenote-backup- から始まる zip を選び、Quick Share で送ります。受け取った側では、パンセノートの「受け取ったデータを読み込む」から、ダウンロードにある zip を選びます。",
       ].join("\n"),
       aiPrompt:
         "AndroidスマホまたはAndroidタブレットとWindowsパソコンの間で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Windows版Quick Shareの準備、Android側のQuick Share設定、Windows側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
@@ -71,8 +70,8 @@
       title: "2. Androidスマホ・タブレット 同士",
       guide: [
         "Quick Shareを使います。",
-        "「この端末のデータを送る」を押し、共有画面でQuick Shareを選んでください。",
-        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+        "送る側では Files の「ダウンロード」を開き、panseenote-backup- から始まる zip を長押しして、共有 → Quick Share を選びます。",
+        "受け取った側では、パンセノートの「受け取ったデータを読み込む」から、Files の「ダウンロード」にある zip を選びます。",
       ].join("\n"),
       aiPrompt:
         "AndroidスマホまたはAndroidタブレット同士で、Quick Shareを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。Quick Shareの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
@@ -82,8 +81,8 @@
       title: "4. iPhone・iPad 同士",
       guide: [
         "AirDropを使います。",
-        "「この端末のデータを送る」を押し、共有画面でAirDropを選んでください。",
-        "受け取った端末では「受け取ったデータを読み込む」から読み込みます。",
+        "送る側では ファイル アプリの「ダウンロード」を開き、panseenote-backup- から始まる zip を長押しして、共有 → AirDrop を選びます。",
+        "受け取った側では、パンセノートの「受け取ったデータを読み込む」から、ファイル アプリの「ダウンロード」にある zip を選びます。",
       ].join("\n"),
       aiPrompt:
         "iPhoneまたはiPad同士で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
@@ -93,8 +92,8 @@
       title: "3. iPhone・iPad と Mac",
       guide: [
         "AirDropを使います。",
-        "「この端末のデータを送る」を押し、共有画面でAirDropを選んでください。",
-        "Macで受け取ったファイルは「ダウンロード」フォルダに入ることがあります。",
+        "送る側では、iPhone・iPad はファイル アプリの「ダウンロード」、Mac はダウンロードを開きます。",
+        "panseenote-backup- から始まる zip を選び、共有 → AirDrop で送ります。受け取った側では、パンセノートの「受け取ったデータを読み込む」から、ダウンロードにある zip を選びます。",
       ].join("\n"),
       aiPrompt:
         "iPhone、iPad、Macの間で、AirDropを使ってパンセノートのデータファイルを移そうとしていますが、うまくいきません。AirDropの設定確認、Mac側の受信設定、送り先が表示されない場合の確認、受け取ったファイルの保存先、パンセノートで受け取ったデータファイルを読み込む方法を、初心者向けに順番に教えてください。",
@@ -615,6 +614,7 @@
           return {
             blob: blob,
             name: buildBackupFileName(),
+            itemCount: payload.items.length,
           };
         });
       });
@@ -796,15 +796,6 @@
     });
   }
 
-  function shareTransferBackupFile(file) {
-    return navigator.share({
-      title: "パンセノート データファイル",
-      text:
-        "パンセノートのデータファイルです。受け取った端末でパンセノートを開き、「受け取ったデータを読み込む」から読み込んでください。",
-      files: [file],
-    });
-  }
-
   function saveBackupFileWithoutShare(blob, name) {
     if (typeof window.showSaveFilePicker === "function") {
       return requestSaveFileHandle(name).then(function (saveHandle) {
@@ -824,14 +815,6 @@
     });
   }
 
-  function isShareCanceledError(err) {
-    if (isAbortError(err)) return true;
-    var name = String((err && err.name) || "");
-    var msg = String((err && err.message) || "");
-    if (/abort/i.test(name) || /abort/i.test(msg)) return true;
-    return /cancel(?:led)?/i.test(msg);
-  }
-
   function downloadBackupFileForTransfer(blob, name) {
     return triggerBackupDownload(blob, name).then(function () {
       return {
@@ -841,10 +824,6 @@
     });
   }
 
-  function canAttemptTransferShare(file) {
-    return !!(navigator.share && file);
-  }
-
   function updateDeviceTransferActionUi() {
     var hasSelection = !!String(state.selectedTransferCase || "").trim();
     var sendBtn = $("#device-transfer-send");
@@ -852,8 +831,7 @@
     var aiBtn = $("#device-transfer-ai");
     var busy = !!(state.exportBusy || state.importBusy);
     if (sendBtn) {
-      sendBtn.disabled =
-        !hasSelection || busy || state.transferPrepareBusy || !state.transferPreparedPackage;
+      sendBtn.disabled = !hasSelection || busy;
     }
     if (importBtn) {
       importBtn.disabled = !hasSelection || busy;
@@ -863,32 +841,99 @@
     }
   }
 
-  function prepareDeviceTransferPackage() {
-    state.transferPrepareBusy = true;
-    state.transferPreparedPackage = null;
-    updateDeviceTransferActionUi();
-    return buildBackupFilePayload()
-      .then(function (pkg) {
-        var file = null;
-        try {
-          file = new File([pkg.blob], pkg.name, { type: "application/zip" });
-        } catch (_) {
-          file = null;
-        }
-        state.transferPreparedPackage = {
-          blob: pkg.blob,
-          name: pkg.name,
-          file: file,
-        };
-      })
-      .catch(function (err) {
-        console.error("Device transfer package prepare failed:", err);
-        state.transferPreparedPackage = null;
-      })
-      .finally(function () {
-        state.transferPrepareBusy = false;
-        updateDeviceTransferActionUi();
-      });
+  function detectTransferPlatform() {
+    var ua = String((navigator && navigator.userAgent) || "");
+    var platform = String((navigator && navigator.platform) || "");
+    var maxTouchPoints = Number((navigator && navigator.maxTouchPoints) || 0);
+    if (/android/i.test(ua)) return "android";
+    if (/iphone/i.test(ua)) return "iphone";
+    if (/ipad/i.test(ua)) return "ipad";
+    if (/mac/i.test(platform) && maxTouchPoints > 1) return "ipad";
+    if (/win/i.test(platform)) return "windows";
+    if (/mac/i.test(platform)) return "mac";
+    return "other";
+  }
+
+  function getTransferDownloadLocationLabel() {
+    var platform = detectTransferPlatform();
+    if (platform === "android") return "Files の「ダウンロード」";
+    if (platform === "iphone" || platform === "ipad") {
+      return "ファイル アプリの「ダウンロード」";
+    }
+    if (platform === "windows") return "ダウンロードフォルダ";
+    return "ダウンロード";
+  }
+
+  function buildTransferSendNextStep(fileName) {
+    var safeName = String(fileName || "panseenote-backup- から始まる zip");
+    var platform = detectTransferPlatform();
+    if (platform === "android") {
+      return (
+        "Files を開き、「ダウンロード」にある " +
+        safeName +
+        " を長押しして、共有 → Quick Share を押してください。"
+      );
+    }
+    if (platform === "windows") {
+      return (
+        "ダウンロードフォルダを開き、" +
+        safeName +
+        " を右クリックして、Quick Share または 共有 を押してください。"
+      );
+    }
+    if (platform === "iphone" || platform === "ipad") {
+      return (
+        "ファイル アプリの「ダウンロード」を開き、" +
+        safeName +
+        " を長押しして、共有 → AirDrop を押してください。"
+      );
+    }
+    if (platform === "mac") {
+      return (
+        "ダウンロードを開き、" +
+        safeName +
+        " を選んで、共有 → AirDrop を押してください。"
+      );
+    }
+    return "ダウンロードに保存した zip を開き、共有から送ってください。";
+  }
+
+  function buildTransferImportNextStep() {
+    var platform = detectTransferPlatform();
+    if (platform === "android") {
+      return "次の画面で Files の「ダウンロード」を開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+    }
+    if (platform === "windows") {
+      return "次の画面でダウンロードフォルダを開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+    }
+    if (platform === "iphone" || platform === "ipad") {
+      return "次の画面でファイル アプリの「ダウンロード」を開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+    }
+    if (platform === "mac") {
+      return "次の画面でダウンロードを開き、受け取った panseenote-backup- から始まる zip を選んでください。";
+    }
+    return "次の画面で、受け取った panseenote-backup- から始まる zip を選んでください。";
+  }
+
+  function renderDeviceTransferResult() {
+    var box = $("#device-transfer-result");
+    var nameEl = $("#device-transfer-result-name");
+    var locationEl = $("#device-transfer-result-location");
+    var createdAtEl = $("#device-transfer-result-created-at");
+    var itemCountEl = $("#device-transfer-result-item-count");
+    var nextStepEl = $("#device-transfer-result-next-step");
+    var info = state.transferLastCreated;
+    if (!box || !nameEl || !locationEl || !createdAtEl || !itemCountEl || !nextStepEl) return;
+    if (!info) {
+      box.setAttribute("hidden", "");
+      return;
+    }
+    nameEl.textContent = formatTextDisplay(info.fileName);
+    locationEl.textContent = formatTextDisplay(info.locationLabel);
+    createdAtEl.textContent = formatIsoDisplay(info.createdAt);
+    itemCountEl.textContent = formatCountDisplay(info.itemCount) + "件";
+    nextStepEl.textContent = formatTextDisplay(info.nextStep);
+    box.removeAttribute("hidden");
   }
 
   function triggerBackupDownload(blob, name) {
@@ -2715,6 +2760,7 @@
     if (textEl) {
       textEl.textContent = hasSelection ? selected.guide : "上の4つから、使う受け渡し方法を選んでください。";
     }
+    renderDeviceTransferResult();
     updateDeviceTransferActionUi();
   }
 
@@ -2722,10 +2768,8 @@
     var overlay = $("#device-transfer-overlay");
     if (!overlay) return;
     state.selectedTransferCase = "";
-    state.transferPreparedPackage = null;
     renderDeviceTransferCasePanel();
     overlay.removeAttribute("hidden");
-    prepareDeviceTransferPackage();
   }
 
   function closeDeviceTransferDialog() {
@@ -2747,58 +2791,53 @@
       cancelLabel: "キャンセル",
     }).then(function (ok) {
       if (!ok) return;
-      closeDeviceTransferDialog();
-      return onImportRequest();
+      return showAppAlert(buildTransferImportNextStep(), {
+        okLabel: "ファイルを選ぶ",
+      }).then(function () {
+        closeDeviceTransferDialog();
+        return onImportRequest();
+      });
     });
   }
 
   function onDeviceTransferSend() {
     if (state.exportBusy || state.importBusy) return Promise.resolve();
     if (!String(state.selectedTransferCase || "").trim()) return Promise.resolve();
-    if (state.transferPrepareBusy || !state.transferPreparedPackage) {
-      return showAppAlert(
-        "データファイルを準備中です。数秒待ってから、もう一度「この端末のデータを送る」を押してください。"
-      );
-    }
     setDataTransferBusyUi("export", true);
-    var pkg = state.transferPreparedPackage;
-    return Promise.resolve()
-      .then(function () {
-        if (!canAttemptTransferShare(pkg.file)) {
-          return downloadBackupFileForTransfer(pkg.blob, pkg.name);
-        }
-        return shareTransferBackupFile(pkg.file)
-          .then(function () {
-            return {
-              mode: "shared",
-              fileLabel: normalizeFileLabel(pkg.name, "ブラウザ管理"),
-            };
-          })
-          .catch(function (err) {
-            if (isShareCanceledError(err)) {
-              return { mode: "cancelled" };
-            }
-            return downloadBackupFileForTransfer(pkg.blob, pkg.name);
-          });
+    return buildBackupFilePayload()
+      .then(function (pkg) {
+        return downloadBackupFileForTransfer(pkg.blob, pkg.name).then(function (result) {
+          result.createdAt = new Date().toISOString();
+          result.itemCount = Number(pkg.itemCount || 0);
+          return result;
+        });
       })
       .then(function (result) {
         if (!result) return;
-        if (result.mode === "cancelled") {
-          return showAppAlert(
-            "共有をキャンセルしました。\n必要な場合は、もう一度「この端末のデータを送る」を押してください。",
-            { okLabel: "閉じる" }
-          );
-        }
-        closeDeviceTransferDialog();
+        var nextStep = buildTransferSendNextStep(result.fileLabel);
+        var locationLabel = getTransferDownloadLocationLabel();
+        state.transferLastCreated = {
+          fileName: result.fileLabel,
+          locationLabel: locationLabel,
+          createdAt: result.createdAt,
+          itemCount: result.itemCount,
+          nextStep: nextStep,
+        };
+        renderDeviceTransferResult();
         return persistBackupExportInfo(result.fileLabel).then(function () {
-          if (result.mode === "shared") {
-            toast("データファイルを共有しました。");
-            return;
-          }
-          return showAppAlert(
-            "共有画面を開けませんでした。\nデータファイルを保存しました。\n\n保存されたファイルを、ファイルアプリまたはエクスプローラーから、AirDropまたはQuick Shareで送ってください。\n\nうまくいかない場合は、「AIで調べる」を押してください。",
-            { okLabel: "閉じる" }
-          );
+          return showAppAlert("送るファイルを作りました。", {
+            detail:
+              "保存場所: " +
+              locationLabel +
+              "\nファイル名: " +
+              result.fileLabel +
+              "\n登録件数: " +
+              formatCountDisplay(result.itemCount) +
+              "件" +
+              "\n次の操作: " +
+              nextStep,
+            okLabel: "閉じる",
+          });
         });
       })
       .catch(function (err) {
