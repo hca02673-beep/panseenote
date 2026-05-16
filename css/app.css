@@ -1507,6 +1507,7 @@ button.sm {
   padding: 1.15rem 1rem 1rem;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
+  position: relative;
 }
 
 .app-dialog-overlay.app-dialog-overlay-flow .app-dialog-box {
@@ -1546,6 +1547,21 @@ button.sm {
 .app-dialog-message.app-dialog-message-guide,
 .app-dialog-detail.app-dialog-detail-guide {
   text-align: left;
+}
+
+.app-dialog-close-btn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 2rem;
+  height: 2rem;
+  grid-column: auto;
+  justify-self: auto;
+  align-self: auto;
+}
+
+.app-dialog-close-btn[hidden] {
+  display: none;
 }
 
 .app-dialog-sections {

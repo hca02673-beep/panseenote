@@ -86,15 +86,16 @@
         "「Quick Share」を押して、送り先を選びます。",
       ],
       receiveStep: [
-        "次の画面で Files を開きます。",
-        "「ダウンロード」を開きます。",
-        "受け取ったファイルを選びます。",
+        "次の画面で、他の端末から Quick Share でファイルが送られたフォルダを開きます（通常「ダウンロード」フォルダに入ることが多い）。",
+        "受け取ったファイルを選びます。なお、ファイルは ZIP 形式のファイル（圧縮ファイル）になっています。",
+        "選択したファイルを、展開せずにそのまま読み込みます。",
         "パンセノートに戻って、読み込み内容を確認します。",
       ],
       quickShareMinimum: [
+        "送る側と受け取る側が、Quick Shareに対応していること\n例：Android端末、Windowsパソコン",
         "送る側と受け取る側の端末が近くにあること",
-        "両方の端末で Wi-Fi と Bluetooth が使えること",
-        "受け取る側で Quick Share を受信できる状態にしておくこと",
+        "両方の端末で Wi-Fi と Bluetooth がオンになっていること",
+        "受け取る側で Quick Share を受信できる設定になっていること",
       ],
       sendAiPrompt:
         "AndroidスマホまたはAndroidタブレットで、パンセノートのデータファイルを他の対応端末へ送りたいです。Files のダウンロードに保存された zip ファイルを Quick Share で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
@@ -118,14 +119,16 @@
         "送り先を選びます。",
       ],
       receiveStep: [
-        "次の画面で、保存した場所またはダウンロードフォルダを開きます。",
-        "受け取ったファイルを選びます。",
+        "次の画面で、他の端末から Quick Share でファイルが送られたフォルダを開きます（通常「ダウンロード」フォルダに入ることが多い）。",
+        "受け取ったファイルを選びます。なお、ファイルは ZIP 形式のファイル（圧縮ファイル）になっています。",
+        "選択したファイルを、展開せずにそのまま読み込みます。",
         "パンセノートに戻って、読み込み内容を確認します。",
       ],
       quickShareMinimum: [
+        "送る側と受け取る側が、Quick Shareに対応していること\n例：Android端末、Windowsパソコン",
         "送る側と受け取る側の端末が近くにあること",
-        "両方の端末で Wi-Fi と Bluetooth が使えること",
-        "受け取る側で Quick Share を受信できる状態にしておくこと",
+        "両方の端末で Wi-Fi と Bluetooth がオンになっていること",
+        "受け取る側で Quick Share を受信できる設定になっていること",
       ],
       sendAiPrompt:
         "Windows 機器で、パンセノートのデータファイルを他の対応端末へ送りたいです。保存した zip ファイルをダウンロードフォルダまたは保存場所から見つけて Quick Share で送る手順、右クリックメニューに共有が見つからない場合の確認を、初心者向けに順番に教えてください。",
@@ -150,10 +153,16 @@
         "「AirDrop」を押して、送り先を選びます。",
       ],
       receiveStep: [
-        "次の画面でファイル アプリを開きます。",
-        "「ダウンロード」を開きます。",
-        "受け取ったファイルを選びます。",
+        "次の画面で、他の端末から AirDrop でファイルが送られたフォルダを開きます（通常「ダウンロード」フォルダに入ることが多い）。",
+        "受け取ったファイルを選びます。なお、ファイルは ZIP 形式のファイル（圧縮ファイル）になっています。",
+        "選択したファイルを、展開せずにそのまま読み込みます。",
         "パンセノートに戻って、読み込み内容を確認します。",
+      ],
+      airdropMinimum: [
+        "送る側と受け取る側が、どちらもApple端末であること\n例：iPhone, iPad, Mac",
+        "送る側と受け取る側の端末が近くにあること",
+        "両方の端末で Wi-Fi と Bluetooth がオンになっていること",
+        "受け取る側で AirDrop を受信できる設定になっていること",
       ],
       sendAiPrompt:
         "iPhoneまたはiPadで、パンセノートのデータファイルを他の対応端末へ送りたいです。ファイル アプリのダウンロードに保存された zip ファイルを AirDrop で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
@@ -177,9 +186,16 @@
         "「AirDrop」を押して、送り先を選びます。",
       ],
       receiveStep: [
-        "次の画面でダウンロードを開きます。",
-        "受け取ったファイルを選びます。",
+        "次の画面で、他の端末から AirDrop でファイルが送られたフォルダを開きます（通常「ダウンロード」フォルダに入ることが多い）。",
+        "受け取ったファイルを選びます。なお、ファイルは ZIP 形式のファイル（圧縮ファイル）になっています。",
+        "選択したファイルを、展開せずにそのまま読み込みます。",
         "パンセノートに戻って、読み込み内容を確認します。",
+      ],
+      airdropMinimum: [
+        "送る側と受け取る側が、どちらもApple端末であること\n例：iPhone, iPad, Mac",
+        "送る側と受け取る側の端末が近くにあること",
+        "両方の端末で Wi-Fi と Bluetooth がオンになっていること",
+        "受け取る側で AirDrop を受信できる設定になっていること",
       ],
       sendAiPrompt:
         "Macで、パンセノートのデータファイルを他の対応端末へ送りたいです。ダウンロードにある zip ファイルを AirDrop で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
@@ -974,6 +990,27 @@
       : [String(deviceDef.receiveStep || "")];
   }
 
+  function getTransferMinimumSection(deviceDef) {
+    if (!deviceDef) return null;
+    if (deviceDef.family === "quick-share" &&
+        Array.isArray(deviceDef.quickShareMinimum) &&
+        deviceDef.quickShareMinimum.length) {
+      return {
+        title: "Quick Shareを使うための最低条件",
+        steps: deviceDef.quickShareMinimum,
+      };
+    }
+    if (deviceDef.family === "airdrop" &&
+        Array.isArray(deviceDef.airdropMinimum) &&
+        deviceDef.airdropMinimum.length) {
+      return {
+        title: "AirDropを使うための最低条件",
+        steps: deviceDef.airdropMinimum,
+      };
+    }
+    return null;
+  }
+
   function buildTransferSelectionSummary(modeDef, deviceDef) {
     if (!modeDef || !deviceDef) {
       return "送受信と端末を選んでください。";
@@ -1135,12 +1172,16 @@
       var sectionsEl = $("#app-dialog-sections");
       var okBtn = $("#app-dialog-ok");
       var cancelBtn = $("#app-dialog-cancel");
-      if (!overlay || !msgEl || !detailEl || !sectionsEl || !okBtn || !cancelBtn) {
+      var closeBtn = $("#app-dialog-close");
+      if (!overlay || !msgEl || !detailEl || !sectionsEl || !okBtn || !cancelBtn || !closeBtn) {
         resolve(options && options.cancelable === false ? true : false);
         return;
       }
 
       var cancelable = !options || options.cancelable !== false;
+      var showCloseButton = !!(options && options.showCloseButton);
+      var hideCancelButton = !!(options && options.hideCancelButton);
+      var canDismiss = cancelable || showCloseButton;
       var prevActive = document.activeElement;
       var done = false;
 
@@ -1222,11 +1263,13 @@
           : "app-dialog-btn-primary");
 
       cancelBtn.textContent = (options && options.cancelLabel) || "キャンセル";
-      cancelBtn.hidden = !cancelable;
+      cancelBtn.hidden = !cancelable || hideCancelButton;
+      closeBtn.hidden = !showCloseButton;
 
       function cleanup() {
         okBtn.removeEventListener("click", onOk);
         cancelBtn.removeEventListener("click", onCancel);
+        closeBtn.removeEventListener("click", onCancel);
         document.removeEventListener("keydown", onKeyDown, true);
       }
 
@@ -1256,15 +1299,16 @@
       }
 
       function onKeyDown(ev) {
-        if (ev.key !== "Escape") return;
+        if (ev.key !== "Escape" || !canDismiss) return;
         ev.preventDefault();
-        close(cancelable ? false : true);
+        close(false);
       }
 
       var alignToMeta = !!(options && options.alignToMeta);
       overlay.classList.toggle("app-dialog-overlay-flow", alignToMeta);
       okBtn.addEventListener("click", onOk);
       cancelBtn.addEventListener("click", onCancel);
+      closeBtn.addEventListener("click", onCancel);
       document.addEventListener("keydown", onKeyDown, true);
       if (alignToMeta) {
         updateFloatingUiTop();
@@ -2931,32 +2975,28 @@
     if (state.importBusy || state.exportBusy) return Promise.resolve();
     var deviceDef = getSelectedTransferDeviceDef();
     if (!deviceDef) return Promise.resolve();
-    return showAppConfirm("受け取ったデータファイルを読み込みます。\n\n続行しますか？", {
-      okLabel: "読み込む",
-      cancelLabel: "キャンセル",
+    var guideSections = [
+      {
+        title: "今後の手順",
+        steps: buildTransferImportNextStep(deviceDef),
+      },
+    ];
+    var minimumSection = getTransferMinimumSection(deviceDef);
+    if (minimumSection) {
+      guideSections.push(minimumSection);
+    }
+    return showAppDialog({
+      message: "受け取ったデータファイルを読み込みます。",
+      cancelable: true,
+      hideCancelButton: true,
+      showCloseButton: true,
+      dialogStyle: "guide",
+      detailSections: guideSections,
+      okLabel: "ファイルを選ぶ",
     }).then(function (ok) {
       if (!ok) return;
-      var guideSections = [
-        {
-          title: "今後の手順",
-          steps: buildTransferImportNextStep(deviceDef),
-        },
-      ];
-      if (Array.isArray(deviceDef.quickShareMinimum) && deviceDef.quickShareMinimum.length) {
-        guideSections.push({
-          title: "Quick Share を使うための最低条件",
-          steps: deviceDef.quickShareMinimum,
-        });
-      }
-      return showAppAlert("受け取ったデータファイルを読み込みます。", {
-        detail: "今後の作業は、パンセノート以外のアプリでの操作が必要となります。",
-        dialogStyle: "guide",
-        detailSections: guideSections,
-        okLabel: "ファイルを選ぶ",
-      }).then(function () {
-        closeDeviceTransferDialog();
-        return onImportRequest();
-      });
+      closeDeviceTransferDialog();
+      return onImportRequest();
     });
   }
 
@@ -2997,11 +3037,9 @@
             steps: nextStep,
           },
         ];
-        if (Array.isArray(deviceDef.quickShareMinimum) && deviceDef.quickShareMinimum.length) {
-          guideSections.push({
-            title: "Quick Share を使うための最低条件",
-            steps: deviceDef.quickShareMinimum,
-          });
+        var minimumSection = getTransferMinimumSection(deviceDef);
+        if (minimumSection) {
+          guideSections.push(minimumSection);
         }
         return persistBackupExportInfo(result.fileLabel).then(function () {
           return showAppAlert("送るファイルを作りました。", {
