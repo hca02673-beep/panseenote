@@ -339,6 +339,7 @@
       <div class="app-dialog-box" role="document">
         <p id="app-dialog-message" class="app-dialog-message"></p>
         <p id="app-dialog-detail" class="app-dialog-detail" hidden></p>
+        <div id="app-dialog-sections" class="app-dialog-sections" hidden></div>
         <div class="app-dialog-actions">
           <button type="button" id="app-dialog-cancel" class="app-dialog-btn app-dialog-btn-secondary">キャンセル</button>
           <button type="button" id="app-dialog-ok" class="app-dialog-btn app-dialog-btn-primary">OK</button>
@@ -486,7 +487,7 @@
           </div>
 
           <div class="device-transfer-case-block">
-            <p class="device-transfer-case-title">受け渡しを行う端末を選んでください。</p>
+            <p class="device-transfer-case-title">現在、ご使用中の端末を選んでください。</p>
             <div class="device-transfer-case-tabs device-transfer-device-tabs" role="tablist" aria-label="端末の選択">
               <button type="button" class="device-transfer-case-tab" id="device-transfer-device-android" data-transfer-device="android" role="tab" aria-selected="false">
                 Androidスマホ・タブレット
@@ -530,10 +531,6 @@
               <div class="device-transfer-result-row">
                 <dt>作成日時</dt>
                 <dd id="device-transfer-result-created-at">—</dd>
-              </div>
-              <div class="device-transfer-result-row">
-                <dt>登録件数</dt>
-                <dd id="device-transfer-result-item-count">—</dd>
               </div>
               <div class="device-transfer-result-row">
                 <dt>次の操作</dt>

@@ -1543,6 +1543,90 @@ button.sm {
   font-weight: 600;
 }
 
+.app-dialog-message.app-dialog-message-guide,
+.app-dialog-detail.app-dialog-detail-guide {
+  text-align: left;
+}
+
+.app-dialog-sections {
+  margin-top: 0.85rem;
+}
+
+.app-dialog-sections[hidden] {
+  display: none;
+}
+
+.app-dialog-section {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.app-dialog-section + .app-dialog-section {
+  margin-top: 0.7rem;
+}
+
+.app-dialog-section-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--fg);
+  text-align: left;
+}
+
+.app-dialog-section-body {
+  margin: 0;
+  line-height: 1.65;
+  color: var(--fg);
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+.app-dialog-section-meta {
+  margin: 0;
+}
+
+.app-dialog-section-meta-row {
+  display: grid;
+  grid-template-columns: 5.2rem 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.app-dialog-section-meta-row + .app-dialog-section-meta-row {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.app-dialog-section-meta dt,
+.app-dialog-section-meta dd {
+  margin: 0;
+}
+
+.app-dialog-section-meta dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.app-dialog-section-meta dd {
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.app-dialog-section-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  line-height: 1.7;
+  color: var(--fg);
+}
+
+.app-dialog-section-steps li + li {
+  margin-top: 0.35rem;
+}
+
 .app-dialog-actions {
   display: flex;
   justify-content: center;

@@ -78,10 +78,24 @@
         "Androidスマホ・タブレットでは、送るためのデータファイルを作ったあと、Files の「ダウンロード」から zip を選び、Quick Share で送ります。",
       receiveSummary:
         "Androidスマホ・タブレットでは、Quick Share などで受け取った zip を Files の「ダウンロード」に保存し、パンセノートから読み込みます。",
-      sendStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. Files を開きます。\n2. 「ダウンロード」を開きます。\n3. panseenote-backup- から始まる zip を長押しします。\n4. 「共有」を押します。\n5. 「Quick Share」を押して、送り先を選びます。",
-      receiveStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面で Files を開きます。\n2. 「ダウンロード」を開きます。\n3. 受け取った panseenote-backup- から始まる zip を選びます。\n4. パンセノートに戻って、読み込み内容を確認します。",
+      sendStep: [
+        "Files を開きます。",
+        "「ダウンロード」を開きます。",
+        "送るファイルを長押しします。",
+        "「共有」を押します。",
+        "「Quick Share」を押して、送り先を選びます。",
+      ],
+      receiveStep: [
+        "次の画面で Files を開きます。",
+        "「ダウンロード」を開きます。",
+        "受け取ったファイルを選びます。",
+        "パンセノートに戻って、読み込み内容を確認します。",
+      ],
+      quickShareMinimum: [
+        "送る側と受け取る側の端末が近くにあること",
+        "両方の端末で Wi-Fi と Bluetooth が使えること",
+        "受け取る側で Quick Share を受信できる状態にしておくこと",
+      ],
       sendAiPrompt:
         "AndroidスマホまたはAndroidタブレットで、パンセノートのデータファイルを他の対応端末へ送りたいです。Files のダウンロードに保存された zip ファイルを Quick Share で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
       receiveAiPrompt:
@@ -97,10 +111,22 @@
         "Windows 機器では、送るためのデータファイルを作ったあと、保存した zip を開いて Quick Share で送ります。",
       receiveSummary:
         "Windows 機器では、Quick Share などで受け取った zip を保存したあと、パンセノートから読み込みます。",
-      sendStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 保存ダイアログで保存した場所、またはダウンロードフォルダを開きます。\n2. panseenote-backup- から始まる zip を右クリックします。\n3. 「Quick Share」または「共有」を押します。\n4. 送り先を選びます。",
-      receiveStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面で、保存した場所またはダウンロードフォルダを開きます。\n2. 受け取った panseenote-backup- から始まる zip を選びます。\n3. パンセノートに戻って、読み込み内容を確認します。",
+      sendStep: [
+        "保存ダイアログで保存した場所、またはダウンロードフォルダを開きます。",
+        "送るファイルを右クリックします。",
+        "「Quick Share」または「共有」を押します。",
+        "送り先を選びます。",
+      ],
+      receiveStep: [
+        "次の画面で、保存した場所またはダウンロードフォルダを開きます。",
+        "受け取ったファイルを選びます。",
+        "パンセノートに戻って、読み込み内容を確認します。",
+      ],
+      quickShareMinimum: [
+        "送る側と受け取る側の端末が近くにあること",
+        "両方の端末で Wi-Fi と Bluetooth が使えること",
+        "受け取る側で Quick Share を受信できる状態にしておくこと",
+      ],
       sendAiPrompt:
         "Windows 機器で、パンセノートのデータファイルを他の対応端末へ送りたいです。保存した zip ファイルをダウンロードフォルダまたは保存場所から見つけて Quick Share で送る手順、右クリックメニューに共有が見つからない場合の確認を、初心者向けに順番に教えてください。",
       receiveAiPrompt:
@@ -116,10 +142,19 @@
         "iPhone・iPad では、送るためのデータファイルを作ったあと、ファイル アプリの「ダウンロード」から zip を選び、AirDrop で送ります。",
       receiveSummary:
         "iPhone・iPad では、AirDrop などで受け取った zip をファイル アプリの「ダウンロード」に保存し、パンセノートから読み込みます。",
-      sendStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. ファイル アプリを開きます。\n2. 「ダウンロード」を開きます。\n3. panseenote-backup- から始まる zip を長押しします。\n4. 「共有」を押します。\n5. 「AirDrop」を押して、送り先を選びます。",
-      receiveStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面でファイル アプリを開きます。\n2. 「ダウンロード」を開きます。\n3. 受け取った panseenote-backup- から始まる zip を選びます。\n4. パンセノートに戻って、読み込み内容を確認します。",
+      sendStep: [
+        "ファイル アプリを開きます。",
+        "「ダウンロード」を開きます。",
+        "送るファイルを長押しします。",
+        "「共有」を押します。",
+        "「AirDrop」を押して、送り先を選びます。",
+      ],
+      receiveStep: [
+        "次の画面でファイル アプリを開きます。",
+        "「ダウンロード」を開きます。",
+        "受け取ったファイルを選びます。",
+        "パンセノートに戻って、読み込み内容を確認します。",
+      ],
       sendAiPrompt:
         "iPhoneまたはiPadで、パンセノートのデータファイルを他の対応端末へ送りたいです。ファイル アプリのダウンロードに保存された zip ファイルを AirDrop で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
       receiveAiPrompt:
@@ -135,10 +170,17 @@
         "Mac では、送るためのデータファイルを作ったあと、ダウンロードから zip を選び、AirDrop で送ります。",
       receiveSummary:
         "Mac では、AirDrop などで受け取った zip をダウンロードへ保存し、パンセノートから読み込みます。",
-      sendStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. ダウンロードを開きます。\n2. panseenote-backup- から始まる zip を選びます。\n3. 「共有」を押します。\n4. 「AirDrop」を押して、送り先を選びます。",
-      receiveStep:
-        "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n1. 次の画面でダウンロードを開きます。\n2. 受け取った panseenote-backup- から始まる zip を選びます。\n3. パンセノートに戻って、読み込み内容を確認します。",
+      sendStep: [
+        "ダウンロードを開きます。",
+        "送るファイルを選びます。",
+        "「共有」を押します。",
+        "「AirDrop」を押して、送り先を選びます。",
+      ],
+      receiveStep: [
+        "次の画面でダウンロードを開きます。",
+        "受け取ったファイルを選びます。",
+        "パンセノートに戻って、読み込み内容を確認します。",
+      ],
       sendAiPrompt:
         "Macで、パンセノートのデータファイルを他の対応端末へ送りたいです。ダウンロードにある zip ファイルを AirDrop で送る手順、共有が見つからない場合の確認、送るファイル名の見分け方を、初心者向けに順番に教えてください。",
       receiveAiPrompt:
@@ -917,18 +959,19 @@
   }
 
   function buildTransferSendNextStep(deviceDef, fileName) {
-    var safeName = String(fileName || "panseenote-backup- から始まる zip");
     if (!deviceDef) {
-      return "ダウンロードに保存した zip を開き、共有から送ってください。";
+      return ["ダウンロードに保存した zip を開き、共有から送ってください。"];
     }
-    return String(deviceDef.sendStep || "").replace(/panseenote-backup- から始まる zip/g, safeName);
+    return Array.isArray(deviceDef.sendStep) ? deviceDef.sendStep : [String(deviceDef.sendStep || "")];
   }
 
   function buildTransferImportNextStep(deviceDef) {
     if (!deviceDef) {
-      return "今後の作業は、パンセノート以外のアプリでの操作が必要となります。\n\n次の画面で、受け取った panseenote-backup- から始まる zip を選んでください。";
+      return ["次の画面で、受け取った panseenote-backup- から始まる zip を選んでください。"];
     }
-    return deviceDef.receiveStep;
+    return Array.isArray(deviceDef.receiveStep)
+      ? deviceDef.receiveStep
+      : [String(deviceDef.receiveStep || "")];
   }
 
   function buildTransferSelectionSummary(modeDef, deviceDef) {
@@ -956,10 +999,9 @@
     var nameEl = $("#device-transfer-result-name");
     var locationEl = $("#device-transfer-result-location");
     var createdAtEl = $("#device-transfer-result-created-at");
-    var itemCountEl = $("#device-transfer-result-item-count");
     var nextStepEl = $("#device-transfer-result-next-step");
     var info = state.transferLastCreated;
-    if (!box || !nameEl || !locationEl || !createdAtEl || !itemCountEl || !nextStepEl) return;
+    if (!box || !nameEl || !locationEl || !createdAtEl || !nextStepEl) return;
     if (!info || state.selectedTransferMode !== "send") {
       box.setAttribute("hidden", "");
       return;
@@ -967,8 +1009,9 @@
     nameEl.textContent = formatTextDisplay(info.fileName);
     locationEl.textContent = formatTextDisplay(info.locationLabel);
     createdAtEl.textContent = formatIsoDisplay(info.createdAt);
-    itemCountEl.textContent = formatCountDisplay(info.itemCount) + "件";
-    nextStepEl.textContent = formatTextDisplay(info.nextStep);
+    nextStepEl.textContent = Array.isArray(info.nextStep)
+      ? info.nextStep.join("\n")
+      : formatTextDisplay(info.nextStep);
     box.removeAttribute("hidden");
   }
 
@@ -1089,9 +1132,10 @@
       var overlay = $("#app-dialog");
       var msgEl = $("#app-dialog-message");
       var detailEl = $("#app-dialog-detail");
+      var sectionsEl = $("#app-dialog-sections");
       var okBtn = $("#app-dialog-ok");
       var cancelBtn = $("#app-dialog-cancel");
-      if (!overlay || !msgEl || !detailEl || !okBtn || !cancelBtn) {
+      if (!overlay || !msgEl || !detailEl || !sectionsEl || !okBtn || !cancelBtn) {
         resolve(options && options.cancelable === false ? true : false);
         return;
       }
@@ -1104,9 +1148,71 @@
       var detail = String((options && options.detail) || "").trim();
       detailEl.textContent = detail;
       detailEl.hidden = detail === "";
+      msgEl.className =
+        "app-dialog-message" +
+        ((options && options.dialogStyle === "guide") ? " app-dialog-message-guide" : "");
       detailEl.className =
         "app-dialog-detail" +
-        ((options && options.detailAsChip) ? " app-dialog-detail-chip" : "");
+        ((options && options.detailAsChip) ? " app-dialog-detail-chip" : "") +
+        ((options && options.dialogStyle === "guide") ? " app-dialog-detail-guide" : "");
+
+      sectionsEl.innerHTML = "";
+      var detailSections = (options && options.detailSections) || [];
+      if (Array.isArray(detailSections) && detailSections.length) {
+        for (var sectionIdx = 0; sectionIdx < detailSections.length; sectionIdx++) {
+          var section = detailSections[sectionIdx] || {};
+          var sectionEl = document.createElement("section");
+          sectionEl.className = "app-dialog-section";
+
+          if (section.title) {
+            var titleNode = document.createElement("p");
+            titleNode.className = "app-dialog-section-title";
+            titleNode.textContent = String(section.title);
+            sectionEl.appendChild(titleNode);
+          }
+
+          if (Array.isArray(section.rows) && section.rows.length) {
+            var dl = document.createElement("dl");
+            dl.className = "app-dialog-section-meta";
+            for (var rowIdx = 0; rowIdx < section.rows.length; rowIdx++) {
+              var row = section.rows[rowIdx] || [];
+              var rowEl = document.createElement("div");
+              rowEl.className = "app-dialog-section-meta-row";
+              var dt = document.createElement("dt");
+              dt.textContent = String(row[0] || "");
+              var dd = document.createElement("dd");
+              dd.textContent = String(row[1] || "");
+              rowEl.appendChild(dt);
+              rowEl.appendChild(dd);
+              dl.appendChild(rowEl);
+            }
+            sectionEl.appendChild(dl);
+          }
+
+          if (Array.isArray(section.steps) && section.steps.length) {
+            var ol = document.createElement("ol");
+            ol.className = "app-dialog-section-steps";
+            for (var stepIdx = 0; stepIdx < section.steps.length; stepIdx++) {
+              var li = document.createElement("li");
+              li.textContent = String(section.steps[stepIdx] || "");
+              ol.appendChild(li);
+            }
+            sectionEl.appendChild(ol);
+          }
+
+          if (section.body) {
+            var bodyNode = document.createElement("p");
+            bodyNode.className = "app-dialog-section-body";
+            bodyNode.textContent = String(section.body);
+            sectionEl.appendChild(bodyNode);
+          }
+
+          sectionsEl.appendChild(sectionEl);
+        }
+        sectionsEl.hidden = false;
+      } else {
+        sectionsEl.hidden = true;
+      }
 
       okBtn.textContent = (options && options.okLabel) || "OK";
       okBtn.className =
@@ -2830,7 +2936,22 @@
       cancelLabel: "キャンセル",
     }).then(function (ok) {
       if (!ok) return;
-      return showAppAlert(buildTransferImportNextStep(deviceDef), {
+      var guideSections = [
+        {
+          title: "今後の手順",
+          steps: buildTransferImportNextStep(deviceDef),
+        },
+      ];
+      if (Array.isArray(deviceDef.quickShareMinimum) && deviceDef.quickShareMinimum.length) {
+        guideSections.push({
+          title: "Quick Share を使うための最低条件",
+          steps: deviceDef.quickShareMinimum,
+        });
+      }
+      return showAppAlert("受け取ったデータファイルを読み込みます。", {
+        detail: "今後の作業は、パンセノート以外のアプリでの操作が必要となります。",
+        dialogStyle: "guide",
+        detailSections: guideSections,
         okLabel: "ファイルを選ぶ",
       }).then(function () {
         closeDeviceTransferDialog();
@@ -2848,7 +2969,6 @@
       .then(function (pkg) {
         return downloadBackupFileForTransfer(pkg.blob, pkg.name).then(function (result) {
           result.createdAt = new Date().toISOString();
-          result.itemCount = Number(pkg.itemCount || 0);
           return result;
         });
       })
@@ -2860,22 +2980,34 @@
           fileName: result.fileLabel,
           locationLabel: locationLabel,
           createdAt: result.createdAt,
-          itemCount: result.itemCount,
           nextStep: nextStep,
         };
         renderDeviceTransferResult();
+        var guideSections = [
+          {
+            title: "保存したファイル",
+            rows: [
+              ["ファイル名", result.fileLabel],
+              ["保存場所", locationLabel],
+              ["作成日時", formatIsoDisplay(result.createdAt)],
+            ],
+          },
+          {
+            title: "今後の手順",
+            steps: nextStep,
+          },
+        ];
+        if (Array.isArray(deviceDef.quickShareMinimum) && deviceDef.quickShareMinimum.length) {
+          guideSections.push({
+            title: "Quick Share を使うための最低条件",
+            steps: deviceDef.quickShareMinimum,
+          });
+        }
         return persistBackupExportInfo(result.fileLabel).then(function () {
           return showAppAlert("送るファイルを作りました。", {
-            detail:
-              "保存場所: " +
-              locationLabel +
-              "\nファイル名: " +
-              result.fileLabel +
-              "\n登録件数: " +
-              formatCountDisplay(result.itemCount) +
-              "件" +
-              "\n次の操作: " +
-              nextStep,
+            detail: "今後の作業は、パンセノート以外のアプリでの操作が必要となります。",
+            dialogStyle: "guide",
+            detailSections: guideSections,
             okLabel: "閉じる",
           });
         });
